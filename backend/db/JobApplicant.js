@@ -1,4 +1,10 @@
 const mongoose = require("mongoose");
+const { diag, DiagConsoleLogger, DiagLogLevel } = require('@opentelemetry/api');
+
+// Set up OpenTelemetry diagnostics
+diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.ALL);
+
+diag.info('Initializing JobApplicantInfo schema');
 
 let schema = new mongoose.Schema(
   {
@@ -60,4 +66,8 @@ let schema = new mongoose.Schema(
   { collation: { locale: "en" } }
 );
 
+diag.info('JobApplicantInfo schema initialized successfully');
+
 module.exports = mongoose.model("JobApplicantInfo", schema);
+
+diag.info('JobApplicantInfo model exported');
