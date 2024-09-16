@@ -1,7 +1,6 @@
 const express = require("express");
 const fs = require("fs");
 const path = require("path");
-
 const router = express.Router();
 
 router.get("/resume/:file", (req, res) => {
@@ -11,9 +10,11 @@ router.get("/resume/:file", (req, res) => {
       res.status(404).json({
         message: "File not found",
       });
+      console.log("Resume file not found");
       return;
     }
     res.sendFile(address);
+    console.log("Resume file sent successfully");
   });
 });
 
@@ -24,9 +25,11 @@ router.get("/profile/:file", (req, res) => {
       res.status(404).json({
         message: "File not found",
       });
+      console.log("Profile file not found");
       return;
     }
     res.sendFile(address);
+    console.log("Profile file sent successfully");
   });
 });
 
