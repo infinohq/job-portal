@@ -18,6 +18,7 @@ import {
 } from "@material-ui/core";
 import Rating from "@material-ui/lab/Rating";
 import axios from "axios";
+import { trace } from '@opentelemetry/api';
 
 import { SetPopupContext } from "../App";
 
@@ -60,6 +61,7 @@ const ApplicationTile = (props) => {
   const joinedOn = new Date(application.dateOfJoining);
 
   const fetchRating = () => {
+    const span = trace.getTracer('default').startSpan('fetchRating');
     axios
       .get(`${apiList.rating}?id=${application.job._id}`, {
         headers: {
@@ -68,9 +70,11 @@ const ApplicationTile = (props) => {
       })
       .then((response) => {
         setRating(response.data.rating);
+        span.addEvent('Rating fetched', { rating: response.data.rating });
         console.log(response.data);
       })
       .catch((err) => {
+        span.addEvent('Error fetching rating', { error: err.response.data });
         // console.log(err.response);
         console.log(err.response.data);
         setPopup({
@@ -78,10 +82,14 @@ const ApplicationTile = (props) => {
           severity: "error",
           message: "Error",
         });
+      })
+      .finally(() => {
+        span.end();
       });
   };
 
   const changeRating = () => {
+    const span = trace.getTracer('default').startSpan('changeRating');
     axios
       .put(
         apiList.rating,
@@ -93,6 +101,7 @@ const ApplicationTile = (props) => {
         }
       )
       .then((response) => {
+        span.addEvent('Rating changed', { rating: rating });
         console.log(response.data);
         setPopup({
           open: true,
@@ -103,6 +112,7 @@ const ApplicationTile = (props) => {
         setOpen(false);
       })
       .catch((err) => {
+        span.addEvent('Error changing rating', { error: err.response.data });
         // console.log(err.response);
         console.log(err);
         setPopup({
@@ -112,6 +122,9 @@ const ApplicationTile = (props) => {
         });
         fetchRating();
         setOpen(false);
+      })
+      .finally(() => {
+        span.end();
       });
   };
 
@@ -229,6 +242,7 @@ const Applications = (props) => {
   }, []);
 
   const getData = () => {
+    const span = trace.getTracer('default').startSpan('getData');
     axios
       .get(apiList.applications, {
         headers: {
@@ -236,10 +250,12 @@ const Applications = (props) => {
         },
       })
       .then((response) => {
+        span.addEvent('Applications fetched', { applications: response.data });
         console.log(response.data);
         setApplications(response.data);
       })
       .catch((err) => {
+        span.addEvent('Error fetching applications', { error: err.response.data });
         // console.log(err.response);
         console.log(err.response.data);
         setPopup({
@@ -247,6 +263,9 @@ const Applications = (props) => {
           severity: "error",
           message: "Error",
         });
+      })
+      .finally(() => {
+        span.end();
       });
   };
 

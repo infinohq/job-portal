@@ -11,6 +11,7 @@ import {
 import axios from "axios";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/material.css";
+import { trace } from '@opentelemetry/api';
 
 import { SetPopupContext } from "../../App";
 
@@ -46,6 +47,8 @@ const Profile = (props) => {
       ...profileDetails,
       [key]: value,
     });
+    const tracer = trace.getTracer('default');
+    tracer.startSpan('handleInput').addEvent('input_changed', { key, value });
   };
 
   useEffect(() => {
@@ -53,6 +56,8 @@ const Profile = (props) => {
   }, []);
 
   const getData = () => {
+    const tracer = trace.getTracer('default');
+    const span = tracer.startSpan('getData');
     axios
       .get(apiList.user, {
         headers: {
@@ -63,6 +68,8 @@ const Profile = (props) => {
         console.log(response.data);
         setProfileDetails(response.data);
         setPhone(response.data.contactNumber);
+        span.addEvent('data_received', { data: response.data });
+        span.end();
       })
       .catch((err) => {
         console.log(err.response.data);
@@ -71,10 +78,14 @@ const Profile = (props) => {
           severity: "error",
           message: "Error",
         });
+        span.addEvent('error', { error: err.response.data });
+        span.end();
       });
   };
 
   const handleUpdate = () => {
+    const tracer = trace.getTracer('default');
+    const span = tracer.startSpan('handleUpdate');
     let updatedDetails = {
       ...profileDetails,
     };
@@ -89,6 +100,7 @@ const Profile = (props) => {
         contactNumber: "",
       };
     }
+    span.addEvent('update_details', { updatedDetails });
 
     axios
       .put(apiList.user, updatedDetails, {
@@ -103,6 +115,8 @@ const Profile = (props) => {
           message: response.data.message,
         });
         getData();
+        span.addEvent('update_success', { message: response.data.message });
+        span.end();
       })
       .catch((err) => {
         setPopup({
@@ -111,6 +125,8 @@ const Profile = (props) => {
           message: err.response.data.message,
         });
         console.log(err.response);
+        span.addEvent('update_error', { error: err.response.data.message });
+        span.end();
       });
   };
 

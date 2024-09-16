@@ -17,6 +17,9 @@ import FaceIcon from "@material-ui/icons/Face";
 import { SetPopupContext } from "../App";
 
 import apiList from "../lib/apiList";
+import { trace } from '@opentelemetry/api';
+
+const tracer = trace.getTracer('default');
 
 const useStyles = makeStyles((theme) => ({
   body: {
@@ -47,6 +50,7 @@ const MultifieldInput = (props) => {
                 const newEdu = [...education];
                 newEdu[key].institutionName = event.target.value;
                 setEducation(newEdu);
+                tracer.startSpan('Institution Name Change').end();
               }}
               variant="outlined"
               fullWidth
@@ -62,6 +66,7 @@ const MultifieldInput = (props) => {
                 const newEdu = [...education];
                 newEdu[key].startYear = event.target.value;
                 setEducation(newEdu);
+                tracer.startSpan('Start Year Change').end();
               }}
             />
           </Grid>
@@ -75,6 +80,7 @@ const MultifieldInput = (props) => {
                 const newEdu = [...education];
                 newEdu[key].endYear = event.target.value;
                 setEducation(newEdu);
+                tracer.startSpan('End Year Change').end();
               }}
             />
           </Grid>
@@ -84,7 +90,7 @@ const MultifieldInput = (props) => {
         <Button
           variant="contained"
           color="secondary"
-          onClick={() =>
+          onClick={() => {
             setEducation([
               ...education,
               {
@@ -92,8 +98,9 @@ const MultifieldInput = (props) => {
                 startYear: "",
                 endYear: "",
               },
-            ])
-          }
+            ]);
+            tracer.startSpan('Add Institution').end();
+          }}
           className={classes.inputBox}
         >
           Add another institution details
@@ -130,6 +137,7 @@ const Profile = (props) => {
       ...profileDetails,
       [key]: value,
     });
+    tracer.startSpan(`Input Change: ${key}`).end();
   };
 
   useEffect(() => {
@@ -146,6 +154,7 @@ const Profile = (props) => {
       .then((response) => {
         console.log(response.data);
         setProfileDetails(response.data);
+        tracer.startSpan('Get Data Success').end();
         if (response.data.education.length > 0) {
           setEducation(
             response.data.education.map((edu) => ({
@@ -163,15 +172,18 @@ const Profile = (props) => {
           severity: "error",
           message: "Error",
         });
+        tracer.startSpan('Get Data Error').end();
       });
   };
 
   const handleClose = () => {
     setOpen(false);
+    tracer.startSpan('Modal Close').end();
   };
 
   const editDetails = () => {
     setOpen(true);
+    tracer.startSpan('Edit Details').end();
   };
 
   const handleUpdate = () => {
@@ -202,6 +214,7 @@ const Profile = (props) => {
           message: response.data.message,
         });
         getData();
+        tracer.startSpan('Update Success').end();
       })
       .catch((err) => {
         setPopup({
@@ -210,6 +223,7 @@ const Profile = (props) => {
           message: err.response.data.message,
         });
         console.log(err.response);
+        tracer.startSpan('Update Error').end();
       });
     setOpen(false);
   };
@@ -259,12 +273,13 @@ const Profile = (props) => {
                   variant="outlined"
                   helperText="Press enter to add skills"
                   value={profileDetails.skills}
-                  onAdd={(chip) =>
+                  onAdd={(chip) => {
                     setProfileDetails({
                       ...profileDetails,
                       skills: [...profileDetails.skills, chip],
-                    })
-                  }
+                    });
+                    tracer.startSpan('Add Skill').end();
+                  }}
                   onDelete={(chip, index) => {
                     let skills = profileDetails.skills;
                     skills.splice(index, 1);
@@ -272,6 +287,7 @@ const Profile = (props) => {
                       ...profileDetails,
                       skills: skills,
                     });
+                    tracer.startSpan('Delete Skill').end();
                   }}
                   fullWidth
                 />
