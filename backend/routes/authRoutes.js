@@ -1,13 +1,6 @@
-const express = require("express");
-const passport = require("passport");
-const jwt = require("jsonwebtoken");
-const authKeys = require("../lib/authKeys");
+const { trace } = require("@opentelemetry/api");
 
-const User = require("../db/User");
-const JobApplicant = require("../db/JobApplicant");
-const Recruiter = require("../db/Recruiter");
-
-const router = express.Router();
+const tracer = trace.getTracer("logs_instrumentor_user");
 
 router.post("/signup", (req, res) => {
   const data = req.body;
@@ -41,7 +34,7 @@ router.post("/signup", (req, res) => {
       userDetails
         .save()
         .then(() => {
-          // Token
+          tracer.addEvent("User signed up successfully");
           const token = jwt.sign({ _id: user._id }, authKeys.jwtSecretKey);
           res.json({
             token: token,
@@ -49,6 +42,7 @@ router.post("/signup", (req, res) => {
           });
         })
         .catch((err) => {
+          tracer.addEvent("Error saving user details");
           user
             .delete()
             .then(() => {
@@ -61,6 +55,7 @@ router.post("/signup", (req, res) => {
         });
     })
     .catch((err) => {
+      tracer.addEvent("Error saving user");
       res.status(400).json(err);
     });
 });
@@ -77,7 +72,7 @@ router.post("/login", (req, res, next) => {
         res.status(401).json(info);
         return;
       }
-      // Token
+      tracer.addEvent("User logged in successfully");
       const token = jwt.sign({ _id: user._id }, authKeys.jwtSecretKey);
       res.json({
         token: token,
@@ -86,5 +81,3 @@ router.post("/login", (req, res, next) => {
     }
   )(req, res, next);
 });
-
-module.exports = router;

@@ -1,3 +1,7 @@
+const { trace } = require("@opentelemetry/api");
+
+trace.addEvent('Instrumentor user logged in');
+
 const mongoose = require("mongoose");
 
 let schema = new mongoose.Schema(

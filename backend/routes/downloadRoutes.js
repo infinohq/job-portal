@@ -1,3 +1,5 @@
+const { trace } = require("@opentelemetry/api");
+
 const express = require("express");
 const fs = require("fs");
 const path = require("path");
@@ -11,9 +13,11 @@ router.get("/resume/:file", (req, res) => {
       res.status(404).json({
         message: "File not found",
       });
+      trace.log({ message: "File not found" });
       return;
     }
     res.sendFile(address);
+    trace.log({ message: "Resume file sent" });
   });
 });
 
@@ -24,9 +28,11 @@ router.get("/profile/:file", (req, res) => {
       res.status(404).json({
         message: "File not found",
       });
+      trace.log({ message: "File not found" });
       return;
     }
     res.sendFile(address);
+    trace.log({ message: "Profile file sent" });
   });
 });
 
