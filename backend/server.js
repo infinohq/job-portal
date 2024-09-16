@@ -4,8 +4,13 @@ const mongoose = require("mongoose");
 const passportConfig = require("./lib/passportConfig");
 const cors = require("cors");
 const fs = require("fs");
+const { diag, DiagConsoleLogger, DiagLogLevel } = require('@opentelemetry/api');
+
+// Set up OpenTelemetry diagnostics
+diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.ALL);
 
 // MongoDB
+diag.info('Attempting to connect to MongoDB...');
 mongoose
   .connect("mongodb://localhost:27017/jobPortal", {
     useNewUrlParser: true,
@@ -13,23 +18,34 @@ mongoose
     useCreateIndex: true,
     useFindAndModify: false,
   })
-  .then((res) => console.log("Connected to DB"))
-  .catch((err) => console.log(err));
+  .then((res) => {
+    diag.info('Connected to MongoDB');
+    console.log("Connected to DB");
+  })
+  .catch((err) => {
+    diag.error('Error connecting to MongoDB', err);
+    console.log(err);
+  });
 
 // initialising directories
+diag.info('Checking and creating necessary directories...');
 if (!fs.existsSync("./public")) {
+  diag.info('Creating directory: ./public');
   fs.mkdirSync("./public");
 }
 if (!fs.existsSync("./public/resume")) {
+  diag.info('Creating directory: ./public/resume');
   fs.mkdirSync("./public/resume");
 }
 if (!fs.existsSync("./public/profile")) {
+  diag.info('Creating directory: ./public/profile');
   fs.mkdirSync("./public/profile");
 }
 
 const app = express();
 const port = 4444;
 
+diag.info('Setting up middleware...');
 app.use(bodyParser.json()); // support json encoded bodies
 app.use(bodyParser.urlencoded({ extended: true })); // support encoded bodies
 
@@ -38,12 +54,13 @@ app.use(cors());
 app.use(express.json());
 app.use(passportConfig.initialize());
 
-// Routing
+diag.info('Setting up routes...');
 app.use("/auth", require("./routes/authRoutes"));
 app.use("/api", require("./routes/apiRoutes"));
 app.use("/upload", require("./routes/uploadRoutes"));
 app.use("/host", require("./routes/downloadRoutes"));
 
 app.listen(port, () => {
+  diag.info(`Server started on port ${port}`);
   console.log(`Server started on port ${port}!`);
 });
