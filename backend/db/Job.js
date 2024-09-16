@@ -1,5 +1,13 @@
-const mongoose = require("mongoose");
+```javascript
+console.log("Adding log messages for better traceability");
+```
 
+```javascript
+const mongoose = require("mongoose");
+console.log("Required mongoose package");
+```
+
+```javascript
 let schema = new mongoose.Schema(
   {
     userId: {
@@ -131,5 +139,8 @@ let schema = new mongoose.Schema(
   },
   { collation: { locale: "en" } }
 );
+console.log("Created schema for jobs collection");
 
 module.exports = mongoose.model("jobs", schema);
+console.log("Exported mongoose model for jobs collection");
+```
