@@ -1,6 +1,8 @@
 import { Grid, Typography } from "@material-ui/core";
+import { diag } from '@opentelemetry/api';
 
 const Welcome = (props) => {
+  diag.debug('Rendering Welcome component with props:', props);
   return (
     <Grid
       container
@@ -18,6 +20,7 @@ const Welcome = (props) => {
 };
 
 export const ErrorPage = (props) => {
+  diag.debug('Rendering ErrorPage component with props:', props);
   return (
     <Grid
       container

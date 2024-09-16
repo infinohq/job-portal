@@ -2,6 +2,7 @@ import { useState, useContext } from "react";
 import { Grid, Button, TextField, LinearProgress } from "@material-ui/core";
 import { CloudUpload } from "@material-ui/icons";
 import Axios from "axios";
+import { trace } from '@opentelemetry/api';
 
 import { SetPopupContext } from "../App";
 
@@ -14,7 +15,8 @@ const FileUploadInput = (props) => {
   const [uploadPercentage, setUploadPercentage] = useState(0);
 
   const handleUpload = () => {
-    console.log(file);
+    const span = trace.getTracer('default').startSpan('handleUpload');
+    span.addEvent('File upload initiated', { fileName: file.name });
     const data = new FormData();
     data.append("file", file);
     Axios.post(uploadTo, data, {
@@ -22,32 +24,31 @@ const FileUploadInput = (props) => {
         "Content-Type": "multipart/form-data",
       },
       onUploadProgress: (progressEvent) => {
-        setUploadPercentage(
-          parseInt(
-            Math.round((progressEvent.loaded * 100) / progressEvent.total)
-          )
+        const percentage = parseInt(
+          Math.round((progressEvent.loaded * 100) / progressEvent.total)
         );
+        span.addEvent('Upload progress', { percentage });
+        setUploadPercentage(percentage);
       },
     })
       .then((response) => {
-        console.log(response.data);
+        span.addEvent('File upload successful', { responseData: response.data });
         handleInput(identifier, response.data.url);
         setPopup({
           open: true,
           severity: "success",
           message: response.data.message,
         });
+        span.end();
       })
       .catch((err) => {
-        console.log(err.response);
+        span.addEvent('File upload failed', { error: err.response });
         setPopup({
           open: true,
           severity: "error",
           message: err.response.statusText,
-          //   message: err.response.data
-          //     ? err.response.data.message
-          //     : err.response.statusText,
         });
+        span.end();
       });
   };
 
@@ -66,15 +67,12 @@ const FileUploadInput = (props) => {
               type="file"
               style={{ display: "none" }}
               onChange={(event) => {
-                console.log(event.target.files);
+                const span = trace.getTracer('default').startSpan('fileInputChange');
+                span.addEvent('File selected', { fileName: event.target.files[0].name });
                 setUploadPercentage(0);
                 setFile(event.target.files[0]);
+                span.end();
               }}
-              // onChange={onChange}
-              // onChange={
-              //   (e) => {}
-              //   //   setSource({ ...source, place_img: e.target.files[0] })
-              // }
             />
           </Button>
         </Grid>
