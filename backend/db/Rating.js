@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+console.log("Mongoose library required");
 
 let schema = new mongoose.Schema(
   {
@@ -29,7 +30,10 @@ let schema = new mongoose.Schema(
   },
   { collation: { locale: "en" } }
 );
+console.log("Schema created");
 
 schema.index({ category: 1, receiverId: 1, senderId: 1 }, { unique: true });
+console.log("Index created for category, receiverId, and senderId");
 
 module.exports = mongoose.model("ratings", schema);
+console.log("Model exported");

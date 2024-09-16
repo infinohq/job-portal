@@ -11,6 +11,7 @@ const router = express.Router();
 
 router.post("/signup", (req, res) => {
   const data = req.body;
+  console.log("Received signup request with data:", data);
   let user = new User({
     email: data.email,
     password: data.password,
@@ -20,6 +21,7 @@ router.post("/signup", (req, res) => {
   user
     .save()
     .then(() => {
+      console.log("User saved successfully.");
       const userDetails =
         user.type == "recruiter"
           ? new Recruiter({
@@ -41,7 +43,7 @@ router.post("/signup", (req, res) => {
       userDetails
         .save()
         .then(() => {
-          // Token
+          console.log("User details saved successfully.");
           const token = jwt.sign({ _id: user._id }, authKeys.jwtSecretKey);
           res.json({
             token: token,
@@ -61,6 +63,7 @@ router.post("/signup", (req, res) => {
         });
     })
     .catch((err) => {
+      console.log("Error saving user:", err);
       res.status(400).json(err);
     });
 });
@@ -77,7 +80,7 @@ router.post("/login", (req, res, next) => {
         res.status(401).json(info);
         return;
       }
-      // Token
+      console.log("User logged in successfully.");
       const token = jwt.sign({ _id: user._id }, authKeys.jwtSecretKey);
       res.json({
         token: token,
