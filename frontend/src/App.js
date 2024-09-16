@@ -1,7 +1,10 @@
+```jsx
+// Log message: Importing necessary modules
 import { createContext, useState } from "react";
 import { BrowserRouter, Switch, Route } from "react-router-dom";
 import { Grid, makeStyles } from "@material-ui/core";
 
+// Log message: Importing components
 import Welcome, { ErrorPage } from "./component/Welcome";
 import Navbar from "./component/Navbar";
 import Login from "./component/Login";
@@ -18,6 +21,7 @@ import RecruiterProfile from "./component/recruiter/Profile";
 import MessagePopup from "./lib/MessagePopup";
 import isAuth, { userType } from "./lib/isAuth";
 
+// Log message: Creating styles using makeStyles
 const useStyles = makeStyles((theme) => ({
   body: {
     display: "flex",
@@ -31,6 +35,7 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
+// Log message: Creating context for popup messages
 export const SetPopupContext = createContext();
 
 function App() {
@@ -109,3 +114,4 @@ function App() {
 }
 
 export default App;
+```

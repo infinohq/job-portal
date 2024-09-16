@@ -1,3 +1,5 @@
+```jsx
+// Log: Imported necessary modules
 import { useContext, useEffect, useState } from "react";
 import {
   Button,
@@ -18,6 +20,7 @@ import { SetPopupContext } from "../App";
 
 import apiList from "../lib/apiList";
 
+// Log: Defined useStyles function
 const useStyles = makeStyles((theme) => ({
   body: {
     height: "inherit",
@@ -31,6 +34,7 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
+// Log: Defined MultifieldInput component
 const MultifieldInput = (props) => {
   const classes = useStyles();
   const { education, setEducation } = props;
@@ -103,6 +107,7 @@ const MultifieldInput = (props) => {
   );
 };
 
+// Log: Defined Profile component
 const Profile = (props) => {
   const classes = useStyles();
   const setPopup = useContext(SetPopupContext);
@@ -136,6 +141,7 @@ const Profile = (props) => {
     getData();
   }, []);
 
+  // Log: Defined getData function
   const getData = () => {
     axios
       .get(apiList.user, {
@@ -174,6 +180,7 @@ const Profile = (props) => {
     setOpen(true);
   };
 
+  // Log: Defined handleUpdate function
   const handleUpdate = () => {
     console.log(education);
 
@@ -315,4 +322,6 @@ const Profile = (props) => {
   );
 };
 
+// Log: Exported Profile component
 export default Profile;
+```

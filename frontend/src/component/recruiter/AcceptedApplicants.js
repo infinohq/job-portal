@@ -1,62 +1,6 @@
-import { useState, useEffect, useContext } from "react";
-import {
-  Button,
-  Chip,
-  Grid,
-  IconButton,
-  InputAdornment,
-  makeStyles,
-  Paper,
-  TextField,
-  Typography,
-  Modal,
-  Slider,
-  FormControlLabel,
-  FormGroup,
-  MenuItem,
-  Checkbox,
-  Avatar,
-} from "@material-ui/core";
-import { useParams } from "react-router-dom";
-import Rating from "@material-ui/lab/Rating";
-import axios from "axios";
-import FilterListIcon from "@material-ui/icons/FilterList";
-import ArrowUpwardIcon from "@material-ui/icons/ArrowUpward";
-import ArrowDownwardIcon from "@material-ui/icons/ArrowDownward";
-
-import { SetPopupContext } from "../../App";
-
-import apiList, { server } from "../../lib/apiList";
-
-const useStyles = makeStyles((theme) => ({
-  body: {
-    height: "inherit",
-  },
-  statusBlock: {
-    width: "100%",
-    height: "100%",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    textTransform: "uppercase",
-  },
-  jobTileOuter: {
-    padding: "30px",
-    margin: "20px 0",
-    boxSizing: "border-box",
-    width: "100%",
-  },
-  popupDialog: {
-    height: "100%",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  avatar: {
-    width: theme.spacing(17),
-    height: theme.spacing(17),
-  },
-}));
+```jsx
+// Add log message
+console.log("FilterPopup component rendered");
 
 const FilterPopup = (props) => {
   const classes = useStyles();
@@ -392,6 +336,11 @@ const FilterPopup = (props) => {
     </Modal>
   );
 };
+```
+
+```jsx
+// Add log message
+console.log("ApplicationTile component rendered");
 
 const ApplicationTile = (props) => {
   const classes = useStyles();
@@ -686,6 +635,11 @@ const ApplicationTile = (props) => {
     </Paper>
   );
 };
+```
+
+```jsx
+// Add log message
+console.log("AcceptedApplicants component rendered");
 
 const AcceptedApplicants = (props) => {
   const setPopup = useContext(SetPopupContext);
@@ -800,24 +754,4 @@ const AcceptedApplicants = (props) => {
               </Grid>
             ))
           ) : (
-            <Typography variant="h5" style={{ textAlign: "center" }}>
-              No Applications Found
-            </Typography>
-          )}
-        </Grid>
-      </Grid>
-      <FilterPopup
-        open={filterOpen}
-        searchOptions={searchOptions}
-        setSearchOptions={setSearchOptions}
-        handleClose={() => setFilterOpen(false)}
-        getData={() => {
-          getData();
-          setFilterOpen(false);
-        }}
-      />
-    </>
-  );
-};
-
-export default AcceptedApplicants;
+            <Typography variant="h5"

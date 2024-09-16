@@ -1,6 +1,8 @@
+```jsx
 import { Grid, Typography } from "@material-ui/core";
 
 const Welcome = (props) => {
+  console.log("Rendering Welcome component");
   return (
     <Grid
       container
@@ -18,6 +20,7 @@ const Welcome = (props) => {
 };
 
 export const ErrorPage = (props) => {
+  console.log("Rendering ErrorPage component");
   return (
     <Grid
       container
@@ -35,3 +38,4 @@ export const ErrorPage = (props) => {
 };
 
 export default Welcome;
+```

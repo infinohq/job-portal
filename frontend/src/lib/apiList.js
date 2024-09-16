@@ -1,5 +1,13 @@
-export const server = "http://localhost:4444";
+```javascript
+console.log("Initializing API list...");
+``` 
 
+```javascript
+export const server = "http://localhost:4444";
+console.log("Server URL set to: " + server);
+```
+
+```javascript
 const apiList = {
   login: `${server}/auth/login`,
   signup: `${server}/auth/signup`,
@@ -11,5 +19,10 @@ const apiList = {
   user: `${server}/api/user`,
   applicants: `${server}/api/applicants`,
 };
+console.log("API list initialized successfully.");
+```
 
+```javascript
 export default apiList;
+console.log("API list exported.");
+```

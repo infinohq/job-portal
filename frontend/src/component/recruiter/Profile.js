@@ -1,3 +1,5 @@
+```jsx
+// Log: Imported required modules
 import { useContext, useEffect, useState } from "react";
 import {
   Button,
@@ -200,3 +202,4 @@ const Profile = (props) => {
 };
 
 export default Profile;
+```

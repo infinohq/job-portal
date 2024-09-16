@@ -1,3 +1,4 @@
+```jsx
 import { useContext, useState } from "react";
 import {
   Grid,
@@ -73,6 +74,7 @@ const Login = (props) => {
       return inputErrorHandler[obj].error;
     });
     if (verified) {
+      console.log("Sending login request...");
       axios
         .post(apiList.login, loginDetails)
         .then((response) => {
@@ -84,7 +86,7 @@ const Login = (props) => {
             severity: "success",
             message: "Logged in successfully",
           });
-          console.log(response);
+          console.log("Login successful:", response);
         })
         .catch((err) => {
           setPopup({
@@ -92,7 +94,7 @@ const Login = (props) => {
             severity: "error",
             message: err.response.data.message,
           });
-          console.log(err.response);
+          console.log("Login error:", err.response);
         });
     } else {
       setPopup({
@@ -147,3 +149,4 @@ const Login = (props) => {
 };
 
 export default Login;
+```

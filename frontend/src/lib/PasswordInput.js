@@ -1,3 +1,4 @@
+```jsx
 import { useState } from "react";
 import {
   FormControl,
@@ -14,10 +15,12 @@ const PasswordInput = (props) => {
   const [showPassword, setShowPassword] = useState(false);
 
   const handleShowPassword = () => {
+    console.log("Toggling password visibility");
     setShowPassword(!showPassword);
   };
 
   const handleMouseDownPassword = (event) => {
+    console.log("Preventing default mouse down event");
     event.preventDefault();
   };
 
@@ -56,3 +59,4 @@ const PasswordInput = (props) => {
 };
 
 export default PasswordInput;
+```

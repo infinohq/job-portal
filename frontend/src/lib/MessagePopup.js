@@ -1,20 +1,11 @@
-import { Snackbar, Slide } from "@material-ui/core";
-import { Alert } from "@material-ui/lab";
+```javascript
+console.log('MessagePopup component is rendered');
+```
 
-const MessagePopup = (props) => {
-  const handleClose = (event, reason) => {
-    if (reason === "clickaway") {
-      return;
-    }
-    props.setOpen(false);
-  };
-  return (
-    <Snackbar open={props.open} onClose={handleClose} autoHideDuration={2000}>
-      <Alert onClose={handleClose} severity={props.severity}>
-        {props.message}
-      </Alert>
-    </Snackbar>
-  );
-};
+```javascript
+console.log('Snackbar is opened with props:', props);
+```
 
-export default MessagePopup;
+```javascript
+console.log('Snackbar is closed with reason:', reason);
+```
