@@ -1,6 +1,7 @@
 import { createContext, useState } from "react";
 import { BrowserRouter, Switch, Route } from "react-router-dom";
 import { Grid, makeStyles } from "@material-ui/core";
+import { trace } from '@opentelemetry/api';
 
 import Welcome, { ErrorPage } from "./component/Welcome";
 import Navbar from "./component/Navbar";
@@ -34,12 +35,21 @@ const useStyles = makeStyles((theme) => ({
 export const SetPopupContext = createContext();
 
 function App() {
+  const tracer = trace.getTracer('default');
   const classes = useStyles();
   const [popup, setPopup] = useState({
     open: false,
     severity: "",
     message: "",
   });
+
+  tracer.startActiveSpan('App Component Render', span => {
+    span.setAttribute('popup.open', popup.open);
+    span.setAttribute('popup.severity', popup.severity);
+    span.setAttribute('popup.message', popup.message);
+    span.end();
+  });
+
   return (
     <BrowserRouter>
       <SetPopupContext.Provider value={setPopup}>

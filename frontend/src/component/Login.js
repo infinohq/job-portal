@@ -9,6 +9,7 @@ import {
 } from "@material-ui/core";
 import axios from "axios";
 import { Redirect } from "react-router-dom";
+import { trace } from '@opentelemetry/api';
 
 import PasswordInput from "../lib/PasswordInput";
 import EmailInput from "../lib/EmailInput";
@@ -29,16 +30,20 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
+const tracer = trace.getTracer('default');
+
 const Login = (props) => {
   const classes = useStyles();
   const setPopup = useContext(SetPopupContext);
 
   const [loggedin, setLoggedin] = useState(isAuth());
+  tracer.startSpan('Check if user is authenticated', { attributes: { loggedin } }).end();
 
   const [loginDetails, setLoginDetails] = useState({
     email: "",
     password: "",
   });
+  tracer.startSpan('Initialize login details', { attributes: { loginDetails } }).end();
 
   const [inputErrorHandler, setInputErrorHandler] = useState({
     email: {
@@ -50,12 +55,14 @@ const Login = (props) => {
       message: "",
     },
   });
+  tracer.startSpan('Initialize input error handler', { attributes: { inputErrorHandler } }).end();
 
   const handleInput = (key, value) => {
     setLoginDetails({
       ...loginDetails,
       [key]: value,
     });
+    tracer.startSpan('Handle input change', { attributes: { key, value, loginDetails } }).end();
   };
 
   const handleInputError = (key, status, message) => {
@@ -66,12 +73,15 @@ const Login = (props) => {
         message: message,
       },
     });
+    tracer.startSpan('Handle input error', { attributes: { key, status, message, inputErrorHandler } }).end();
   };
 
   const handleLogin = () => {
     const verified = !Object.keys(inputErrorHandler).some((obj) => {
       return inputErrorHandler[obj].error;
     });
+    tracer.startSpan('Verify input errors', { attributes: { verified, inputErrorHandler } }).end();
+
     if (verified) {
       axios
         .post(apiList.login, loginDetails)
@@ -84,7 +94,7 @@ const Login = (props) => {
             severity: "success",
             message: "Logged in successfully",
           });
-          console.log(response);
+          tracer.startSpan('Login successful', { attributes: { response, loggedin } }).end();
         })
         .catch((err) => {
           setPopup({
@@ -92,7 +102,7 @@ const Login = (props) => {
             severity: "error",
             message: err.response.data.message,
           });
-          console.log(err.response);
+          tracer.startSpan('Login failed', { attributes: { err } }).end();
         });
     } else {
       setPopup({
@@ -100,6 +110,7 @@ const Login = (props) => {
         severity: "error",
         message: "Incorrect Input",
       });
+      tracer.startSpan('Incorrect input', { attributes: { inputErrorHandler } }).end();
     }
   };
 
