@@ -1,4 +1,12 @@
+const { diag, DiagConsoleLogger, DiagLogLevel } = require("@opentelemetry/api");
+
+diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.ALL);
+
+diag.debug("Setting up logging for ratings model.");
+
 const mongoose = require("mongoose");
+
+diag.debug("Creating schema for ratings model.");
 
 let schema = new mongoose.Schema(
   {
@@ -30,6 +38,10 @@ let schema = new mongoose.Schema(
   { collation: { locale: "en" } }
 );
 
+diag.debug("Creating index for ratings model.");
+
 schema.index({ category: 1, receiverId: 1, senderId: 1 }, { unique: true });
+
+diag.debug("Rating model schema created successfully.");
 
 module.exports = mongoose.model("ratings", schema);
