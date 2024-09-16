@@ -27,6 +27,7 @@ import ArrowDownwardIcon from "@material-ui/icons/ArrowDownward";
 import { SetPopupContext } from "../../App";
 
 import apiList, { server } from "../../lib/apiList";
+import { trace } from '@opentelemetry/api';
 
 const useStyles = makeStyles((theme) => ({
   body: {
@@ -61,6 +62,7 @@ const useStyles = makeStyles((theme) => ({
 const FilterPopup = (props) => {
   const classes = useStyles();
   const { open, handleClose, searchOptions, setSearchOptions, getData } = props;
+  const tracer = trace.getTracer('default');
   return (
     <Modal open={open} onClose={handleClose} className={classes.popupDialog}>
       <Paper
@@ -89,12 +91,17 @@ const FilterPopup = (props) => {
                       name="rejected"
                       checked={searchOptions.status.rejected}
                       onChange={(event) => {
-                        setSearchOptions({
-                          ...searchOptions,
-                          status: {
-                            ...searchOptions.status,
-                            [event.target.name]: event.target.checked,
-                          },
+                        tracer.startActiveSpan('Checkbox Change', span => {
+                          setSearchOptions({
+                            ...searchOptions,
+                            status: {
+                              ...searchOptions.status,
+                              [event.target.name]: event.target.checked,
+                            },
+                          });
+                          span.setAttribute('checkbox_name', event.target.name);
+                          span.setAttribute('checkbox_checked', event.target.checked);
+                          span.end();
                         });
                       }}
                     />
@@ -109,12 +116,17 @@ const FilterPopup = (props) => {
                       name="applied"
                       checked={searchOptions.status.applied}
                       onChange={(event) => {
-                        setSearchOptions({
-                          ...searchOptions,
-                          status: {
-                            ...searchOptions.status,
-                            [event.target.name]: event.target.checked,
-                          },
+                        tracer.startActiveSpan('Checkbox Change', span => {
+                          setSearchOptions({
+                            ...searchOptions,
+                            status: {
+                              ...searchOptions.status,
+                              [event.target.name]: event.target.checked,
+                            },
+                          });
+                          span.setAttribute('checkbox_name', event.target.name);
+                          span.setAttribute('checkbox_checked', event.target.checked);
+                          span.end();
                         });
                       }}
                     />
@@ -129,12 +141,17 @@ const FilterPopup = (props) => {
                       name="shortlisted"
                       checked={searchOptions.status.shortlisted}
                       onChange={(event) => {
-                        setSearchOptions({
-                          ...searchOptions,
-                          status: {
-                            ...searchOptions.status,
-                            [event.target.name]: event.target.checked,
-                          },
+                        tracer.startActiveSpan('Checkbox Change', span => {
+                          setSearchOptions({
+                            ...searchOptions,
+                            status: {
+                              ...searchOptions.status,
+                              [event.target.name]: event.target.checked,
+                            },
+                          });
+                          span.setAttribute('checkbox_name', event.target.name);
+                          span.setAttribute('checkbox_checked', event.target.checked);
+                          span.end();
                         });
                       }}
                     />
@@ -162,15 +179,20 @@ const FilterPopup = (props) => {
                     name="name"
                     checked={searchOptions.sort["jobApplicant.name"].status}
                     onChange={(event) =>
-                      setSearchOptions({
-                        ...searchOptions,
-                        sort: {
-                          ...searchOptions.sort,
-                          "jobApplicant.name": {
-                            ...searchOptions.sort["jobApplicant.name"],
-                            status: event.target.checked,
+                      tracer.startActiveSpan('Checkbox Change', span => {
+                        setSearchOptions({
+                          ...searchOptions,
+                          sort: {
+                            ...searchOptions.sort,
+                            "jobApplicant.name": {
+                              ...searchOptions.sort["jobApplicant.name"],
+                              status: event.target.checked,
+                            },
                           },
-                        },
+                        });
+                        span.setAttribute('checkbox_name', event.target.name);
+                        span.setAttribute('checkbox_checked', event.target.checked);
+                        span.end();
                       })
                     }
                     id="name"
@@ -185,15 +207,20 @@ const FilterPopup = (props) => {
                   <IconButton
                     disabled={!searchOptions.sort["jobApplicant.name"].status}
                     onClick={() => {
-                      setSearchOptions({
-                        ...searchOptions,
-                        sort: {
-                          ...searchOptions.sort,
-                          "jobApplicant.name": {
-                            ...searchOptions.sort["jobApplicant.name"],
-                            desc: !searchOptions.sort["jobApplicant.name"].desc,
+                      tracer.startActiveSpan('Sort Change', span => {
+                        setSearchOptions({
+                          ...searchOptions,
+                          sort: {
+                            ...searchOptions.sort,
+                            "jobApplicant.name": {
+                              ...searchOptions.sort["jobApplicant.name"],
+                              desc: !searchOptions.sort["jobApplicant.name"].desc,
+                            },
                           },
-                        },
+                        });
+                        span.setAttribute('sort_field', 'jobApplicant.name');
+                        span.setAttribute('sort_desc', searchOptions.sort["jobApplicant.name"].desc);
+                        span.end();
                       });
                     }}
                   >
@@ -218,15 +245,20 @@ const FilterPopup = (props) => {
                     name="dateOfApplication"
                     checked={searchOptions.sort.dateOfApplication.status}
                     onChange={(event) =>
-                      setSearchOptions({
-                        ...searchOptions,
-                        sort: {
-                          ...searchOptions.sort,
-                          dateOfApplication: {
-                            ...searchOptions.sort.dateOfApplication,
-                            status: event.target.checked,
+                      tracer.startActiveSpan('Checkbox Change', span => {
+                        setSearchOptions({
+                          ...searchOptions,
+                          sort: {
+                            ...searchOptions.sort,
+                            dateOfApplication: {
+                              ...searchOptions.sort.dateOfApplication,
+                              status: event.target.checked,
+                            },
                           },
-                        },
+                        });
+                        span.setAttribute('checkbox_name', event.target.name);
+                        span.setAttribute('checkbox_checked', event.target.checked);
+                        span.end();
                       })
                     }
                     id="dateOfApplication"
@@ -241,15 +273,20 @@ const FilterPopup = (props) => {
                   <IconButton
                     disabled={!searchOptions.sort.dateOfApplication.status}
                     onClick={() => {
-                      setSearchOptions({
-                        ...searchOptions,
-                        sort: {
-                          ...searchOptions.sort,
-                          dateOfApplication: {
-                            ...searchOptions.sort.dateOfApplication,
-                            desc: !searchOptions.sort.dateOfApplication.desc,
+                      tracer.startActiveSpan('Sort Change', span => {
+                        setSearchOptions({
+                          ...searchOptions,
+                          sort: {
+                            ...searchOptions.sort,
+                            dateOfApplication: {
+                              ...searchOptions.sort.dateOfApplication,
+                              desc: !searchOptions.sort.dateOfApplication.desc,
+                            },
                           },
-                        },
+                        });
+                        span.setAttribute('sort_field', 'dateOfApplication');
+                        span.setAttribute('sort_desc', searchOptions.sort.dateOfApplication.desc);
+                        span.end();
                       });
                     }}
                   >
@@ -274,15 +311,20 @@ const FilterPopup = (props) => {
                     name="rating"
                     checked={searchOptions.sort["jobApplicant.rating"].status}
                     onChange={(event) =>
-                      setSearchOptions({
-                        ...searchOptions,
-                        sort: {
-                          ...searchOptions.sort,
-                          "jobApplicant.rating": {
-                            ...searchOptions.sort[["jobApplicant.rating"]],
-                            status: event.target.checked,
+                      tracer.startActiveSpan('Checkbox Change', span => {
+                        setSearchOptions({
+                          ...searchOptions,
+                          sort: {
+                            ...searchOptions.sort,
+                            "jobApplicant.rating": {
+                              ...searchOptions.sort[["jobApplicant.rating"]],
+                              status: event.target.checked,
+                            },
                           },
-                        },
+                        });
+                        span.setAttribute('checkbox_name', event.target.name);
+                        span.setAttribute('checkbox_checked', event.target.checked);
+                        span.end();
                       })
                     }
                     id="rating"
@@ -297,16 +339,21 @@ const FilterPopup = (props) => {
                   <IconButton
                     disabled={!searchOptions.sort["jobApplicant.rating"].status}
                     onClick={() => {
-                      setSearchOptions({
-                        ...searchOptions,
-                        sort: {
-                          ...searchOptions.sort,
-                          "jobApplicant.rating": {
-                            ...searchOptions.sort["jobApplicant.rating"],
-                            desc: !searchOptions.sort["jobApplicant.rating"]
-                              .desc,
+                      tracer.startActiveSpan('Sort Change', span => {
+                        setSearchOptions({
+                          ...searchOptions,
+                          sort: {
+                            ...searchOptions.sort,
+                            "jobApplicant.rating": {
+                              ...searchOptions.sort["jobApplicant.rating"],
+                              desc: !searchOptions.sort["jobApplicant.rating"]
+                                .desc,
+                            },
                           },
-                        },
+                        });
+                        span.setAttribute('sort_field', 'jobApplicant.rating');
+                        span.setAttribute('sort_desc', searchOptions.sort["jobApplicant.rating"].desc);
+                        span.end();
                       });
                     }}
                   >
@@ -342,6 +389,7 @@ const ApplicationTile = (props) => {
   const { application, getData } = props;
   const setPopup = useContext(SetPopupContext);
   const [open, setOpen] = useState(false);
+  const tracer = trace.getTracer('default');
 
   const appliedOn = new Date(application.dateOfApplication);
 
@@ -365,24 +413,28 @@ const ApplicationTile = (props) => {
       application.jobApplicant.resume !== ""
     ) {
       const address = `${server}${application.jobApplicant.resume}`;
-      console.log(address);
-      axios(address, {
-        method: "GET",
-        responseType: "blob",
-      })
-        .then((response) => {
-          const file = new Blob([response.data], { type: "application/pdf" });
-          const fileURL = URL.createObjectURL(file);
-          window.open(fileURL);
+      tracer.startActiveSpan('Get Resume', span => {
+        span.setAttribute('resume_address', address);
+        axios(address, {
+          method: "GET",
+          responseType: "blob",
         })
-        .catch((error) => {
-          console.log(error);
-          setPopup({
-            open: true,
-            severity: "error",
-            message: "Error",
+          .then((response) => {
+            const file = new Blob([response.data], { type: "application/pdf" });
+            const fileURL = URL.createObjectURL(file);
+            window.open(fileURL);
+            span.end();
+          })
+          .catch((error) => {
+            span.recordException(error);
+            setPopup({
+              open: true,
+              severity: "error",
+              message: "Error",
+            });
+            span.end();
           });
-        });
+      });
     } else {
       setPopup({
         open: true,
@@ -398,28 +450,34 @@ const ApplicationTile = (props) => {
       status: status,
       dateOfJoining: new Date().toISOString(),
     };
-    axios
-      .put(address, statusData, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      })
-      .then((response) => {
-        setPopup({
-          open: true,
-          severity: "success",
-          message: response.data.message,
+    tracer.startActiveSpan('Update Status', span => {
+      span.setAttribute('status_address', address);
+      span.setAttribute('status_data', JSON.stringify(statusData));
+      axios
+        .put(address, statusData, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        })
+        .then((response) => {
+          setPopup({
+            open: true,
+            severity: "success",
+            message: response.data.message,
+          });
+          getData();
+          span.end();
+        })
+        .catch((err) => {
+          span.recordException(err);
+          setPopup({
+            open: true,
+            severity: "error",
+            message: err.response.data.message,
+          });
+          span.end();
         });
-        getData();
-      })
-      .catch((err) => {
-        setPopup({
-          open: true,
-          severity: "error",
-          message: err.response.data.message,
-        });
-        console.log(err.response);
-      });
+    });
   };
 
   const buttonSet = {
@@ -662,121 +720,8 @@ const JobApplications = (props) => {
       },
     },
   });
+  const tracer = trace.getTracer('default');
 
   useEffect(() => {
     getData();
-  }, []);
-
-  const getData = () => {
-    let searchParams = [];
-
-    if (searchOptions.status.rejected) {
-      searchParams = [...searchParams, `status=rejected`];
-    }
-    if (searchOptions.status.applied) {
-      searchParams = [...searchParams, `status=applied`];
-    }
-    if (searchOptions.status.shortlisted) {
-      searchParams = [...searchParams, `status=shortlisted`];
-    }
-
-    let asc = [],
-      desc = [];
-
-    Object.keys(searchOptions.sort).forEach((obj) => {
-      const item = searchOptions.sort[obj];
-      if (item.status) {
-        if (item.desc) {
-          desc = [...desc, `desc=${obj}`];
-        } else {
-          asc = [...asc, `asc=${obj}`];
-        }
-      }
-    });
-    searchParams = [...searchParams, ...asc, ...desc];
-    const queryString = searchParams.join("&");
-    console.log(queryString);
-    let address = `${apiList.applicants}?jobId=${jobId}`;
-    if (queryString !== "") {
-      address = `${address}&${queryString}`;
-    }
-
-    console.log(address);
-
-    axios
-      .get(address, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      })
-      .then((response) => {
-        console.log(response.data);
-        setApplications(response.data);
-      })
-      .catch((err) => {
-        console.log(err.response);
-        // console.log(err.response.data);
-        setApplications([]);
-        setPopup({
-          open: true,
-          severity: "error",
-          message: err.response.data.message,
-        });
-      });
-  };
-
-  return (
-    <>
-      <Grid
-        container
-        item
-        direction="column"
-        alignItems="center"
-        style={{ padding: "30px", minHeight: "93vh" }}
-      >
-        <Grid item>
-          <Typography variant="h2">Applications</Typography>
-        </Grid>
-        <Grid item>
-          <IconButton onClick={() => setFilterOpen(true)}>
-            <FilterListIcon />
-          </IconButton>
-        </Grid>
-        <Grid
-          container
-          item
-          xs
-          direction="column"
-          style={{ width: "100%" }}
-          alignItems="stretch"
-          justify="center"
-        >
-          {applications.length > 0 ? (
-            applications.map((obj) => (
-              <Grid item>
-                {/* {console.log(obj)} */}
-                <ApplicationTile application={obj} getData={getData} />
-              </Grid>
-            ))
-          ) : (
-            <Typography variant="h5" style={{ textAlign: "center" }}>
-              No Applications Found
-            </Typography>
-          )}
-        </Grid>
-      </Grid>
-      <FilterPopup
-        open={filterOpen}
-        searchOptions={searchOptions}
-        setSearchOptions={setSearchOptions}
-        handleClose={() => setFilterOpen(false)}
-        getData={() => {
-          getData();
-          setFilterOpen(false);
-        }}
-      />
-    </>
-  );
-};
-
-export default JobApplications;
+ 
