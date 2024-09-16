@@ -1,3 +1,30 @@
+const { MeterProvider } = require('@opentelemetry/metrics');
+const { NodeTracerProvider } = require('@opentelemetry/node');
+const { SimpleSpanProcessor } = require('@opentelemetry/tracing');
+const { ConsoleSpanExporter, SimpleSpanProcessor } = require('@opentelemetry/tracing');
+const { Resource } = require('@opentelemetry/resources');
+const { SemanticResourceAttributes } = require('@opentelemetry/semantic-conventions');
+
+const meter = new MeterProvider({
+  resourceName: new Resource({
+    [SemanticResourceAttributes.SERVICE_NAME]: 'UserAuth_Service',
+  }),
+}).getMeter('UserAuthMetrics');
+
+const requestCounter = meter.createCounter('userauth_requests_total', {
+  description: 'Total number of requests to UserAuth service',
+});
+
+const errorCounter = meter.createCounter('userauth_errors_total', {
+  description: 'Total number of errors in UserAuth service',
+});
+
+// Increment request counter for each request
+requestCounter.add(1);
+
+// Increment error counter for each error
+errorCounter.add(1);
+
 const mongoose = require("mongoose");
 console.log("Mongoose module required");
 
@@ -42,6 +69,8 @@ schema.pre("save", function (next) {
   bcrypt.hash(user.password, 10, (err, hash) => {
     if (err) {
       console.error("Error hashing password:", err);
+      // Increment error counter for hashing error
+      errorCounter.add(1);
       return next(err);
     }
     user.password = hash;
@@ -58,6 +87,8 @@ schema.methods.login = function (password) {
     bcrypt.compare(password, user.password, (err, result) => {
       if (err) {
         console.error("Error comparing passwords:", err);
+        // Increment error counter for password comparison error
+        errorCounter.add(1);
         reject(err);
       }
       if (result) {

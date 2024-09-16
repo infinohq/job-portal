@@ -1,13 +1,25 @@
 ```javascript
-console.log("Adding log messages for better traceability");
-```
+const { MeterProvider } = require('@opentelemetry/metrics');
+const { ConsoleMetricExporter } = require('@opentelemetry/exporter-console');
 
-```javascript
+const meter = new MeterProvider({
+  exporter: new ConsoleMetricExporter(),
+  interval: 1000,
+}).getMeter('business_metrics');
+
+const requestsCounter = meter.createCounter('job_requests', {
+  description: 'Number of job requests',
+});
+
+const errorsCounter = meter.createCounter('job_errors', {
+  description: 'Number of job errors',
+});
+
+console.log("Adding log messages for better traceability");
+
 const mongoose = require("mongoose");
 console.log("Required mongoose package");
-```
 
-```javascript
 let schema = new mongoose.Schema(
   {
     userId: {

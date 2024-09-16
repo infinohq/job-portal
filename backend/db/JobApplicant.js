@@ -1,4 +1,20 @@
 ```javascript
+const { MeterProvider } = require('@opentelemetry/metrics');
+const { NodeTracerProvider } = require('@opentelemetry/node');
+const { SimpleSpanProcessor } = require('@opentelemetry/tracing');
+const { ConsoleSpanExporter, SimpleSpanProcessor } = require('@opentelemetry/tracing');
+const { PrometheusExporter } = require('@opentelemetry/exporter-prometheus');
+
+const meter = new MeterProvider().getMeter('job_application_metrics');
+
+const requestCounter = meter.createCounter("job_application_requests_total", {
+  description: "Total number of job application requests",
+});
+
+const errorCounter = meter.createCounter("job_application_errors_total", {
+  description: "Total number of job application errors",
+});
+
 console.log("Adding log messages for better traceability");
 const mongoose = require("mongoose");
 

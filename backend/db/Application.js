@@ -1,4 +1,27 @@
 ```javascript
+const { MeterProvider } = require('@opentelemetry/metrics');
+const { NodeTracerProvider } = require('@opentelemetry/node');
+const { SimpleSpanProcessor } = require('@opentelemetry/tracing');
+const { ConsoleSpanExporter, SimpleSpanProcessor } = require('@opentelemetry/tracing');
+const { Resource } = require('@opentelemetry/resources');
+const { SemanticResourceAttributes } = require('@opentelemetry/semantic-conventions');
+
+const meter = new MeterProvider({
+  resourceName: new Resource({
+    [SemanticResourceAttributes.SERVICE_NAME]: 'application-service'
+  })
+}).getMeter('example-meter');
+
+const counterRequest = meter.createCounter('application_requests_total', {
+  description: 'Total number of requests to the application service',
+});
+const counterError = meter.createCounter('application_errors_total', {
+  description: 'Total number of errors in the application service',
+});
+
+// Increment the request counter for each incoming request
+counterRequest.add(1);
+
 console.log("Adding log messages for better traceability");
 const mongoose = require("mongoose");
 

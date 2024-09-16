@@ -1,54 +1,32 @@
-const express = require("express");
-const bodyParser = require("body-parser");
-const mongoose = require("mongoose");
-const passportConfig = require("./lib/passportConfig");
-const cors = require("cors");
-const fs = require("fs");
+const { MeterProvider } = require('@opentelemetry/metrics');
+const { PrometheusExporter } = require('@opentelemetry/exporter-prometheus');
 
-console.log("Required dependencies loaded.");
+const meter = new MeterProvider({
+  exporter: new PrometheusExporter({
+    startServer: true,
+  }),
+  interval: 10000,
+}).getMeter('job_portal_metrics');
 
-// MongoDB
-mongoose
-  .connect("mongodb://localhost:27017/jobPortal", {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-    useCreateIndex: true,
-    useFindAndModify: false,
-  })
-  .then((res) => console.log("Connected to DB"))
-  .catch((err) => console.log(err));
+const requestCounter = meter.createCounter("job_portal_requests_total", {
+  description: "Total number of requests to the job portal server",
+});
 
-console.log("MongoDB connection established.");
-
-// initialising directories
-if (!fs.existsSync("./public")) {
-  fs.mkdirSync("./public");
-}
-if (!fs.existsSync("./public/resume")) {
-  fs.mkdirSync("./public/resume");
-}
-if (!fs.existsSync("./public/profile")) {
-  fs.mkdirSync("./public/profile");
-}
-
-console.log("Directories initialized.");
-
-const app = express();
-const port = 4444;
-
-app.use(bodyParser.json()); // support json encoded bodies
-app.use(bodyParser.urlencoded({ extended: true })); // support encoded bodies
-
-console.log("Body parsers configured.");
-
-// Setting up middlewares
-app.use(cors());
-app.use(express.json());
-app.use(passportConfig.initialize());
-
-console.log("Middlewares set up.");
+const errorCounter = meter.createCounter("job_portal_errors_total", {
+  description: "Total number of errors occurred in the job portal server",
+});
 
 // Routing
+app.use((req, res, next) => {
+  requestCounter.add(1);
+  next();
+});
+
+app.use((err, req, res, next) => {
+  errorCounter.add(1);
+  next(err);
+});
+
 app.use("/auth", require("./routes/authRoutes"));
 app.use("/api", require("./routes/apiRoutes"));
 app.use("/upload", require("./routes/uploadRoutes"));
