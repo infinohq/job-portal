@@ -1,4 +1,10 @@
 const mongoose = require("mongoose");
+const { diag, DiagConsoleLogger, DiagLogLevel } = require('@opentelemetry/api');
+
+// Set up OpenTelemetry diagnostics
+diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.ALL);
+
+diag.info('Initializing Mongoose schema for applications');
 
 let schema = new mongoose.Schema(
   {
@@ -37,6 +43,7 @@ let schema = new mongoose.Schema(
       validate: [
         {
           validator: function (value) {
+            diag.debug('Validating dateOfJoining:', { dateOfApplication: this.dateOfApplication, dateOfJoining: value });
             return this.dateOfApplication <= value;
           },
           msg: "dateOfJoining should be greater than dateOfApplication",
@@ -47,7 +54,9 @@ let schema = new mongoose.Schema(
       type: String,
       validate: {
         validator: function (v) {
-          return v.split(" ").filter((ele) => ele != "").length <= 250;
+          const wordCount = v.split(" ").filter((ele) => ele != "").length;
+          diag.debug('Validating SOP word count:', { wordCount });
+          return wordCount <= 250;
         },
         msg: "Statement of purpose should not be greater than 250 words",
       },
@@ -55,6 +64,8 @@ let schema = new mongoose.Schema(
   },
   { collation: { locale: "en" } }
 );
+
+diag.info('Mongoose schema for applications initialized');
 
 // schema.virtual("applicationUser", {
 //   ref: "JobApplicantInfo",
@@ -78,3 +89,4 @@ let schema = new mongoose.Schema(
 // });
 
 module.exports = mongoose.model("applications", schema);
+diag.info('Mongoose model for applications exported');
