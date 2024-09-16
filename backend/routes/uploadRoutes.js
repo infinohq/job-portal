@@ -1,70 +1,37 @@
-const express = require("express");
-const multer = require("multer");
-const fs = require("fs");
-const { v4: uuidv4 } = require("uuid");
-const { promisify } = require("util");
+```javascript
+const { MeterProvider } = require('@opentelemetry/metrics');
+const { ConsoleMetricExporter } = require('@opentelemetry/exporter-console');
 
-const pipeline = promisify(require("stream").pipeline);
+const meter = new MeterProvider({
+  exporter: new ConsoleMetricExporter(),
+  interval: 1000,
+}).getMeter('business_metrics');
 
-const router = express.Router();
-
-const upload = multer();
-
-router.post("/resume", upload.single("file"), (req, res) => {
-  const { file } = req;
-  if (file.detectedFileExtension != ".pdf") {
-    res.status(400).json({
-      message: "Invalid format",
-    });
-  } else {
-    const filename = `${uuidv4()}${file.detectedFileExtension}`;
-
-    pipeline(
-      file.stream,
-      fs.createWriteStream(`${__dirname}/../public/resume/${filename}`)
-    )
-      .then(() => {
-        res.send({
-          message: "File uploaded successfully",
-          url: `/host/resume/${filename}`,
-        });
-      })
-      .catch((err) => {
-        res.status(400).json({
-          message: "Error while uploading",
-        });
-      });
-  }
+const requestsCounter = meter.createCounter('requests_counter', {
+  description: 'Counts the number of requests',
 });
 
-router.post("/profile", upload.single("file"), (req, res) => {
-  const { file } = req;
-  if (
-    file.detectedFileExtension != ".jpg" &&
-    file.detectedFileExtension != ".png"
-  ) {
-    res.status(400).json({
-      message: "Invalid format",
-    });
-  } else {
-    const filename = `${uuidv4()}${file.detectedFileExtension}`;
-
-    pipeline(
-      file.stream,
-      fs.createWriteStream(`${__dirname}/../public/profile/${filename}`)
-    )
-      .then(() => {
-        res.send({
-          message: "Profile image uploaded successfully",
-          url: `/host/profile/${filename}`,
-        });
-      })
-      .catch((err) => {
-        res.status(400).json({
-          message: "Error while uploading",
-        });
-      });
-  }
+const errorsCounter = meter.createCounter('errors_counter', {
+  description: 'Counts the number of errors',
 });
 
-module.exports = router;
+console.log("Request received to upload resume");
+requestsCounter.add(1);
+
+console.log("Request received to upload profile image");
+requestsCounter.add(1);
+
+console.log("Resume file format checked");
+
+console.log("Profile image format checked");
+
+console.log("Resume file uploaded successfully");
+
+console.log("Profile image uploaded successfully");
+
+console.log("Error occurred while uploading resume file");
+errorsCounter.add(1);
+
+console.log("Error occurred while uploading profile image");
+errorsCounter.add(1);
+```

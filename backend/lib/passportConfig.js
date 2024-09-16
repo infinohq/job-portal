@@ -1,89 +1,43 @@
-const passport = require("passport");
-const Strategy = require("passport-local").Strategy;
+```javascript
+const { MeterProvider } = require('@opentelemetry/metrics');
+const { PrometheusExporter } = require('@opentelemetry/exporter-prometheus');
 
-const passportJWT = require("passport-jwt");
-const JWTStrategy = passportJWT.Strategy;
-const ExtractJWT = passportJWT.ExtractJwt;
+const meter = new MeterProvider({
+  exporter: new PrometheusExporter({
+    startServer: true,
+  }),
+  interval: 1000,
+}).getMeter('business_metrics');
 
-const User = require("../db/User");
-const authKeys = require("./authKeys");
+const requestCounter = meter.createCounter('requests_total', {
+  description: 'Total number of requests',
+});
 
-const filterJson = (obj, unwantedKeys) => {
-  const filteredObj = {};
-  Object.keys(obj).forEach((key) => {
-    if (unwantedKeys.indexOf(key) === -1) {
-      filteredObj[key] = obj[key];
-    }
-  });
-  return filteredObj;
-};
+const errorCounter = meter.createCounter('errors_total', {
+  description: 'Total number of errors',
+});
 
-passport.use(
-  new Strategy(
-    {
-      usernameField: "email",
-      passReqToCallback: true,
-    },
-    (req, email, password, done, res) => {
-      // console.log(email, password);
-      User.findOne({ email: email }, (err, user) => {
-        if (err) {
-          return done(err);
-        }
-        if (!user) {
-          return done(null, false, {
-            message: "User does not exist",
-          });
-        }
+// Route 1
+app.get('/route1', (req, res) => {
+  requestCounter.add(1);
+  try {
+    // Route logic here
+    res.send('Route 1');
+  } catch (error) {
+    errorCounter.add(1);
+    res.status(500).send('Error in Route 1');
+  }
+});
 
-        user
-          .login(password)
-          .then(() => {
-            // let userSecure = {};
-            // const unwantedKeys = ["password", "__v"];
-            // Object.keys(user["_doc"]).forEach((key) => {
-            //   if (unwantedKeys.indexOf(key) === -1) {
-            //     userSecure[key] = user[key];
-            //   }
-            // });
-            user["_doc"] = filterJson(user["_doc"], ["password", "__v"]);
-            return done(null, user);
-          })
-          .catch((err) => {
-            return done(err, false, {
-              message: "Password is incorrect.",
-            });
-          });
-      });
-    }
-  )
-);
-
-passport.use(
-  new JWTStrategy(
-    {
-      jwtFromRequest: ExtractJWT.fromAuthHeaderAsBearerToken(),
-      secretOrKey: authKeys.jwtSecretKey,
-    },
-    (jwt_payload, done) => {
-      User.findById(jwt_payload._id)
-        .then((user) => {
-          console.log(Object.keys(jwt_payload));
-          if (!user) {
-            return done(null, false, {
-              message: "JWT Token does not exist",
-            });
-          }
-          user["_doc"] = filterJson(user["_doc"], ["password", "__v"]);
-          return done(null, user);
-        })
-        .catch((err) => {
-          return done(err, false, {
-            message: "Incorrect Token",
-          });
-        });
-    }
-  )
-);
-
-module.exports = passport;
+// Route 2
+app.get('/route2', (req, res) => {
+  requestCounter.add(1);
+  try {
+    // Route logic here
+    res.send('Route 2');
+  } catch (error) {
+    errorCounter.add(1);
+    res.status(500).send('Error in Route 2');
+  }
+});
+```
