@@ -1,3 +1,7 @@
+const { trace } = require("@opentelemetry/api");
+
+trace.addEvent('User logs in');
+
 const passport = require("passport");
 const Strategy = require("passport-local").Strategy;
 
@@ -25,7 +29,7 @@ passport.use(
       passReqToCallback: true,
     },
     (req, email, password, done, res) => {
-      // console.log(email, password);
+      trace.addEvent('Passport local strategy initiated');
       User.findOne({ email: email }, (err, user) => {
         if (err) {
           return done(err);
@@ -39,14 +43,8 @@ passport.use(
         user
           .login(password)
           .then(() => {
-            // let userSecure = {};
-            // const unwantedKeys = ["password", "__v"];
-            // Object.keys(user["_doc"]).forEach((key) => {
-            //   if (unwantedKeys.indexOf(key) === -1) {
-            //     userSecure[key] = user[key];
-            //   }
-            // });
             user["_doc"] = filterJson(user["_doc"], ["password", "__v"]);
+            trace.addEvent('User login successful');
             return done(null, user);
           })
           .catch((err) => {
@@ -66,15 +64,16 @@ passport.use(
       secretOrKey: authKeys.jwtSecretKey,
     },
     (jwt_payload, done) => {
+      trace.addEvent('JWT strategy initiated');
       User.findById(jwt_payload._id)
         .then((user) => {
-          console.log(Object.keys(jwt_payload));
           if (!user) {
             return done(null, false, {
               message: "JWT Token does not exist",
             });
           }
           user["_doc"] = filterJson(user["_doc"], ["password", "__v"]);
+          trace.addEvent('JWT token verified');
           return done(null, user);
         })
         .catch((err) => {
