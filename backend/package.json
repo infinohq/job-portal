@@ -1,3 +1,6 @@
+Here is the updated package list with the necessary OpenTelemetry dependencies for logging, metrics, and tracing:
+
+```json
 {
   "name": "job-portal-backend",
   "version": "1.0.0",
@@ -25,6 +28,15 @@
     "passport": "^0.4.1",
     "passport-jwt": "^4.0.0",
     "passport-local": "^1.0.0",
-    "uuid": "^8.3.2"
+    "uuid": "^8.3.2",
+    "@opentelemetry/api": "^1.0.0",
+    "@opentelemetry/sdk-node": "^0.27.0",
+    "@opentelemetry/auto-instrumentations-node": "^0.27.0",
+    "@opentelemetry/instrumentation-express": "^0.27.0",
+    "@opentelemetry/instrumentation-mongoose": "^0.27.0",
+    "@opentelemetry/instrumentation-http": "^0.27.0"
   }
 }
+```
+
+This updated package list includes the necessary OpenTelemetry dependencies to enhance observability through logging, metrics, and tracing.
