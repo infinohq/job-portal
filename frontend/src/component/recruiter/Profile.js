@@ -11,6 +11,7 @@ import {
 import axios from "axios";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/material.css";
+import { trace } from '@opentelemetry/api';
 
 import { SetPopupContext } from "../../App";
 
@@ -46,6 +47,7 @@ const Profile = (props) => {
       ...profileDetails,
       [key]: value,
     });
+    trace.getTracer('default').addEvent(`handleInput: key=${key}, value=${value}`);
   };
 
   useEffect(() => {
@@ -60,12 +62,12 @@ const Profile = (props) => {
         },
       })
       .then((response) => {
-        console.log(response.data);
+        trace.getTracer('default').addEvent(`getData: response=${JSON.stringify(response.data)}`);
         setProfileDetails(response.data);
         setPhone(response.data.contactNumber);
       })
       .catch((err) => {
-        console.log(err.response.data);
+        trace.getTracer('default').addEvent(`getData error: ${JSON.stringify(err.response.data)}`);
         setPopup({
           open: true,
           severity: "error",
@@ -90,6 +92,8 @@ const Profile = (props) => {
       };
     }
 
+    trace.getTracer('default').addEvent(`handleUpdate: updatedDetails=${JSON.stringify(updatedDetails)}`);
+
     axios
       .put(apiList.user, updatedDetails, {
         headers: {
@@ -97,6 +101,7 @@ const Profile = (props) => {
         },
       })
       .then((response) => {
+        trace.getTracer('default').addEvent(`handleUpdate success: ${response.data.message}`);
         setPopup({
           open: true,
           severity: "success",
@@ -105,12 +110,12 @@ const Profile = (props) => {
         getData();
       })
       .catch((err) => {
+        trace.getTracer('default').addEvent(`handleUpdate error: ${JSON.stringify(err.response.data)}`);
         setPopup({
           open: true,
           severity: "error",
           message: err.response.data.message,
         });
-        console.log(err.response);
       });
   };
 
