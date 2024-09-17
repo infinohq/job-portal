@@ -1,3 +1,1 @@
-module.exports = {
-  jwtSecretKey: "jwt_secret",
-};
+The provided code does not contain any explicit routes. Therefore, it is not possible to add business-related metrics using the OpenTelemetry SDK in this context. If you provide a code snippet with defined routes, I can help you add the appropriate metrics.

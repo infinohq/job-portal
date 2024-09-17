@@ -9,6 +9,7 @@ import {
 } from "@material-ui/core";
 import axios from "axios";
 import { Redirect } from "react-router-dom";
+import { trace, metrics } from '@opentelemetry/api';
 
 import PasswordInput from "../lib/PasswordInput";
 import EmailInput from "../lib/EmailInput";
@@ -29,16 +30,32 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
+const meter = metrics.getMeter('default');
+const loginAttemptsCounter = meter.createCounter('login_attempts', {
+  description: 'Count of login attempts',
+});
+const successfulLoginsCounter = meter.createCounter('successful_logins', {
+  description: 'Count of successful logins',
+});
+const failedLoginsCounter = meter.createCounter('failed_logins', {
+  description: 'Count of failed logins',
+});
+const inputErrorsCounter = meter.createCounter('input_errors', {
+  description: 'Count of input errors during login',
+});
+
 const Login = (props) => {
   const classes = useStyles();
   const setPopup = useContext(SetPopupContext);
 
   const [loggedin, setLoggedin] = useState(isAuth());
+  trace.getTracer('default').addEvent('isAuth called', { loggedin });
 
   const [loginDetails, setLoginDetails] = useState({
     email: "",
     password: "",
   });
+  trace.getTracer('default').addEvent('Initial loginDetails state', { loginDetails });
 
   const [inputErrorHandler, setInputErrorHandler] = useState({
     email: {
@@ -50,15 +67,19 @@ const Login = (props) => {
       message: "",
     },
   });
+  trace.getTracer('default').addEvent('Initial inputErrorHandler state', { inputErrorHandler });
 
   const handleInput = (key, value) => {
+    trace.getTracer('default').addEvent('handleInput called', { key, value });
     setLoginDetails({
       ...loginDetails,
       [key]: value,
     });
+    trace.getTracer('default').addEvent('Updated loginDetails state', { loginDetails });
   };
 
   const handleInputError = (key, status, message) => {
+    trace.getTracer('default').addEvent('handleInputError called', { key, status, message });
     setInputErrorHandler({
       ...inputErrorHandler,
       [key]: {
@@ -66,33 +87,41 @@ const Login = (props) => {
         message: message,
       },
     });
+    trace.getTracer('default').addEvent('Updated inputErrorHandler state', { inputErrorHandler });
+    inputErrorsCounter.add(1);
   };
 
   const handleLogin = () => {
+    trace.getTracer('default').addEvent('handleLogin called');
+    loginAttemptsCounter.add(1);
     const verified = !Object.keys(inputErrorHandler).some((obj) => {
       return inputErrorHandler[obj].error;
     });
+    trace.getTracer('default').addEvent('Verification status', { verified });
     if (verified) {
       axios
         .post(apiList.login, loginDetails)
         .then((response) => {
+          trace.getTracer('default').addEvent('Login successful', { response });
+          successfulLoginsCounter.add(1);
           localStorage.setItem("token", response.data.token);
           localStorage.setItem("type", response.data.type);
           setLoggedin(isAuth());
+          trace.getTracer('default').addEvent('Updated loggedin state', { loggedin });
           setPopup({
             open: true,
             severity: "success",
             message: "Logged in successfully",
           });
-          console.log(response);
         })
         .catch((err) => {
+          trace.getTracer('default').addEvent('Login failed', { err });
+          failedLoginsCounter.add(1);
           setPopup({
             open: true,
             severity: "error",
             message: err.response.data.message,
           });
-          console.log(err.response);
         });
     } else {
       setPopup({
