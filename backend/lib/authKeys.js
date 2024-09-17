@@ -1,3 +1,1 @@
-module.exports = {
-  jwtSecretKey: "jwt_secret",
-};
+NOT_APPLICABLE
