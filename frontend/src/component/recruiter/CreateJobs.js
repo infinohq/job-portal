@@ -11,6 +11,7 @@ import {
 } from "@material-ui/core";
 import axios from "axios";
 import ChipInput from "material-ui-chip-input";
+import { trace, metrics } from '@opentelemetry/api';
 
 import { SetPopupContext } from "../../App";
 
@@ -28,6 +29,17 @@ const useStyles = makeStyles((theme) => ({
     // padding: "30px",
   },
 }));
+
+const meter = metrics.getMeter('default');
+const jobCreationCounter = meter.createCounter('job_creation_count', {
+  description: 'Count of jobs created',
+});
+const jobCreationErrorCounter = meter.createCounter('job_creation_error_count', {
+  description: 'Count of job creation errors',
+});
+const jobCreationDuration = meter.createHistogram('job_creation_duration', {
+  description: 'Duration of job creation process',
+});
 
 const CreateJobs = (props) => {
   const classes = useStyles();
@@ -47,14 +59,20 @@ const CreateJobs = (props) => {
   });
 
   const handleInput = (key, value) => {
+    const span = trace.getTracer('default').startSpan('handleInput');
+    span.setAttribute('key', key);
+    span.setAttribute('value', value);
     setJobDetails({
       ...jobDetails,
       [key]: value,
     });
+    span.end();
   };
 
   const handleUpdate = () => {
-    console.log(jobDetails);
+    const span = trace.getTracer('default').startSpan('handleUpdate');
+    span.setAttribute('jobDetails', JSON.stringify(jobDetails));
+    const startTime = Date.now();
     axios
       .post(apiList.jobs, jobDetails, {
         headers: {
@@ -62,6 +80,8 @@ const CreateJobs = (props) => {
         },
       })
       .then((response) => {
+        span.addEvent('Job created successfully');
+        span.setAttribute('responseMessage', response.data.message);
         setPopup({
           open: true,
           severity: "success",
@@ -79,14 +99,22 @@ const CreateJobs = (props) => {
           duration: 0,
           salary: 0,
         });
+        jobCreationCounter.add(1);
       })
       .catch((err) => {
+        span.addEvent('Error creating job');
+        span.setAttribute('errorMessage', err.response.data.message);
         setPopup({
           open: true,
           severity: "error",
           message: err.response.data.message,
         });
-        console.log(err.response);
+        jobCreationErrorCounter.add(1);
+      })
+      .finally(() => {
+        const duration = Date.now() - startTime;
+        jobCreationDuration.record(duration);
+        span.end();
       });
   };
 
