@@ -1,9 +1,33 @@
+The provided code already includes some basic tracing using OpenTelemetry. To enhance it with business metrics, we can add metrics that provide insights into the file upload process. Here are four relevant business metrics:
+
+1. **Number of Files Uploaded**: Tracks the total number of files successfully uploaded.
+2. **Upload Success Rate**: Measures the success rate of file uploads.
+3. **Average Upload Time**: Tracks the average time taken to upload a file.
+4. **File Size Distribution**: Measures the distribution of file sizes being uploaded.
+
+Here is the updated code with these metrics:
+
 import { useState, useContext } from "react";
 import { Grid, Button, TextField, LinearProgress } from "@material-ui/core";
 import { CloudUpload } from "@material-ui/icons";
 import Axios from "axios";
+import { trace, metrics } from '@opentelemetry/api';
 
 import { SetPopupContext } from "../App";
+
+const meter = metrics.getMeter('default');
+const filesUploadedCounter = meter.createCounter('files_uploaded', {
+  description: 'Total number of files uploaded',
+});
+const uploadSuccessRate = meter.createValueRecorder('upload_success_rate', {
+  description: 'Success rate of file uploads',
+});
+const uploadTimeRecorder = meter.createValueRecorder('upload_time', {
+  description: 'Time taken to upload a file',
+});
+const fileSizeRecorder = meter.createValueRecorder('file_size', {
+  description: 'Size of files being uploaded',
+});
 
 const FileUploadInput = (props) => {
   const setPopup = useContext(SetPopupContext);
@@ -14,40 +38,48 @@ const FileUploadInput = (props) => {
   const [uploadPercentage, setUploadPercentage] = useState(0);
 
   const handleUpload = () => {
-    console.log(file);
+    const span = trace.getTracer('default').startSpan('handleUpload');
+    span.addEvent('File upload initiated', { fileName: file.name });
     const data = new FormData();
     data.append("file", file);
+    const startTime = Date.now();
     Axios.post(uploadTo, data, {
       headers: {
         "Content-Type": "multipart/form-data",
       },
       onUploadProgress: (progressEvent) => {
-        setUploadPercentage(
-          parseInt(
-            Math.round((progressEvent.loaded * 100) / progressEvent.total)
-          )
+        const percentage = parseInt(
+          Math.round((progressEvent.loaded * 100) / progressEvent.total)
         );
+        span.addEvent('Upload progress', { percentage });
+        setUploadPercentage(percentage);
       },
     })
       .then((response) => {
-        console.log(response.data);
+        const endTime = Date.now();
+        const uploadTime = endTime - startTime;
+        span.addEvent('File upload successful', { responseData: response.data });
         handleInput(identifier, response.data.url);
         setPopup({
           open: true,
           severity: "success",
           message: response.data.message,
         });
+        filesUploadedCounter.add(1);
+        uploadSuccessRate.record(1);
+        uploadTimeRecorder.record(uploadTime);
+        fileSizeRecorder.record(file.size);
+        span.end();
       })
       .catch((err) => {
-        console.log(err.response);
+        span.addEvent('File upload failed', { error: err.response });
         setPopup({
           open: true,
           severity: "error",
           message: err.response.statusText,
-          //   message: err.response.data
-          //     ? err.response.data.message
-          //     : err.response.statusText,
         });
+        uploadSuccessRate.record(0);
+        span.end();
       });
   };
 
@@ -66,15 +98,12 @@ const FileUploadInput = (props) => {
               type="file"
               style={{ display: "none" }}
               onChange={(event) => {
-                console.log(event.target.files);
+                const span = trace.getTracer('default').startSpan('fileInputChange');
+                span.addEvent('File selected', { fileName: event.target.files[0].name });
                 setUploadPercentage(0);
                 setFile(event.target.files[0]);
+                span.end();
               }}
-              // onChange={onChange}
-              // onChange={
-              //   (e) => {}
-              //   //   setSource({ ...source, place_img: e.target.files[0] })
-              // }
             />
           </Button>
         </Grid>
