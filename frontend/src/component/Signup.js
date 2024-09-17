@@ -24,6 +24,7 @@ import { SetPopupContext } from "../App";
 
 import apiList from "../lib/apiList";
 import isAuth from "../lib/isAuth";
+import { trace, metrics } from '@opentelemetry/api';
 
 const useStyles = makeStyles((theme) => ({
   body: {
@@ -59,6 +60,7 @@ const MultifieldInput = (props) => {
                 const newEdu = [...education];
                 newEdu[key].institutionName = event.target.value;
                 setEducation(newEdu);
+                trace.getTracer('default').addEvent('Institution Name Changed', { key, value: event.target.value });
               }}
               variant="outlined"
             />
@@ -73,6 +75,7 @@ const MultifieldInput = (props) => {
                 const newEdu = [...education];
                 newEdu[key].startYear = event.target.value;
                 setEducation(newEdu);
+                trace.getTracer('default').addEvent('Start Year Changed', { key, value: event.target.value });
               }}
             />
           </Grid>
@@ -86,6 +89,7 @@ const MultifieldInput = (props) => {
                 const newEdu = [...education];
                 newEdu[key].endYear = event.target.value;
                 setEducation(newEdu);
+                trace.getTracer('default').addEvent('End Year Changed', { key, value: event.target.value });
               }}
             />
           </Grid>
@@ -95,7 +99,7 @@ const MultifieldInput = (props) => {
         <Button
           variant="contained"
           color="secondary"
-          onClick={() =>
+          onClick={() => {
             setEducation([
               ...education,
               {
@@ -103,8 +107,9 @@ const MultifieldInput = (props) => {
                 startYear: "",
                 endYear: "",
               },
-            ])
-          }
+            ]);
+            trace.getTracer('default').addEvent('Added another institution');
+          }}
           className={classes.inputBox}
         >
           Add another institution details
@@ -169,6 +174,7 @@ const Login = (props) => {
       ...signupDetails,
       [key]: value,
     });
+    trace.getTracer('default').addEvent('Input Changed', { key, value });
   };
 
   const handleInputError = (key, status, message) => {
@@ -181,6 +187,7 @@ const Login = (props) => {
         message: message,
       },
     });
+    trace.getTracer('default').addEvent('Input Error Changed', { key, status, message });
   };
 
   const handleLogin = () => {
@@ -198,7 +205,7 @@ const Login = (props) => {
       }
     });
 
-    console.log(education);
+    trace.getTracer('default').addEvent('Education Details', { education });
 
     let updatedDetails = {
       ...signupDetails,
@@ -213,6 +220,7 @@ const Login = (props) => {
     };
 
     setSignupDetails(updatedDetails);
+    trace.getTracer('default').addEvent('Updated Signup Details', { updatedDetails });
 
     const verified = !Object.keys(tmpErrorHandler).some((obj) => {
       return tmpErrorHandler[obj].error;
@@ -230,7 +238,8 @@ const Login = (props) => {
             severity: "success",
             message: "Logged in successfully",
           });
-          console.log(response);
+          trace.getTracer('default').addEvent('Login Success', { response });
+          metrics.getMeter('default').createCounter('successful_logins').add(1);
         })
         .catch((err) => {
           setPopup({
@@ -238,7 +247,8 @@ const Login = (props) => {
             severity: "error",
             message: err.response.data.message,
           });
-          console.log(err.response);
+          trace.getTracer('default').addEvent('Login Error', { error: err.response });
+          metrics.getMeter('default').createCounter('failed_logins').add(1);
         });
     } else {
       setInputErrorHandler(tmpErrorHandler);
@@ -247,6 +257,7 @@ const Login = (props) => {
         severity: "error",
         message: "Incorrect Input",
       });
+      trace.getTracer('default').addEvent('Input Verification Failed', { tmpErrorHandler });
     }
   };
 
@@ -281,12 +292,13 @@ const Login = (props) => {
     }
 
     setSignupDetails(updatedDetails);
+    trace.getTracer('default').addEvent('Updated Signup Details for Recruiter', { updatedDetails });
 
     const verified = !Object.keys(tmpErrorHandler).some((obj) => {
       return tmpErrorHandler[obj].error;
     });
 
-    console.log(updatedDetails);
+    trace.getTracer('default').addEvent('Updated Details for Recruiter', { updatedDetails });
 
     if (verified) {
       axios
@@ -300,7 +312,8 @@ const Login = (props) => {
             severity: "success",
             message: "Logged in successfully",
           });
-          console.log(response);
+          trace.getTracer('default').addEvent('Login Success for Recruiter', { response });
+          metrics.getMeter('default').createCounter('successful_logins').add(1);
         })
         .catch((err) => {
           setPopup({
@@ -308,7 +321,8 @@ const Login = (props) => {
             severity: "error",
             message: err.response.data.message,
           });
-          console.log(err.response);
+          trace.getTracer('default').addEvent('Login Error for Recruiter', { error: err.response });
+          metrics.getMeter('default').createCounter('failed_logins').add(1);
         });
     } else {
       setInputErrorHandler(tmpErrorHandler);
@@ -317,6 +331,7 @@ const Login = (props) => {
         severity: "error",
         message: "Incorrect Input",
       });
+      trace.getTracer('default').addEvent('Input Verification Failed for Recruiter', { tmpErrorHandler });
     }
   };
 
@@ -339,6 +354,7 @@ const Login = (props) => {
             value={signupDetails.type}
             onChange={(event) => {
               handleInput("type", event.target.value);
+              trace.getTracer('default').addEvent('Category Changed', { value: event.target.value });
             }}
           >
             <MenuItem value="applicant">Applicant</MenuItem>
@@ -359,6 +375,7 @@ const Login = (props) => {
               } else {
                 handleInputError("name", false, "");
               }
+              trace.getTracer('default').addEvent('Name Input Blurred', { value: event.target.value });
             }}
             variant="outlined"
           />
@@ -388,6 +405,7 @@ const Login = (props) => {
               } else {
                 handleInputError("password", false, "");
               }
+              trace.getTracer('default').addEvent('Password Input Blurred', { value: event.target.value });
             }}
           />
         </Grid>
@@ -403,9 +421,10 @@ const Login = (props) => {
                 label="Skills"
                 variant="outlined"
                 helperText="Press enter to add skills"
-                onChange={(chips) =>
-                  setSignupDetails({ ...signupDetails, skills: chips })
-                }
+                onChange={(chips) => {
+                  setSignupDetails({ ...signupDetails, skills: chips });
+                  trace.getTracer('default').addEvent('Skills Changed', { skills: chips });
+                }}
               />
             </Grid>
             <Grid item>
@@ -460,6 +479,7 @@ const Login = (props) => {
                     }).length <= 250
                   ) {
                     handleInput("bio", event.target.value);
+                    trace.getTracer('default').addEvent('Bio Changed', { value: event.target.value });
                   }
                 }}
               />
@@ -468,7 +488,10 @@ const Login = (props) => {
               <PhoneInput
                 country={"in"}
                 value={phone}
-                onChange={(phone) => setPhone(phone)}
+                onChange={(phone) => {
+                  setPhone(phone);
+                  trace.getTracer('default').addEvent('Phone Changed', { phone });
+                }}
               />
             </Grid>
           </>
@@ -482,6 +505,7 @@ const Login = (props) => {
               signupDetails.type === "applicant"
                 ? handleLogin()
                 : handleLoginRecruiter();
+              trace.getTracer('default').addEvent('Signup Button Clicked', { type: signupDetails.type });
             }}
             className={classes.submitButton}
           >
