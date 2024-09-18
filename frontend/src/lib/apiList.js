@@ -1,4 +1,7 @@
+import { diag } from '@opentelemetry/api';
+
 export const server = "http://localhost:4444";
+diag.debug(`Server URL: ${server}`);
 
 const apiList = {
   login: `${server}/auth/login`,
@@ -11,5 +14,7 @@ const apiList = {
   user: `${server}/api/user`,
   applicants: `${server}/api/applicants`,
 };
+
+diag.debug(`API List: ${JSON.stringify(apiList)}`);
 
 export default apiList;
