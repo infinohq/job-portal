@@ -29,6 +29,8 @@ import { SetPopupContext } from "../../App";
 
 import apiList from "../../lib/apiList";
 
+import { trace } from '@opentelemetry/api';
+
 const useStyles = makeStyles((theme) => ({
   body: {
     height: "inherit",
@@ -69,9 +71,11 @@ const JobTile = (props) => {
   const [openUpdate, setOpenUpdate] = useState(false);
   const [jobDetails, setJobDetails] = useState(job);
 
-  console.log(jobDetails);
+  const tracer = trace.getTracer('default');
+  tracer.startSpan('JobTile').addEvent('jobDetails', { jobDetails });
 
   const handleInput = (key, value) => {
+    tracer.startSpan('handleInput').addEvent('input', { key, value });
     setJobDetails({
       ...jobDetails,
       [key]: value,
@@ -79,6 +83,7 @@ const JobTile = (props) => {
   };
 
   const handleClick = (location) => {
+    tracer.startSpan('handleClick').addEvent('location', { location });
     history.push(location);
   };
 
@@ -91,7 +96,7 @@ const JobTile = (props) => {
   };
 
   const handleDelete = () => {
-    console.log(job._id);
+    tracer.startSpan('handleDelete').addEvent('jobId', { jobId: job._id });
     axios
       .delete(`${apiList.jobs}/${job._id}`, {
         headers: {
@@ -99,6 +104,7 @@ const JobTile = (props) => {
         },
       })
       .then((response) => {
+        tracer.startSpan('handleDeleteSuccess').addEvent('response', { response: response.data });
         setPopup({
           open: true,
           severity: "success",
@@ -108,7 +114,7 @@ const JobTile = (props) => {
         handleClose();
       })
       .catch((err) => {
-        console.log(err.response);
+        tracer.startSpan('handleDeleteError').addEvent('error', { error: err.response });
         setPopup({
           open: true,
           severity: "error",
@@ -119,6 +125,7 @@ const JobTile = (props) => {
   };
 
   const handleJobUpdate = () => {
+    tracer.startSpan('handleJobUpdate').addEvent('jobDetails', { jobDetails });
     axios
       .put(`${apiList.jobs}/${job._id}`, jobDetails, {
         headers: {
@@ -126,6 +133,7 @@ const JobTile = (props) => {
         },
       })
       .then((response) => {
+        tracer.startSpan('handleJobUpdateSuccess').addEvent('response', { response: response.data });
         setPopup({
           open: true,
           severity: "success",
@@ -135,7 +143,7 @@ const JobTile = (props) => {
         handleCloseUpdate();
       })
       .catch((err) => {
-        console.log(err.response);
+        tracer.startSpan('handleJobUpdateError').addEvent('error', { error: err.response });
         setPopup({
           open: true,
           severity: "error",
@@ -352,6 +360,9 @@ const JobTile = (props) => {
 const FilterPopup = (props) => {
   const classes = useStyles();
   const { open, handleClose, searchOptions, setSearchOptions, getData } = props;
+  const tracer = trace.getTracer('default');
+  tracer.startSpan('FilterPopup').addEvent('searchOptions', { searchOptions });
+
   return (
     <Modal open={open} onClose={handleClose} className={classes.popupDialog}>
       <Paper
@@ -380,6 +391,7 @@ const FilterPopup = (props) => {
                       name="fullTime"
                       checked={searchOptions.jobType.fullTime}
                       onChange={(event) => {
+                        tracer.startSpan('FilterPopupCheckboxChange').addEvent('fullTime', { checked: event.target.checked });
                         setSearchOptions({
                           ...searchOptions,
                           jobType: {
@@ -400,6 +412,7 @@ const FilterPopup = (props) => {
                       name="partTime"
                       checked={searchOptions.jobType.partTime}
                       onChange={(event) => {
+                        tracer.startSpan('FilterPopupCheckboxChange').addEvent('partTime', { checked: event.target.checked });
                         setSearchOptions({
                           ...searchOptions,
                           jobType: {
@@ -420,6 +433,7 @@ const FilterPopup = (props) => {
                       name="wfh"
                       checked={searchOptions.jobType.wfh}
                       onChange={(event) => {
+                        tracer.startSpan('FilterPopupCheckboxChange').addEvent('wfh', { checked: event.target.checked });
                         setSearchOptions({
                           ...searchOptions,
                           jobType: {
@@ -450,12 +464,13 @@ const FilterPopup = (props) => {
                   { value: 100, label: "100000" },
                 ]}
                 value={searchOptions.salary}
-                onChange={(event, value) =>
+                onChange={(event, value) => {
+                  tracer.startSpan('FilterPopupSliderChange').addEvent('salary', { value });
                   setSearchOptions({
                     ...searchOptions,
                     salary: value,
-                  })
-                }
+                  });
+                }}
               />
             </Grid>
           </Grid>
@@ -470,12 +485,13 @@ const FilterPopup = (props) => {
                 variant="outlined"
                 fullWidth
                 value={searchOptions.duration}
-                onChange={(event) =>
+                onChange={(event) => {
+                  tracer.startSpan('FilterPopupDurationChange').addEvent('duration', { duration: event.target.value });
                   setSearchOptions({
                     ...searchOptions,
                     duration: event.target.value,
-                  })
-                }
+                  });
+                }}
               >
                 <MenuItem value="0">All</MenuItem>
                 <MenuItem value="1">1</MenuItem>
@@ -505,7 +521,8 @@ const FilterPopup = (props) => {
                   <Checkbox
                     name="salary"
                     checked={searchOptions.sort.salary.status}
-                    onChange={(event) =>
+                    onChange={(event) => {
+                      tracer.startSpan('FilterPopupSortChange').addEvent('salarySort', { status: event.target.checked });
                       setSearchOptions({
                         ...searchOptions,
                         sort: {
@@ -515,8 +532,8 @@ const FilterPopup = (props) => {
                             status: event.target.checked,
                           },
                         },
-                      })
-                    }
+                      });
+                    }}
                     id="salary"
                   />
                 </Grid>
@@ -529,6 +546,7 @@ const FilterPopup = (props) => {
                   <IconButton
                     disabled={!searchOptions.sort.salary.status}
                     onClick={() => {
+                      tracer.startSpan('FilterPopupSortDirectionChange').addEvent('salarySortDirection', { desc: !searchOptions.sort.salary.desc });
                       setSearchOptions({
                         ...searchOptions,
                         sort: {
@@ -561,7 +579,8 @@ const FilterPopup = (props) => {
                   <Checkbox
                     name="duration"
                     checked={searchOptions.sort.duration.status}
-                    onChange={(event) =>
+                    onChange={(event) => {
+                      tracer.startSpan('FilterPopupSortChange').addEvent('durationSort', { status: event.target.checked });
                       setSearchOptions({
                         ...searchOptions,
                         sort: {
@@ -571,8 +590,8 @@ const FilterPopup = (props) => {
                             status: event.target.checked,
                           },
                         },
-                      })
-                    }
+                      });
+                    }}
                     id="duration"
                   />
                 </Grid>
@@ -585,6 +604,7 @@ const FilterPopup = (props) => {
                   <IconButton
                     disabled={!searchOptions.sort.duration.status}
                     onClick={() => {
+                      tracer.startSpan('FilterPopupSortDirectionChange').addEvent('durationSortDirection', { desc: !searchOptions.sort.duration.desc });
                       setSearchOptions({
                         ...searchOptions,
                         sort: {
@@ -617,7 +637,8 @@ const FilterPopup = (props) => {
                   <Checkbox
                     name="rating"
                     checked={searchOptions.sort.rating.status}
-                    onChange={(event) =>
+                    onChange={(event) => {
+                      tracer.startSpan('FilterPopupSortChange').addEvent('ratingSort', { status: event.target.checked });
                       setSearchOptions({
                         ...searchOptions,
                         sort: {
@@ -627,8 +648,8 @@ const FilterPopup = (props) => {
                             status: event.target.checked,
                           },
                         },
-                      })
-                    }
+                      });
+                    }}
                     id="rating"
                   />
                 </Grid>
@@ -641,6 +662,7 @@ const FilterPopup = (props) => {
                   <IconButton
                     disabled={!searchOptions.sort.rating.status}
                     onClick={() => {
+                      tracer.startSpan('FilterPopupSortDirectionChange').addEvent('ratingSortDirection', { desc: !searchOptions.sort.rating.desc });
                       setSearchOptions({
                         ...searchOptions,
                         sort: {
@@ -709,11 +731,14 @@ const MyJobs = (props) => {
   });
 
   const setPopup = useContext(SetPopupContext);
+  const tracer = trace.getTracer('default');
+
   useEffect(() => {
     getData();
   }, []);
 
   const getData = () => {
+    tracer.startSpan('getData').addEvent('searchOptions', { searchOptions });
     let searchParams = [`myjobs=1`];
     if (searchOptions.query !== "") {
       searchParams = [...searchParams, `q=${searchOptions.query}`];
@@ -758,13 +783,13 @@ const MyJobs = (props) => {
     });
     searchParams = [...searchParams, ...asc, ...desc];
     const queryString = searchParams.join("&");
-    console.log(queryString);
+    tracer.startSpan('getDataQueryString').addEvent('queryString', { queryString });
     let address = apiList.jobs;
     if (queryString !== "") {
       address = `${address}?${queryString}`;
     }
 
-    console.log(address);
+    tracer.startSpan('getDataAddress').addEvent('address', { address });
     axios
       .get(address, {
         headers: {
@@ -772,11 +797,11 @@ const MyJobs = (props) => {
         },
       })
       .then((response) => {
-        console.log(response.data);
+        tracer.startSpan('getDataSuccess').addEvent('response', { response: response.data });
         setJobs(response.data);
       })
       .catch((err) => {
-        console.log(err.response.data);
+        tracer.startSpan('getDataError').addEvent('error', { error: err.response.data });
         setPopup({
           open: true,
           severity: "error",
@@ -808,12 +833,13 @@ const MyJobs = (props) => {
             <TextField
               label="Search Jobs"
               value={searchOptions.query}
-              onChange={(event) =>
+              onChange={(event) => {
+                tracer.startSpan('searchQueryChange').addEvent('query', { query: event.target.value });
                 setSearchOptions({
                   ...searchOptions,
                   query: event.target.value,
-                })
-              }
+                });
+              }}
               onKeyPress={(ev) => {
                 if (ev.key === "Enter") {
                   getData();
