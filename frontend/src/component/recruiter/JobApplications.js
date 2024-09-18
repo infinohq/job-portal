@@ -23,6 +23,8 @@ import axios from "axios";
 import FilterListIcon from "@material-ui/icons/FilterList";
 import ArrowUpwardIcon from "@material-ui/icons/ArrowUpward";
 import ArrowDownwardIcon from "@material-ui/icons/ArrowDownward";
+import { trace } from '@opentelemetry/api';
+import { Counter } from '@opentelemetry/api-metrics';
 
 import { SetPopupContext } from "../../App";
 
@@ -61,6 +63,11 @@ const useStyles = makeStyles((theme) => ({
 const FilterPopup = (props) => {
   const classes = useStyles();
   const { open, handleClose, searchOptions, setSearchOptions, getData } = props;
+  const tracer = trace.getTracer("FilterPopup");
+  const span = tracer.startSpan("FilterPopup");
+  span.setAttribute("open", open);
+  span.setAttribute("searchOptions", JSON.stringify(searchOptions));
+  span.end();
   return (
     <Modal open={open} onClose={handleClose} className={classes.popupDialog}>
       <Paper
@@ -366,6 +373,9 @@ const ApplicationTile = (props) => {
     ) {
       const address = `${server}${application.jobApplicant.resume}`;
       console.log(address);
+      const tracer = trace.getTracer("getResume");
+      const span = tracer.startSpan("getResume");
+      span.setAttribute("address", address);
       axios(address, {
         method: "GET",
         responseType: "blob",
@@ -374,6 +384,7 @@ const ApplicationTile = (props) => {
           const file = new Blob([response.data], { type: "application/pdf" });
           const fileURL = URL.createObjectURL(file);
           window.open(fileURL);
+          span.end();
         })
         .catch((error) => {
           console.log(error);
@@ -382,6 +393,9 @@ const ApplicationTile = (props) => {
             severity: "error",
             message: "Error",
           });
+          span.recordException(error);
+          span.setStatus({ code: SpanStatusCode.ERROR });
+          span.end();
         });
     } else {
       setPopup({
@@ -398,6 +412,10 @@ const ApplicationTile = (props) => {
       status: status,
       dateOfJoining: new Date().toISOString(),
     };
+    const tracer = trace.getTracer("updateStatus");
+    const span = tracer.startSpan("updateStatus");
+    span.setAttribute("address", address);
+    span.setAttribute("statusData", JSON.stringify(statusData));
     axios
       .put(address, statusData, {
         headers: {
@@ -411,6 +429,7 @@ const ApplicationTile = (props) => {
           message: response.data.message,
         });
         getData();
+        span.end();
       })
       .catch((err) => {
         setPopup({
@@ -419,6 +438,9 @@ const ApplicationTile = (props) => {
           message: err.response.data.message,
         });
         console.log(err.response);
+        span.recordException(err);
+        span.setStatus({ code: SpanStatusCode.ERROR });
+        span.end();
       });
   };
 
@@ -663,6 +685,10 @@ const JobApplications = (props) => {
     },
   });
 
+  const applicationCounter = new Counter('applications', {
+    description: 'Count of applications',
+  });
+
   useEffect(() => {
     getData();
   }, []);
@@ -703,6 +729,9 @@ const JobApplications = (props) => {
 
     console.log(address);
 
+    const tracer = trace.getTracer("getData");
+    const span = tracer.startSpan("getData");
+    span.setAttribute("address", address);
     axios
       .get(address, {
         headers: {
@@ -710,73 +739,23 @@ const JobApplications = (props) => {
         },
       })
       .then((response) => {
-        console.log(response.data);
         setApplications(response.data);
+        applicationCounter.add(response.data.length);
+        span.end();
       })
       .catch((err) => {
         console.log(err.response);
-        // console.log(err.response.data);
-        setApplications([]);
         setPopup({
           open: true,
           severity: "error",
           message: err.response.data.message,
         });
+        span.recordException(err);
+        span.setStatus({ code: SpanStatusCode.ERROR });
+        span.end();
       });
   };
 
   return (
-    <>
-      <Grid
-        container
-        item
-        direction="column"
-        alignItems="center"
-        style={{ padding: "30px", minHeight: "93vh" }}
-      >
-        <Grid item>
-          <Typography variant="h2">Applications</Typography>
-        </Grid>
-        <Grid item>
-          <IconButton onClick={() => setFilterOpen(true)}>
-            <FilterListIcon />
-          </IconButton>
-        </Grid>
-        <Grid
-          container
-          item
-          xs
-          direction="column"
-          style={{ width: "100%" }}
-          alignItems="stretch"
-          justify="center"
-        >
-          {applications.length > 0 ? (
-            applications.map((obj) => (
-              <Grid item>
-                {/* {console.log(obj)} */}
-                <ApplicationTile application={obj} getData={getData} />
-              </Grid>
-            ))
-          ) : (
-            <Typography variant="h5" style={{ textAlign: "center" }}>
-              No Applications Found
-            </Typography>
-          )}
-        </Grid>
-      </Grid>
-      <FilterPopup
-        open={filterOpen}
-        searchOptions={searchOptions}
-        setSearchOptions={setSearchOptions}
-        handleClose={() => setFilterOpen(false)}
-        getData={() => {
-          getData();
-          setFilterOpen(false);
-        }}
-      />
-    </>
-  );
-};
-
-export default JobApplications;
+    <div className={classes.body}>
+      <Grid container direction="column" spacing={

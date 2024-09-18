@@ -16,6 +16,7 @@ import DescriptionIcon from "@material-ui/icons/Description";
 import FaceIcon from "@material-ui/icons/Face";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/material.css";
+import { trace, metrics, BoundCounter } from '@opentelemetry/api';
 
 import PasswordInput from "../lib/PasswordInput";
 import EmailInput from "../lib/EmailInput";
@@ -37,9 +38,16 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
+const meter = metrics.getMeterProvider().getMeter('default');
+const loginAttemptsCounter = meter.createCounter('login_attempts', {
+  description: 'Counts the number of login attempts',
+});
+const boundLoginAttemptsCounter = loginAttemptsCounter.bind({});
+
 const MultifieldInput = (props) => {
   const classes = useStyles();
   const { education, setEducation } = props;
+  const tracer = trace.getTracer("default");
 
   return (
     <>
@@ -59,6 +67,7 @@ const MultifieldInput = (props) => {
                 const newEdu = [...education];
                 newEdu[key].institutionName = event.target.value;
                 setEducation(newEdu);
+                tracer.getCurrentSpan().addEvent('Education updated');
               }}
               variant="outlined"
             />
@@ -73,6 +82,7 @@ const MultifieldInput = (props) => {
                 const newEdu = [...education];
                 newEdu[key].startYear = event.target.value;
                 setEducation(newEdu);
+                tracer.getCurrentSpan().addEvent('Start year updated');
               }}
             />
           </Grid>
@@ -86,6 +96,7 @@ const MultifieldInput = (props) => {
                 const newEdu = [...education];
                 newEdu[key].endYear = event.target.value;
                 setEducation(newEdu);
+                tracer.getCurrentSpan().addEvent('End year updated');
               }}
             />
           </Grid>
@@ -117,6 +128,7 @@ const MultifieldInput = (props) => {
 const Login = (props) => {
   const classes = useStyles();
   const setPopup = useContext(SetPopupContext);
+  const tracer = trace.getTracer("default");
 
   const [loggedin, setLoggedin] = useState(isAuth());
 
@@ -169,6 +181,7 @@ const Login = (props) => {
       ...signupDetails,
       [key]: value,
     });
+    tracer.getCurrentSpan().addEvent(`Input for ${key} handled`);
   };
 
   const handleInputError = (key, status, message) => {
@@ -181,9 +194,11 @@ const Login = (props) => {
         message: message,
       },
     });
+    tracer.getCurrentSpan().addEvent(`Input error for ${key} handled`);
   };
 
   const handleLogin = () => {
+    boundLoginAttemptsCounter.add(1);
     const tmpErrorHandler = {};
     Object.keys(inputErrorHandler).forEach((obj) => {
       if (inputErrorHandler[obj].required && inputErrorHandler[obj].untouched) {
@@ -213,6 +228,7 @@ const Login = (props) => {
     };
 
     setSignupDetails(updatedDetails);
+    tracer.getCurrentSpan().addEvent('Signup details updated');
 
     const verified = !Object.keys(tmpErrorHandler).some((obj) => {
       return tmpErrorHandler[obj].error;
@@ -231,6 +247,7 @@ const Login = (props) => {
             message: "Logged in successfully",
           });
           console.log(response);
+          tracer.getCurrentSpan().addEvent('Login successful');
         })
         .catch((err) => {
           setPopup({
@@ -239,6 +256,7 @@ const Login = (props) => {
             message: err.response.data.message,
           });
           console.log(err.response);
+          tracer.getCurrentSpan().addEvent('Login failed');
         });
     } else {
       setInputErrorHandler(tmpErrorHandler);
@@ -247,10 +265,12 @@ const Login = (props) => {
         severity: "error",
         message: "Incorrect Input",
       });
+      tracer.getCurrentSpan().addEvent('Input verification failed');
     }
   };
 
   const handleLoginRecruiter = () => {
+    boundLoginAttemptsCounter.add(1);
     const tmpErrorHandler = {};
     Object.keys(inputErrorHandler).forEach((obj) => {
       if (inputErrorHandler[obj].required && inputErrorHandler[obj].untouched) {
@@ -281,6 +301,7 @@ const Login = (props) => {
     }
 
     setSignupDetails(updatedDetails);
+    tracer.getCurrentSpan().addEvent('Signup details for recruiter updated');
 
     const verified = !Object.keys(tmpErrorHandler).some((obj) => {
       return tmpErrorHandler[obj].error;
@@ -301,6 +322,7 @@ const Login = (props) => {
             message: "Logged in successfully",
           });
           console.log(response);
+          tracer.getCurrentSpan().addEvent('Login as recruiter successful');
         })
         .catch((err) => {
           setPopup({
@@ -309,6 +331,7 @@ const Login = (props) => {
             message: err.response.data.message,
           });
           console.log(err.response);
+          tracer.getCurrentSpan().addEvent('Login as recruiter failed');
         });
     } else {
       setInputErrorHandler(tmpErrorHandler);
@@ -317,6 +340,7 @@ const Login = (props) => {
         severity: "error",
         message: "Incorrect Input",
       });
+      tracer.getCurrentSpan().addEvent('Input verification for recruiter failed');
     }
   };
 
@@ -413,13 +437,6 @@ const Login = (props) => {
                 className={classes.inputBox}
                 label="Resume (.pdf)"
                 icon={<DescriptionIcon />}
-                // value={files.resume}
-                // onChange={(event) =>
-                //   setFiles({
-                //     ...files,
-                //     resume: event.target.files[0],
-                //   })
-                // }
                 uploadTo={apiList.uploadResume}
                 handleInput={handleInput}
                 identifier={"resume"}
@@ -430,13 +447,6 @@ const Login = (props) => {
                 className={classes.inputBox}
                 label="Profile Photo (.jpg/.png)"
                 icon={<FaceIcon />}
-                // value={files.profileImage}
-                // onChange={(event) =>
-                //   setFiles({
-                //     ...files,
-                //     profileImage: event.target.files[0],
-                //   })
-                // }
                 uploadTo={apiList.uploadProfileImage}
                 handleInput={handleInput}
                 identifier={"profile"}
@@ -494,24 +504,3 @@ const Login = (props) => {
 };
 
 export default Login;
-
-// {/* <Grid item>
-//           <PasswordInput
-//             label="Re-enter Password"
-//             value={signupDetails.tmpPassword}
-//             onChange={(event) => handleInput("tmpPassword", event.target.value)}
-//             className={classes.inputBox}
-//             labelWidth={140}
-//             helperText={inputErrorHandler.tmpPassword.message}
-//             error={inputErrorHandler.tmpPassword.error}
-//             onBlur={(event) => {
-//               if (event.target.value !== signupDetails.password) {
-//                 handleInputError(
-//                   "tmpPassword",
-//                   true,
-//                   "Passwords are not same."
-//                 );
-//               }
-//             }}
-//           />
-//         </Grid> */}
