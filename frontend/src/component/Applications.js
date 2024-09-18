@@ -18,6 +18,7 @@ import {
 } from "@material-ui/core";
 import Rating from "@material-ui/lab/Rating";
 import axios from "axios";
+import { diag } from '@opentelemetry/api';
 
 import { SetPopupContext } from "../App";
 
@@ -60,6 +61,7 @@ const ApplicationTile = (props) => {
   const joinedOn = new Date(application.dateOfJoining);
 
   const fetchRating = () => {
+    diag.debug('Fetching rating for job ID:', application.job._id);
     axios
       .get(`${apiList.rating}?id=${application.job._id}`, {
         headers: {
@@ -68,10 +70,11 @@ const ApplicationTile = (props) => {
       })
       .then((response) => {
         setRating(response.data.rating);
+        diag.debug('Fetched rating:', response.data.rating);
         console.log(response.data);
       })
       .catch((err) => {
-        // console.log(err.response);
+        diag.error('Error fetching rating:', err.response.data);
         console.log(err.response.data);
         setPopup({
           open: true,
@@ -82,6 +85,7 @@ const ApplicationTile = (props) => {
   };
 
   const changeRating = () => {
+    diag.debug('Changing rating to:', rating, 'for job ID:', application.job._id);
     axios
       .put(
         apiList.rating,
@@ -93,6 +97,7 @@ const ApplicationTile = (props) => {
         }
       )
       .then((response) => {
+        diag.debug('Rating changed successfully:', response.data);
         console.log(response.data);
         setPopup({
           open: true,
@@ -103,7 +108,7 @@ const ApplicationTile = (props) => {
         setOpen(false);
       })
       .catch((err) => {
-        // console.log(err.response);
+        diag.error('Error changing rating:', err);
         console.log(err);
         setPopup({
           open: true,
@@ -116,6 +121,7 @@ const ApplicationTile = (props) => {
   };
 
   const handleClose = () => {
+    diag.debug('Closing rating modal');
     setOpen(false);
   };
 
@@ -176,6 +182,7 @@ const ApplicationTile = (props) => {
                 color="primary"
                 className={classes.statusBlock}
                 onClick={() => {
+                  diag.debug('Opening rating modal for job ID:', application.job._id);
                   fetchRating();
                   setOpen(true);
                 }}
@@ -203,6 +210,7 @@ const ApplicationTile = (props) => {
             style={{ marginBottom: "30px" }}
             value={rating === -1 ? null : rating}
             onChange={(event, newValue) => {
+              diag.debug('Rating changed to:', newValue);
               setRating(newValue);
             }}
           />
@@ -225,6 +233,7 @@ const Applications = (props) => {
   const [applications, setApplications] = useState([]);
 
   useEffect(() => {
+    diag.debug('Fetching applications data');
     getData();
   }, []);
 
@@ -236,11 +245,12 @@ const Applications = (props) => {
         },
       })
       .then((response) => {
+        diag.debug('Fetched applications data:', response.data);
         console.log(response.data);
         setApplications(response.data);
       })
       .catch((err) => {
-        // console.log(err.response);
+        diag.error('Error fetching applications data:', err.response.data);
         console.log(err.response.data);
         setPopup({
           open: true,

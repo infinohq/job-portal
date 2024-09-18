@@ -28,6 +28,7 @@ import { SetPopupContext } from "../App";
 
 import apiList from "../lib/apiList";
 import { userType } from "../lib/isAuth";
+import { diagLog } from '@opentelemetry/api';
 
 const useStyles = makeStyles((theme) => ({
   body: {
@@ -62,11 +63,11 @@ const JobTile = (props) => {
   const handleClose = () => {
     setOpen(false);
     setSop("");
+    diagLog.info('Modal closed and SOP reset');
   };
 
   const handleApply = () => {
-    console.log(job._id);
-    console.log(sop);
+    diagLog.info('Applying for job', { jobId: job._id, sop: sop });
     axios
       .post(
         `${apiList.jobs}/${job._id}/applications`,
@@ -80,6 +81,7 @@ const JobTile = (props) => {
         }
       )
       .then((response) => {
+        diagLog.info('Application successful', { message: response.data.message });
         setPopup({
           open: true,
           severity: "success",
@@ -88,7 +90,7 @@ const JobTile = (props) => {
         handleClose();
       })
       .catch((err) => {
-        console.log(err.response);
+        diagLog.error('Application failed', { error: err.response });
         setPopup({
           open: true,
           severity: "error",
@@ -99,6 +101,7 @@ const JobTile = (props) => {
   };
 
   const deadline = new Date(job.deadline).toLocaleDateString();
+  diagLog.info('Job deadline', { deadline: deadline });
 
   return (
     <Paper className={classes.jobTileOuter} elevation={3}>
@@ -132,6 +135,7 @@ const JobTile = (props) => {
             className={classes.button}
             onClick={() => {
               setOpen(true);
+              diagLog.info('Open apply modal', { jobId: job._id });
             }}
             disabled={userType() === "recruiter"}
           >
@@ -165,6 +169,7 @@ const JobTile = (props) => {
                 }).length <= 250
               ) {
                 setSop(event.target.value);
+                diagLog.info('SOP updated', { sop: event.target.value });
               }
             }}
           />
@@ -185,6 +190,7 @@ const JobTile = (props) => {
 const FilterPopup = (props) => {
   const classes = useStyles();
   const { open, handleClose, searchOptions, setSearchOptions, getData } = props;
+  diagLog.info('FilterPopup props', { open, searchOptions });
   return (
     <Modal open={open} onClose={handleClose} className={classes.popupDialog}>
       <Paper
@@ -220,6 +226,7 @@ const FilterPopup = (props) => {
                             [event.target.name]: event.target.checked,
                           },
                         });
+                        diagLog.info('Job type fullTime changed', { checked: event.target.checked });
                       }}
                     />
                   }
@@ -240,6 +247,7 @@ const FilterPopup = (props) => {
                             [event.target.name]: event.target.checked,
                           },
                         });
+                        diagLog.info('Job type partTime changed', { checked: event.target.checked });
                       }}
                     />
                   }
@@ -260,6 +268,7 @@ const FilterPopup = (props) => {
                             [event.target.name]: event.target.checked,
                           },
                         });
+                        diagLog.info('Job type wfh changed', { checked: event.target.checked });
                       }}
                     />
                   }
@@ -283,12 +292,13 @@ const FilterPopup = (props) => {
                   { value: 100, label: "100000" },
                 ]}
                 value={searchOptions.salary}
-                onChange={(event, value) =>
+                onChange={(event, value) => {
                   setSearchOptions({
                     ...searchOptions,
                     salary: value,
-                  })
-                }
+                  });
+                  diagLog.info('Salary range changed', { salary: value });
+                }}
               />
             </Grid>
           </Grid>
@@ -303,12 +313,13 @@ const FilterPopup = (props) => {
                 variant="outlined"
                 fullWidth
                 value={searchOptions.duration}
-                onChange={(event) =>
+                onChange={(event) => {
                   setSearchOptions({
                     ...searchOptions,
                     duration: event.target.value,
-                  })
-                }
+                  });
+                  diagLog.info('Duration changed', { duration: event.target.value });
+                }}
               >
                 <MenuItem value="0">All</MenuItem>
                 <MenuItem value="1">1</MenuItem>
@@ -338,7 +349,7 @@ const FilterPopup = (props) => {
                   <Checkbox
                     name="salary"
                     checked={searchOptions.sort.salary.status}
-                    onChange={(event) =>
+                    onChange={(event) => {
                       setSearchOptions({
                         ...searchOptions,
                         sort: {
@@ -348,8 +359,9 @@ const FilterPopup = (props) => {
                             status: event.target.checked,
                           },
                         },
-                      })
-                    }
+                      });
+                      diagLog.info('Sort by salary status changed', { status: event.target.checked });
+                    }}
                     id="salary"
                   />
                 </Grid>
@@ -372,6 +384,7 @@ const FilterPopup = (props) => {
                           },
                         },
                       });
+                      diagLog.info('Sort by salary order changed', { desc: !searchOptions.sort.salary.desc });
                     }}
                   >
                     {searchOptions.sort.salary.desc ? (
@@ -394,7 +407,7 @@ const FilterPopup = (props) => {
                   <Checkbox
                     name="duration"
                     checked={searchOptions.sort.duration.status}
-                    onChange={(event) =>
+                    onChange={(event) => {
                       setSearchOptions({
                         ...searchOptions,
                         sort: {
@@ -404,8 +417,9 @@ const FilterPopup = (props) => {
                             status: event.target.checked,
                           },
                         },
-                      })
-                    }
+                      });
+                      diagLog.info('Sort by duration status changed', { status: event.target.checked });
+                    }}
                     id="duration"
                   />
                 </Grid>
@@ -428,6 +442,7 @@ const FilterPopup = (props) => {
                           },
                         },
                       });
+                      diagLog.info('Sort by duration order changed', { desc: !searchOptions.sort.duration.desc });
                     }}
                   >
                     {searchOptions.sort.duration.desc ? (
@@ -450,7 +465,7 @@ const FilterPopup = (props) => {
                   <Checkbox
                     name="rating"
                     checked={searchOptions.sort.rating.status}
-                    onChange={(event) =>
+                    onChange={(event) => {
                       setSearchOptions({
                         ...searchOptions,
                         sort: {
@@ -460,8 +475,9 @@ const FilterPopup = (props) => {
                             status: event.target.checked,
                           },
                         },
-                      })
-                    }
+                      });
+                      diagLog.info('Sort by rating status changed', { status: event.target.checked });
+                    }}
                     id="rating"
                   />
                 </Grid>
@@ -484,6 +500,7 @@ const FilterPopup = (props) => {
                           },
                         },
                       });
+                      diagLog.info('Sort by rating order changed', { desc: !searchOptions.sort.rating.desc });
                     }}
                   >
                     {searchOptions.sort.rating.desc ? (
@@ -591,7 +608,7 @@ const Home = (props) => {
     });
     searchParams = [...searchParams, ...asc, ...desc];
     const queryString = searchParams.join("&");
-    console.log(queryString);
+    diagLog.info('Query string for job search', { queryString: queryString });
     let address = apiList.jobs;
     if (queryString !== "") {
       address = `${address}?${queryString}`;
@@ -604,7 +621,7 @@ const Home = (props) => {
         },
       })
       .then((response) => {
-        console.log(response.data);
+        diagLog.info('Jobs fetched successfully', { jobs: response.data });
         setJobs(
           response.data.filter((obj) => {
             const today = new Date();
@@ -614,7 +631,7 @@ const Home = (props) => {
         );
       })
       .catch((err) => {
-        console.log(err.response.data);
+        diagLog.error('Error fetching jobs', { error: err.response.data });
         setPopup({
           open: true,
           severity: "error",
@@ -646,21 +663,26 @@ const Home = (props) => {
             <TextField
               label="Search Jobs"
               value={searchOptions.query}
-              onChange={(event) =>
+              onChange={(event) => {
                 setSearchOptions({
                   ...searchOptions,
                   query: event.target.value,
-                })
-              }
+                });
+                diagLog.info('Search query updated', { query: event.target.value });
+              }}
               onKeyPress={(ev) => {
                 if (ev.key === "Enter") {
                   getData();
+                  diagLog.info('Enter key pressed, fetching data');
                 }
               }}
               InputProps={{
                 endAdornment: (
                   <InputAdornment>
-                    <IconButton onClick={() => getData()}>
+                    <IconButton onClick={() => {
+                      getData();
+                      diagLog.info('Search button clicked, fetching data');
+                    }}>
                       <SearchIcon />
                     </IconButton>
                   </InputAdornment>
@@ -671,7 +693,10 @@ const Home = (props) => {
             />
           </Grid>
           <Grid item>
-            <IconButton onClick={() => setFilterOpen(true)}>
+            <IconButton onClick={() => {
+              setFilterOpen(true);
+              diagLog.info('Filter button clicked, opening filter modal');
+            }}>
               <FilterListIcon />
             </IconButton>
           </Grid>
@@ -703,10 +728,14 @@ const Home = (props) => {
         open={filterOpen}
         searchOptions={searchOptions}
         setSearchOptions={setSearchOptions}
-        handleClose={() => setFilterOpen(false)}
+        handleClose={() => {
+          setFilterOpen(false);
+          diagLog.info('Filter modal closed');
+        }}
         getData={() => {
           getData();
           setFilterOpen(false);
+          diagLog.info('Filter applied, fetching data');
         }}
       />
     </>

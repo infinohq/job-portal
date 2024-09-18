@@ -24,6 +24,7 @@ import { SetPopupContext } from "../App";
 
 import apiList from "../lib/apiList";
 import isAuth from "../lib/isAuth";
+import { diag } from '@opentelemetry/api';
 
 const useStyles = makeStyles((theme) => ({
   body: {
@@ -59,6 +60,7 @@ const MultifieldInput = (props) => {
                 const newEdu = [...education];
                 newEdu[key].institutionName = event.target.value;
                 setEducation(newEdu);
+                diag.debug('Updated institutionName', { institutionName: newEdu[key].institutionName });
               }}
               variant="outlined"
             />
@@ -73,6 +75,7 @@ const MultifieldInput = (props) => {
                 const newEdu = [...education];
                 newEdu[key].startYear = event.target.value;
                 setEducation(newEdu);
+                diag.debug('Updated startYear', { startYear: newEdu[key].startYear });
               }}
             />
           </Grid>
@@ -86,6 +89,7 @@ const MultifieldInput = (props) => {
                 const newEdu = [...education];
                 newEdu[key].endYear = event.target.value;
                 setEducation(newEdu);
+                diag.debug('Updated endYear', { endYear: newEdu[key].endYear });
               }}
             />
           </Grid>
@@ -119,6 +123,7 @@ const Login = (props) => {
   const setPopup = useContext(SetPopupContext);
 
   const [loggedin, setLoggedin] = useState(isAuth());
+  diag.debug('Initial loggedin state', { loggedin });
 
   const [signupDetails, setSignupDetails] = useState({
     type: "applicant",
@@ -132,8 +137,10 @@ const Login = (props) => {
     bio: "",
     contactNumber: "",
   });
+  diag.debug('Initial signupDetails state', { signupDetails });
 
   const [phone, setPhone] = useState("");
+  diag.debug('Initial phone state', { phone });
 
   const [education, setEducation] = useState([
     {
@@ -142,6 +149,7 @@ const Login = (props) => {
       endYear: "",
     },
   ]);
+  diag.debug('Initial education state', { education });
 
   const [inputErrorHandler, setInputErrorHandler] = useState({
     email: {
@@ -163,12 +171,14 @@ const Login = (props) => {
       message: "",
     },
   });
+  diag.debug('Initial inputErrorHandler state', { inputErrorHandler });
 
   const handleInput = (key, value) => {
     setSignupDetails({
       ...signupDetails,
       [key]: value,
     });
+    diag.debug('Updated signupDetails', { [key]: value });
   };
 
   const handleInputError = (key, status, message) => {
@@ -181,6 +191,7 @@ const Login = (props) => {
         message: message,
       },
     });
+    diag.debug('Updated inputErrorHandler', { [key]: { error: status, message } });
   };
 
   const handleLogin = () => {
@@ -198,6 +209,8 @@ const Login = (props) => {
       }
     });
 
+    diag.debug('Temporary error handler', { tmpErrorHandler });
+
     console.log(education);
 
     let updatedDetails = {
@@ -213,10 +226,13 @@ const Login = (props) => {
     };
 
     setSignupDetails(updatedDetails);
+    diag.debug('Updated signupDetails with education', { updatedDetails });
 
     const verified = !Object.keys(tmpErrorHandler).some((obj) => {
       return tmpErrorHandler[obj].error;
     });
+
+    diag.debug('Verification status', { verified });
 
     if (verified) {
       axios
@@ -230,7 +246,7 @@ const Login = (props) => {
             severity: "success",
             message: "Logged in successfully",
           });
-          console.log(response);
+          diag.debug('Login response', { response });
         })
         .catch((err) => {
           setPopup({
@@ -238,7 +254,7 @@ const Login = (props) => {
             severity: "error",
             message: err.response.data.message,
           });
-          console.log(err.response);
+          diag.debug('Login error', { error: err.response });
         });
     } else {
       setInputErrorHandler(tmpErrorHandler);
@@ -265,6 +281,8 @@ const Login = (props) => {
       }
     });
 
+    diag.debug('Temporary error handler for recruiter', { tmpErrorHandler });
+
     let updatedDetails = {
       ...signupDetails,
     };
@@ -281,10 +299,13 @@ const Login = (props) => {
     }
 
     setSignupDetails(updatedDetails);
+    diag.debug('Updated signupDetails for recruiter', { updatedDetails });
 
     const verified = !Object.keys(tmpErrorHandler).some((obj) => {
       return tmpErrorHandler[obj].error;
     });
+
+    diag.debug('Verification status for recruiter', { verified });
 
     console.log(updatedDetails);
 
@@ -300,7 +321,7 @@ const Login = (props) => {
             severity: "success",
             message: "Logged in successfully",
           });
-          console.log(response);
+          diag.debug('Login response for recruiter', { response });
         })
         .catch((err) => {
           setPopup({
@@ -308,7 +329,7 @@ const Login = (props) => {
             severity: "error",
             message: err.response.data.message,
           });
-          console.log(err.response);
+          diag.debug('Login error for recruiter', { error: err.response });
         });
     } else {
       setInputErrorHandler(tmpErrorHandler);
@@ -339,6 +360,7 @@ const Login = (props) => {
             value={signupDetails.type}
             onChange={(event) => {
               handleInput("type", event.target.value);
+              diag.debug('Selected category', { category: event.target.value });
             }}
           >
             <MenuItem value="applicant">Applicant</MenuItem>

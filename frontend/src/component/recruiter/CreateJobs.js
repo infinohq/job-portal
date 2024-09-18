@@ -11,6 +11,7 @@ import {
 } from "@material-ui/core";
 import axios from "axios";
 import ChipInput from "material-ui-chip-input";
+import { trace } from "@opentelemetry/api";
 
 import { SetPopupContext } from "../../App";
 
@@ -47,47 +48,63 @@ const CreateJobs = (props) => {
   });
 
   const handleInput = (key, value) => {
-    setJobDetails({
-      ...jobDetails,
-      [key]: value,
+    const tracer = trace.getTracer("default");
+    tracer.startActiveSpan("handleInput", span => {
+      span.setAttribute("key", key);
+      span.setAttribute("value", value);
+      setJobDetails({
+        ...jobDetails,
+        [key]: value,
+      });
+      span.addEvent("Updated jobDetails", { jobDetails: JSON.stringify(jobDetails) });
+      span.end();
     });
   };
 
   const handleUpdate = () => {
-    console.log(jobDetails);
-    axios
-      .post(apiList.jobs, jobDetails, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      })
-      .then((response) => {
-        setPopup({
-          open: true,
-          severity: "success",
-          message: response.data.message,
+    const tracer = trace.getTracer("default");
+    tracer.startActiveSpan("handleUpdate", span => {
+      span.setAttribute("jobDetails", JSON.stringify(jobDetails));
+      axios
+        .post(apiList.jobs, jobDetails, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        })
+        .then((response) => {
+          span.setAttribute("responseMessage", response.data.message);
+          setPopup({
+            open: true,
+            severity: "success",
+            message: response.data.message,
+          });
+          setJobDetails({
+            title: "",
+            maxApplicants: 100,
+            maxPositions: 30,
+            deadline: new Date(new Date().getTime() + 10 * 24 * 60 * 60 * 1000)
+              .toISOString()
+              .substr(0, 16),
+            skillsets: [],
+            jobType: "Full Time",
+            duration: 0,
+            salary: 0,
+          });
+          span.addEvent("Job details reset after successful update");
+        })
+        .catch((err) => {
+          span.setAttribute("errorMessage", err.response.data.message);
+          setPopup({
+            open: true,
+            severity: "error",
+            message: err.response.data.message,
+          });
+          console.log(err.response);
+        })
+        .finally(() => {
+          span.end();
         });
-        setJobDetails({
-          title: "",
-          maxApplicants: 100,
-          maxPositions: 30,
-          deadline: new Date(new Date().getTime() + 10 * 24 * 60 * 60 * 1000)
-            .toISOString()
-            .substr(0, 16),
-          skillsets: [],
-          jobType: "Full Time",
-          duration: 0,
-          salary: 0,
-        });
-      })
-      .catch((err) => {
-        setPopup({
-          open: true,
-          severity: "error",
-          message: err.response.data.message,
-        });
-        console.log(err.response);
-      });
+    });
   };
 
   return (
