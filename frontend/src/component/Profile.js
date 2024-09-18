@@ -18,6 +18,8 @@ import { SetPopupContext } from "../App";
 
 import apiList from "../lib/apiList";
 
+import { trace } from '@opentelemetry/api';
+
 const useStyles = makeStyles((theme) => ({
   body: {
     height: "inherit",
@@ -47,6 +49,7 @@ const MultifieldInput = (props) => {
                 const newEdu = [...education];
                 newEdu[key].institutionName = event.target.value;
                 setEducation(newEdu);
+                trace.getTracer('default').addEvent(`Updated institutionName for key ${key}: ${event.target.value}`);
               }}
               variant="outlined"
               fullWidth
@@ -62,6 +65,7 @@ const MultifieldInput = (props) => {
                 const newEdu = [...education];
                 newEdu[key].startYear = event.target.value;
                 setEducation(newEdu);
+                trace.getTracer('default').addEvent(`Updated startYear for key ${key}: ${event.target.value}`);
               }}
             />
           </Grid>
@@ -75,6 +79,7 @@ const MultifieldInput = (props) => {
                 const newEdu = [...education];
                 newEdu[key].endYear = event.target.value;
                 setEducation(newEdu);
+                trace.getTracer('default').addEvent(`Updated endYear for key ${key}: ${event.target.value}`);
               }}
             />
           </Grid>
@@ -84,7 +89,7 @@ const MultifieldInput = (props) => {
         <Button
           variant="contained"
           color="secondary"
-          onClick={() =>
+          onClick={() => {
             setEducation([
               ...education,
               {
@@ -92,8 +97,9 @@ const MultifieldInput = (props) => {
                 startYear: "",
                 endYear: "",
               },
-            ])
-          }
+            ]);
+            trace.getTracer('default').addEvent('Added another institution details');
+          }}
           className={classes.inputBox}
         >
           Add another institution details
@@ -130,6 +136,7 @@ const Profile = (props) => {
       ...profileDetails,
       [key]: value,
     });
+    trace.getTracer('default').addEvent(`Updated profileDetails: ${key} = ${value}`);
   };
 
   useEffect(() => {
@@ -144,7 +151,7 @@ const Profile = (props) => {
         },
       })
       .then((response) => {
-        console.log(response.data);
+        trace.getTracer('default').addEvent(`Fetched user data: ${JSON.stringify(response.data)}`);
         setProfileDetails(response.data);
         if (response.data.education.length > 0) {
           setEducation(
@@ -154,10 +161,11 @@ const Profile = (props) => {
               endYear: edu.endYear ? edu.endYear : "",
             }))
           );
+          trace.getTracer('default').addEvent(`Set education data: ${JSON.stringify(response.data.education)}`);
         }
       })
       .catch((err) => {
-        console.log(err.response.data);
+        trace.getTracer('default').addEvent(`Error fetching user data: ${err.response.data}`);
         setPopup({
           open: true,
           severity: "error",
@@ -168,14 +176,16 @@ const Profile = (props) => {
 
   const handleClose = () => {
     setOpen(false);
+    trace.getTracer('default').addEvent('Closed modal');
   };
 
   const editDetails = () => {
     setOpen(true);
+    trace.getTracer('default').addEvent('Opened modal for editing details');
   };
 
   const handleUpdate = () => {
-    console.log(education);
+    trace.getTracer('default').addEvent(`Updating education details: ${JSON.stringify(education)}`);
 
     let updatedDetails = {
       ...profileDetails,
@@ -196,6 +206,7 @@ const Profile = (props) => {
         },
       })
       .then((response) => {
+        trace.getTracer('default').addEvent(`Successfully updated user details: ${response.data.message}`);
         setPopup({
           open: true,
           severity: "success",
@@ -204,12 +215,12 @@ const Profile = (props) => {
         getData();
       })
       .catch((err) => {
+        trace.getTracer('default').addEvent(`Error updating user details: ${err.response.data.message}`);
         setPopup({
           open: true,
           severity: "error",
           message: err.response.data.message,
         });
-        console.log(err.response);
       });
     setOpen(false);
   };
@@ -259,12 +270,13 @@ const Profile = (props) => {
                   variant="outlined"
                   helperText="Press enter to add skills"
                   value={profileDetails.skills}
-                  onAdd={(chip) =>
+                  onAdd={(chip) => {
                     setProfileDetails({
                       ...profileDetails,
                       skills: [...profileDetails.skills, chip],
-                    })
-                  }
+                    });
+                    trace.getTracer('default').addEvent(`Added skill: ${chip}`);
+                  }}
                   onDelete={(chip, index) => {
                     let skills = profileDetails.skills;
                     skills.splice(index, 1);
@@ -272,6 +284,7 @@ const Profile = (props) => {
                       ...profileDetails,
                       skills: skills,
                     });
+                    trace.getTracer('default').addEvent(`Deleted skill: ${chip}`);
                   }}
                   fullWidth
                 />
