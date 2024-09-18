@@ -176,6 +176,12 @@ const FilterPopup = (props) => {
                     id="name"
                   />
                 </Grid>
+                const { trace } = require("@opentelemetry/api");
+                const tracer = trace.getTracer("default");
+                const span = tracer.startSpan("Checkbox name change");
+                span.setAttribute("name", "name");
+                span.setAttribute("checked", searchOptions.sort["jobApplicant.name"].status);
+                span.end();
                 <Grid item>
                   <label for="name">
                     <Typography>Name</Typography>
@@ -232,6 +238,12 @@ const FilterPopup = (props) => {
                     id="jobTitle"
                   />
                 </Grid>
+                const { trace } = require("@opentelemetry/api");
+                const tracer = trace.getTracer("default");
+                const span = tracer.startSpan("Checkbox jobTitle change");
+                span.setAttribute("name", "jobTitle");
+                span.setAttribute("checked", searchOptions.sort["job.title"].status);
+                span.end();
                 <Grid item>
                   <label for="jobTitle">
                     <Typography>Job Title</Typography>
@@ -288,6 +300,12 @@ const FilterPopup = (props) => {
                     id="dateOfJoining"
                   />
                 </Grid>
+                const { trace } = require("@opentelemetry/api");
+                const tracer = trace.getTracer("default");
+                const span = tracer.startSpan("Checkbox dateOfJoining change");
+                span.setAttribute("name", "dateOfJoining");
+                span.setAttribute("checked", searchOptions.sort.dateOfJoining.status);
+                span.end();
                 <Grid item>
                   <label for="dateOfJoining">
                     <Typography>Date of Joining</Typography>
@@ -344,6 +362,12 @@ const FilterPopup = (props) => {
                     id="rating"
                   />
                 </Grid>
+                const { trace } = require("@opentelemetry/api");
+                const tracer = trace.getTracer("default");
+                const span = tracer.startSpan("Checkbox rating change");
+                span.setAttribute("name", "rating");
+                span.setAttribute("checked", searchOptions.sort["jobApplicant.rating"].status);
+                span.end();
                 <Grid item>
                   <label for="rating">
                     <Typography>Rating</Typography>
