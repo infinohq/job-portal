@@ -23,6 +23,7 @@ import axios from "axios";
 import FilterListIcon from "@material-ui/icons/FilterList";
 import ArrowUpwardIcon from "@material-ui/icons/ArrowUpward";
 import ArrowDownwardIcon from "@material-ui/icons/ArrowDownward";
+import { trace } from '@opentelemetry/api';
 
 import { SetPopupContext } from "../../App";
 
@@ -61,6 +62,11 @@ const useStyles = makeStyles((theme) => ({
 const FilterPopup = (props) => {
   const classes = useStyles();
   const { open, handleClose, searchOptions, setSearchOptions, getData } = props;
+  const tracer = trace.getTracer("FilterPopup");
+  const span = tracer.startSpan("FilterPopup");
+  span.setAttribute("open", open);
+  span.setAttribute("searchOptions", JSON.stringify(searchOptions));
+  span.end();
   return (
     <Modal open={open} onClose={handleClose} className={classes.popupDialog}>
       <Paper
@@ -71,79 +77,6 @@ const FilterPopup = (props) => {
         }}
       >
         <Grid container direction="column" alignItems="center" spacing={3}>
-          {/* <Grid container item alignItems="center">
-            <Grid item xs={3}>
-              Application Status
-            </Grid>
-            <Grid
-              container
-              item
-              xs={9}
-              justify="space-around"
-              // alignItems="center"
-            >
-              <Grid item>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      name="rejected"
-                      checked={searchOptions.status.rejected}
-                      onChange={(event) => {
-                        setSearchOptions({
-                          ...searchOptions,
-                          status: {
-                            ...searchOptions.status,
-                            [event.target.name]: event.target.checked,
-                          },
-                        });
-                      }}
-                    />
-                  }
-                  label="Rejected"
-                />
-              </Grid>
-              <Grid item>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      name="applied"
-                      checked={searchOptions.status.applied}
-                      onChange={(event) => {
-                        setSearchOptions({
-                          ...searchOptions,
-                          status: {
-                            ...searchOptions.status,
-                            [event.target.name]: event.target.checked,
-                          },
-                        });
-                      }}
-                    />
-                  }
-                  label="Applied"
-                />
-              </Grid>
-              <Grid item>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      name="shortlisted"
-                      checked={searchOptions.status.shortlisted}
-                      onChange={(event) => {
-                        setSearchOptions({
-                          ...searchOptions,
-                          status: {
-                            ...searchOptions.status,
-                            [event.target.name]: event.target.checked,
-                          },
-                        });
-                      }}
-                    />
-                  }
-                  label="Shortlisted"
-                />
-              </Grid>
-            </Grid>
-          </Grid> */}
           <Grid container item alignItems="center">
             <Grid item xs={3}>
               Sort
@@ -404,6 +337,11 @@ const ApplicationTile = (props) => {
   const appliedOn = new Date(application.dateOfApplication);
 
   const changeRating = () => {
+    const tracer = trace.getTracer("changeRating");
+    const span = tracer.startSpan("changeRating");
+    span.setAttribute("rating", rating);
+    span.setAttribute("applicantId", application.jobApplicant.userId);
+    span.end();
     axios
       .put(
         apiList.rating,
@@ -458,6 +396,10 @@ const ApplicationTile = (props) => {
   };
 
   const getResume = () => {
+    const tracer = trace.getTracer("getResume");
+    const span = tracer.startSpan("getResume");
+    span.setAttribute("resume", application.jobApplicant.resume);
+    span.end();
     if (
       application.jobApplicant.resume &&
       application.jobApplicant.resume !== ""
@@ -491,6 +433,11 @@ const ApplicationTile = (props) => {
   };
 
   const updateStatus = (status) => {
+    const tracer = trace.getTracer("updateStatus");
+    const span = tracer.startSpan("updateStatus");
+    span.setAttribute("status", status);
+    span.setAttribute("dateOfJoining", new Date().toISOString());
+    span.end();
     const address = `${apiList.applications}/${application._id}`;
     const statusData = {
       status: status,
@@ -687,137 +634,3 @@ const ApplicationTile = (props) => {
   );
 };
 
-const AcceptedApplicants = (props) => {
-  const setPopup = useContext(SetPopupContext);
-  const [applications, setApplications] = useState([]);
-  const [filterOpen, setFilterOpen] = useState(false);
-  const [searchOptions, setSearchOptions] = useState({
-    sort: {
-      "jobApplicant.name": {
-        status: false,
-        desc: false,
-      },
-      "job.title": {
-        status: false,
-        desc: false,
-      },
-      dateOfJoining: {
-        status: true,
-        desc: true,
-      },
-      "jobApplicant.rating": {
-        status: false,
-        desc: false,
-      },
-    },
-  });
-
-  useEffect(() => {
-    getData();
-  }, []);
-
-  const getData = () => {
-    let searchParams = [];
-    searchParams = [...searchParams, `status=accepted`];
-
-    let asc = [],
-      desc = [];
-
-    Object.keys(searchOptions.sort).forEach((obj) => {
-      const item = searchOptions.sort[obj];
-      if (item.status) {
-        if (item.desc) {
-          desc = [...desc, `desc=${obj}`];
-        } else {
-          asc = [...asc, `asc=${obj}`];
-        }
-      }
-    });
-
-    searchParams = [...searchParams, ...asc, ...desc];
-    const queryString = searchParams.join("&");
-    console.log(queryString);
-    let address = `${apiList.applicants}`;
-    if (queryString !== "") {
-      address = `${address}?${queryString}`;
-    }
-
-    console.log(address);
-
-    axios
-      .get(address, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      })
-      .then((response) => {
-        console.log(response.data);
-        setApplications(response.data);
-      })
-      .catch((err) => {
-        console.log(err.response);
-        // console.log(err.response.data);
-        setApplications([]);
-        setPopup({
-          open: true,
-          severity: "error",
-          message: err.response.data.message,
-        });
-      });
-  };
-
-  return (
-    <>
-      <Grid
-        container
-        item
-        direction="column"
-        alignItems="center"
-        style={{ padding: "30px", minHeight: "93vh" }}
-      >
-        <Grid item>
-          <Typography variant="h2">Employees</Typography>
-        </Grid>
-        <Grid item>
-          <IconButton onClick={() => setFilterOpen(true)}>
-            <FilterListIcon />
-          </IconButton>
-        </Grid>
-        <Grid
-          container
-          item
-          xs
-          direction="column"
-          style={{ width: "100%" }}
-          alignItems="stretch"
-          justify="center"
-        >
-          {applications.length > 0 ? (
-            applications.map((obj) => (
-              <Grid item>
-                {/* {console.log(obj)} */}
-                <ApplicationTile application={obj} getData={getData} />
-              </Grid>
-            ))
-          ) : (
-            <Typography variant="h5" style={{ textAlign: "center" }}>
-              No Applications Found
-            </Typography>
-          )}
-        </Grid>
-      </Grid>
-      <FilterPopup
-        open={filterOpen}
-        searchOptions={searchOptions}
-        setSearchOptions={setSearchOptions}
-        handleClose={() => setFilterOpen(false)}
-        getData={() => {
-          getData();
-          setFilterOpen(false);
-        }}
-      />
-    </>
-  );
-};
-
-export default AcceptedApplicants;
