@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { diag } = require('@opentelemetry/api');
 
 let schema = new mongoose.Schema(
   {
@@ -19,7 +20,9 @@ let schema = new mongoose.Schema(
         },
         {
           validator: function (value) {
-            return value > 0;
+            const isValid = value > 0;
+            diag.debug(`Validating maxApplicants: ${value}, isValid: ${isValid}`);
+            return isValid;
           },
           msg: "maxApplicants should greater than 0",
         },
@@ -34,7 +37,9 @@ let schema = new mongoose.Schema(
         },
         {
           validator: function (value) {
-            return value > 0;
+            const isValid = value > 0;
+            diag.debug(`Validating maxPositions: ${value}, isValid: ${isValid}`);
+            return isValid;
           },
           msg: "maxPositions should greater than 0",
         },
@@ -50,7 +55,9 @@ let schema = new mongoose.Schema(
         },
         {
           validator: function (value) {
-            return value >= 0;
+            const isValid = value >= 0;
+            diag.debug(`Validating activeApplications: ${value}, isValid: ${isValid}`);
+            return isValid;
           },
           msg: "activeApplications should greater than equal to 0",
         },
@@ -66,7 +73,9 @@ let schema = new mongoose.Schema(
         },
         {
           validator: function (value) {
-            return value >= 0;
+            const isValid = value >= 0;
+            diag.debug(`Validating acceptedCandidates: ${value}, isValid: ${isValid}`);
+            return isValid;
           },
           msg: "acceptedCandidates should greater than equal to 0",
         },
@@ -81,7 +90,9 @@ let schema = new mongoose.Schema(
       validate: [
         {
           validator: function (value) {
-            return this.dateOfPosting < value;
+            const isValid = this.dateOfPosting < value;
+            diag.debug(`Validating deadline: ${value}, dateOfPosting: ${this.dateOfPosting}, isValid: ${isValid}`);
+            return isValid;
           },
           msg: "deadline should be greater than dateOfPosting",
         },
@@ -111,7 +122,9 @@ let schema = new mongoose.Schema(
         },
         {
           validator: function (value) {
-            return value >= 0;
+            const isValid = value >= 0;
+            diag.debug(`Validating salary: ${value}, isValid: ${isValid}`);
+            return isValid;
           },
           msg: "Salary should be positive",
         },
@@ -123,7 +136,9 @@ let schema = new mongoose.Schema(
       default: -1.0,
       validate: {
         validator: function (v) {
-          return v >= -1.0 && v <= 5.0;
+          const isValid = v >= -1.0 && v <= 5.0;
+          diag.debug(`Validating rating: ${v}, isValid: ${isValid}`);
+          return isValid;
         },
         msg: "Invalid rating",
       },
