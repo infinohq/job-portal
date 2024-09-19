@@ -75,6 +75,7 @@ router.post("/signup", (req, res) => {
               res.status(400).json(err);
             })
             .catch((err) => {
+              signupErrorRate.add(1);
               diag.error('Error deleting user after failed details save', { error: err });
               res.json({ error: err });
             });
