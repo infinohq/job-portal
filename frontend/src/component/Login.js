@@ -9,6 +9,7 @@ import {
 } from "@material-ui/core";
 import axios from "axios";
 import { Redirect } from "react-router-dom";
+import { trace } from '@opentelemetry/api';
 
 import PasswordInput from "../lib/PasswordInput";
 import EmailInput from "../lib/EmailInput";
@@ -52,13 +53,21 @@ const Login = (props) => {
   });
 
   const handleInput = (key, value) => {
+    const span = trace.getTracer('default').startSpan('handleInput');
+    span.setAttribute('key', key);
+    span.setAttribute('value', value);
     setLoginDetails({
       ...loginDetails,
       [key]: value,
     });
+    span.end();
   };
 
   const handleInputError = (key, status, message) => {
+    const span = trace.getTracer('default').startSpan('handleInputError');
+    span.setAttribute('key', key);
+    span.setAttribute('status', status);
+    span.setAttribute('message', message);
     setInputErrorHandler({
       ...inputErrorHandler,
       [key]: {
@@ -66,16 +75,20 @@ const Login = (props) => {
         message: message,
       },
     });
+    span.end();
   };
 
   const handleLogin = () => {
+    const span = trace.getTracer('default').startSpan('handleLogin');
     const verified = !Object.keys(inputErrorHandler).some((obj) => {
       return inputErrorHandler[obj].error;
     });
+    span.setAttribute('verified', verified);
     if (verified) {
       axios
         .post(apiList.login, loginDetails)
         .then((response) => {
+          span.addEvent('Login successful');
           localStorage.setItem("token", response.data.token);
           localStorage.setItem("type", response.data.type);
           setLoggedin(isAuth());
@@ -87,6 +100,7 @@ const Login = (props) => {
           console.log(response);
         })
         .catch((err) => {
+          span.addEvent('Login failed');
           setPopup({
             open: true,
             severity: "error",
@@ -95,12 +109,14 @@ const Login = (props) => {
           console.log(err.response);
         });
     } else {
+      span.addEvent('Incorrect input');
       setPopup({
         open: true,
         severity: "error",
         message: "Incorrect Input",
       });
     }
+    span.end();
   };
 
   return loggedin ? (

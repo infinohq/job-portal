@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { diag } = require('@opentelemetry/api');
 
 let schema = new mongoose.Schema(
   {
@@ -21,7 +22,9 @@ let schema = new mongoose.Schema(
       default: -1.0,
       validate: {
         validator: function (v) {
-          return v >= -1.0 && v <= 5.0;
+          const isValid = v >= -1.0 && v <= 5.0;
+          diag.debug(`Validating rating: ${v}, isValid: ${isValid}`);
+          return isValid;
         },
         msg: "Invalid rating",
       },
@@ -30,6 +33,8 @@ let schema = new mongoose.Schema(
   { collation: { locale: "en" } }
 );
 
+diag.debug('Creating index for schema with fields: category, receiverId, senderId');
 schema.index({ category: 1, receiverId: 1, senderId: 1 }, { unique: true });
 
+diag.debug('Exporting mongoose model: ratings');
 module.exports = mongoose.model("ratings", schema);
