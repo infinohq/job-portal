@@ -18,6 +18,7 @@ import {
 } from "@material-ui/core";
 import Rating from "@material-ui/lab/Rating";
 import axios from "axios";
+import { trace } from '@opentelemetry/api';
 
 import { SetPopupContext } from "../App";
 
@@ -60,6 +61,7 @@ const ApplicationTile = (props) => {
   const joinedOn = new Date(application.dateOfJoining);
 
   const fetchRating = () => {
+    const span = trace.getTracer('default').startSpan('fetchRating');
     axios
       .get(`${apiList.rating}?id=${application.job._id}`, {
         headers: {
@@ -69,19 +71,24 @@ const ApplicationTile = (props) => {
       .then((response) => {
         setRating(response.data.rating);
         console.log(response.data);
+        span.addEvent('Fetched rating successfully', { rating: response.data.rating });
       })
       .catch((err) => {
-        // console.log(err.response);
         console.log(err.response.data);
         setPopup({
           open: true,
           severity: "error",
           message: "Error",
         });
+        span.addEvent('Error fetching rating', { error: err.response.data });
+      })
+      .finally(() => {
+        span.end();
       });
   };
 
   const changeRating = () => {
+    const span = trace.getTracer('default').startSpan('changeRating');
     axios
       .put(
         apiList.rating,
@@ -101,9 +108,9 @@ const ApplicationTile = (props) => {
         });
         fetchRating();
         setOpen(false);
+        span.addEvent('Rating updated successfully', { response: response.data });
       })
       .catch((err) => {
-        // console.log(err.response);
         console.log(err);
         setPopup({
           open: true,
@@ -112,6 +119,10 @@ const ApplicationTile = (props) => {
         });
         fetchRating();
         setOpen(false);
+        span.addEvent('Error updating rating', { error: err.response.data });
+      })
+      .finally(() => {
+        span.end();
       });
   };
 
@@ -229,6 +240,7 @@ const Applications = (props) => {
   }, []);
 
   const getData = () => {
+    const span = trace.getTracer('default').startSpan('getData');
     axios
       .get(apiList.applications, {
         headers: {
@@ -238,15 +250,19 @@ const Applications = (props) => {
       .then((response) => {
         console.log(response.data);
         setApplications(response.data);
+        span.addEvent('Fetched applications successfully', { applications: response.data });
       })
       .catch((err) => {
-        // console.log(err.response);
         console.log(err.response.data);
         setPopup({
           open: true,
           severity: "error",
           message: "Error",
         });
+        span.addEvent('Error fetching applications', { error: err.response.data });
+      })
+      .finally(() => {
+        span.end();
       });
   };
 
