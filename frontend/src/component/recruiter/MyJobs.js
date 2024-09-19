@@ -29,6 +29,8 @@ import { SetPopupContext } from "../../App";
 
 import apiList from "../../lib/apiList";
 
+import { diag } from '@opentelemetry/api';
+
 const useStyles = makeStyles((theme) => ({
   body: {
     height: "inherit",
@@ -69,29 +71,33 @@ const JobTile = (props) => {
   const [openUpdate, setOpenUpdate] = useState(false);
   const [jobDetails, setJobDetails] = useState(job);
 
-  console.log(jobDetails);
+  diag.debug('Job details initialized', { jobDetails });
 
   const handleInput = (key, value) => {
     setJobDetails({
       ...jobDetails,
       [key]: value,
     });
+    diag.debug('Job details updated', { key, value, jobDetails });
   };
 
   const handleClick = (location) => {
+    diag.debug('Navigating to location', { location });
     history.push(location);
   };
 
   const handleClose = () => {
     setOpen(false);
+    diag.debug('Modal closed', { open });
   };
 
   const handleCloseUpdate = () => {
     setOpenUpdate(false);
+    diag.debug('Update modal closed', { openUpdate });
   };
 
   const handleDelete = () => {
-    console.log(job._id);
+    diag.debug('Deleting job', { jobId: job._id });
     axios
       .delete(`${apiList.jobs}/${job._id}`, {
         headers: {
@@ -99,6 +105,7 @@ const JobTile = (props) => {
         },
       })
       .then((response) => {
+        diag.debug('Job deleted successfully', { response });
         setPopup({
           open: true,
           severity: "success",
@@ -108,7 +115,7 @@ const JobTile = (props) => {
         handleClose();
       })
       .catch((err) => {
-        console.log(err.response);
+        diag.error('Error deleting job', { error: err.response });
         setPopup({
           open: true,
           severity: "error",
@@ -119,6 +126,7 @@ const JobTile = (props) => {
   };
 
   const handleJobUpdate = () => {
+    diag.debug('Updating job', { jobId: job._id, jobDetails });
     axios
       .put(`${apiList.jobs}/${job._id}`, jobDetails, {
         headers: {
@@ -126,6 +134,7 @@ const JobTile = (props) => {
         },
       })
       .then((response) => {
+        diag.debug('Job updated successfully', { response });
         setPopup({
           open: true,
           severity: "success",
@@ -135,7 +144,7 @@ const JobTile = (props) => {
         handleCloseUpdate();
       })
       .catch((err) => {
-        console.log(err.response);
+        diag.error('Error updating job', { error: err.response });
         setPopup({
           open: true,
           severity: "error",
@@ -146,6 +155,7 @@ const JobTile = (props) => {
   };
 
   const postedOn = new Date(job.dateOfPosting);
+  diag.debug('Job posted on', { postedOn });
 
   return (
     <Paper className={classes.jobTileOuter} elevation={3}>
@@ -192,6 +202,7 @@ const JobTile = (props) => {
               className={classes.statusBlock}
               onClick={() => {
                 setOpenUpdate(true);
+                diag.debug('Update modal opened', { openUpdate });
               }}
               style={{
                 background: "#FC7A1E",
@@ -208,6 +219,7 @@ const JobTile = (props) => {
               className={classes.statusBlock}
               onClick={() => {
                 setOpen(true);
+                diag.debug('Delete modal opened', { open });
               }}
             >
               Delete Job
@@ -387,6 +399,7 @@ const FilterPopup = (props) => {
                             [event.target.name]: event.target.checked,
                           },
                         });
+                        diag.debug('Search options updated', { searchOptions });
                       }}
                     />
                   }
@@ -407,6 +420,7 @@ const FilterPopup = (props) => {
                             [event.target.name]: event.target.checked,
                           },
                         });
+                        diag.debug('Search options updated', { searchOptions });
                       }}
                     />
                   }
@@ -427,6 +441,7 @@ const FilterPopup = (props) => {
                             [event.target.name]: event.target.checked,
                           },
                         });
+                        diag.debug('Search options updated', { searchOptions });
                       }}
                     />
                   }
@@ -450,12 +465,13 @@ const FilterPopup = (props) => {
                   { value: 100, label: "100000" },
                 ]}
                 value={searchOptions.salary}
-                onChange={(event, value) =>
+                onChange={(event, value) => {
                   setSearchOptions({
                     ...searchOptions,
                     salary: value,
-                  })
-                }
+                  });
+                  diag.debug('Search options updated', { searchOptions });
+                }}
               />
             </Grid>
           </Grid>
@@ -470,12 +486,13 @@ const FilterPopup = (props) => {
                 variant="outlined"
                 fullWidth
                 value={searchOptions.duration}
-                onChange={(event) =>
+                onChange={(event) => {
                   setSearchOptions({
                     ...searchOptions,
                     duration: event.target.value,
-                  })
-                }
+                  });
+                  diag.debug('Search options updated', { searchOptions });
+                }}
               >
                 <MenuItem value="0">All</MenuItem>
                 <MenuItem value="1">1</MenuItem>
@@ -505,7 +522,7 @@ const FilterPopup = (props) => {
                   <Checkbox
                     name="salary"
                     checked={searchOptions.sort.salary.status}
-                    onChange={(event) =>
+                    onChange={(event) => {
                       setSearchOptions({
                         ...searchOptions,
                         sort: {
@@ -515,8 +532,9 @@ const FilterPopup = (props) => {
                             status: event.target.checked,
                           },
                         },
-                      })
-                    }
+                      });
+                      diag.debug('Search options updated', { searchOptions });
+                    }}
                     id="salary"
                   />
                 </Grid>
@@ -539,6 +557,7 @@ const FilterPopup = (props) => {
                           },
                         },
                       });
+                      diag.debug('Search options updated', { searchOptions });
                     }}
                   >
                     {searchOptions.sort.salary.desc ? (
@@ -561,7 +580,7 @@ const FilterPopup = (props) => {
                   <Checkbox
                     name="duration"
                     checked={searchOptions.sort.duration.status}
-                    onChange={(event) =>
+                    onChange={(event) => {
                       setSearchOptions({
                         ...searchOptions,
                         sort: {
@@ -571,8 +590,9 @@ const FilterPopup = (props) => {
                             status: event.target.checked,
                           },
                         },
-                      })
-                    }
+                      });
+                      diag.debug('Search options updated', { searchOptions });
+                    }}
                     id="duration"
                   />
                 </Grid>
@@ -595,6 +615,7 @@ const FilterPopup = (props) => {
                           },
                         },
                       });
+                      diag.debug('Search options updated', { searchOptions });
                     }}
                   >
                     {searchOptions.sort.duration.desc ? (
@@ -617,7 +638,7 @@ const FilterPopup = (props) => {
                   <Checkbox
                     name="rating"
                     checked={searchOptions.sort.rating.status}
-                    onChange={(event) =>
+                    onChange={(event) => {
                       setSearchOptions({
                         ...searchOptions,
                         sort: {
@@ -627,8 +648,9 @@ const FilterPopup = (props) => {
                             status: event.target.checked,
                           },
                         },
-                      })
-                    }
+                      });
+                      diag.debug('Search options updated', { searchOptions });
+                    }}
                     id="rating"
                   />
                 </Grid>
@@ -651,6 +673,7 @@ const FilterPopup = (props) => {
                           },
                         },
                       });
+                      diag.debug('Search options updated', { searchOptions });
                     }}
                   >
                     {searchOptions.sort.rating.desc ? (
@@ -758,13 +781,13 @@ const MyJobs = (props) => {
     });
     searchParams = [...searchParams, ...asc, ...desc];
     const queryString = searchParams.join("&");
-    console.log(queryString);
+    diag.debug('Query string constructed', { queryString });
     let address = apiList.jobs;
     if (queryString !== "") {
       address = `${address}?${queryString}`;
     }
 
-    console.log(address);
+    diag.debug('API address', { address });
     axios
       .get(address, {
         headers: {
@@ -772,11 +795,11 @@ const MyJobs = (props) => {
         },
       })
       .then((response) => {
-        console.log(response.data);
+        diag.debug('Jobs fetched successfully', { jobs: response.data });
         setJobs(response.data);
       })
       .catch((err) => {
-        console.log(err.response.data);
+        diag.error('Error fetching jobs', { error: err.response.data });
         setPopup({
           open: true,
           severity: "error",

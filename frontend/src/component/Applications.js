@@ -18,6 +18,7 @@ import {
 } from "@material-ui/core";
 import Rating from "@material-ui/lab/Rating";
 import axios from "axios";
+import { trace } from '@opentelemetry/api';
 
 import { SetPopupContext } from "../App";
 
@@ -60,6 +61,7 @@ const ApplicationTile = (props) => {
   const joinedOn = new Date(application.dateOfJoining);
 
   const fetchRating = () => {
+    const span = trace.getTracer('default').startSpan('fetchRating');
     axios
       .get(`${apiList.rating}?id=${application.job._id}`, {
         headers: {
@@ -69,19 +71,21 @@ const ApplicationTile = (props) => {
       .then((response) => {
         setRating(response.data.rating);
         console.log(response.data);
+        span.end();
       })
       .catch((err) => {
-        // console.log(err.response);
         console.log(err.response.data);
         setPopup({
           open: true,
           severity: "error",
           message: "Error",
         });
+        span.end();
       });
   };
 
   const changeRating = () => {
+    const span = trace.getTracer('default').startSpan('changeRating');
     axios
       .put(
         apiList.rating,
@@ -101,9 +105,9 @@ const ApplicationTile = (props) => {
         });
         fetchRating();
         setOpen(false);
+        span.end();
       })
       .catch((err) => {
-        // console.log(err.response);
         console.log(err);
         setPopup({
           open: true,
@@ -112,6 +116,7 @@ const ApplicationTile = (props) => {
         });
         fetchRating();
         setOpen(false);
+        span.end();
       });
   };
 
@@ -229,6 +234,7 @@ const Applications = (props) => {
   }, []);
 
   const getData = () => {
+    const span = trace.getTracer('default').startSpan('getData');
     axios
       .get(apiList.applications, {
         headers: {
@@ -238,15 +244,16 @@ const Applications = (props) => {
       .then((response) => {
         console.log(response.data);
         setApplications(response.data);
+        span.end();
       })
       .catch((err) => {
-        // console.log(err.response);
         console.log(err.response.data);
         setPopup({
           open: true,
           severity: "error",
           message: "Error",
         });
+        span.end();
       });
   };
 

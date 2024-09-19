@@ -16,6 +16,8 @@ import { SetPopupContext } from "../../App";
 
 import apiList from "../../lib/apiList";
 
+import { trace } from "@opentelemetry/api";
+
 const useStyles = makeStyles((theme) => ({
   body: {
     height: "inherit",
@@ -42,9 +44,15 @@ const Profile = (props) => {
   const [phone, setPhone] = useState("");
 
   const handleInput = (key, value) => {
-    setProfileDetails({
-      ...profileDetails,
-      [key]: value,
+    const tracer = trace.getTracer("default");
+    tracer.startActiveSpan("handleInput", (span) => {
+      span.setAttribute("key", key);
+      span.setAttribute("value", value);
+      setProfileDetails({
+        ...profileDetails,
+        [key]: value,
+      });
+      span.end();
     });
   };
 
@@ -53,65 +61,77 @@ const Profile = (props) => {
   }, []);
 
   const getData = () => {
-    axios
-      .get(apiList.user, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      })
-      .then((response) => {
-        console.log(response.data);
-        setProfileDetails(response.data);
-        setPhone(response.data.contactNumber);
-      })
-      .catch((err) => {
-        console.log(err.response.data);
-        setPopup({
-          open: true,
-          severity: "error",
-          message: "Error",
+    const tracer = trace.getTracer("default");
+    tracer.startActiveSpan("getData", (span) => {
+      axios
+        .get(apiList.user, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        })
+        .then((response) => {
+          span.setAttribute("responseData", JSON.stringify(response.data));
+          setProfileDetails(response.data);
+          setPhone(response.data.contactNumber);
+          span.end();
+        })
+        .catch((err) => {
+          span.setAttribute("error", JSON.stringify(err.response.data));
+          setPopup({
+            open: true,
+            severity: "error",
+            message: "Error",
+          });
+          span.end();
         });
-      });
+    });
   };
 
   const handleUpdate = () => {
-    let updatedDetails = {
-      ...profileDetails,
-    };
-    if (phone !== "") {
-      updatedDetails = {
+    const tracer = trace.getTracer("default");
+    tracer.startActiveSpan("handleUpdate", (span) => {
+      let updatedDetails = {
         ...profileDetails,
-        contactNumber: `+${phone}`,
       };
-    } else {
-      updatedDetails = {
-        ...profileDetails,
-        contactNumber: "",
-      };
-    }
+      if (phone !== "") {
+        updatedDetails = {
+          ...profileDetails,
+          contactNumber: `+${phone}`,
+        };
+      } else {
+        updatedDetails = {
+          ...profileDetails,
+          contactNumber: "",
+        };
+      }
+      span.setAttribute("updatedDetails", JSON.stringify(updatedDetails));
 
-    axios
-      .put(apiList.user, updatedDetails, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      })
-      .then((response) => {
-        setPopup({
-          open: true,
-          severity: "success",
-          message: response.data.message,
+      axios
+        .put(apiList.user, updatedDetails, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        })
+        .then((response) => {
+          span.setAttribute("responseMessage", response.data.message);
+          setPopup({
+            open: true,
+            severity: "success",
+            message: response.data.message,
+          });
+          getData();
+          span.end();
+        })
+        .catch((err) => {
+          span.setAttribute("error", JSON.stringify(err.response.data));
+          setPopup({
+            open: true,
+            severity: "error",
+            message: err.response.data.message,
+          });
+          span.end();
         });
-        getData();
-      })
-      .catch((err) => {
-        setPopup({
-          open: true,
-          severity: "error",
-          message: err.response.data.message,
-        });
-        console.log(err.response);
-      });
+    });
   };
 
   return (
