@@ -28,6 +28,8 @@ import { SetPopupContext } from "../../App";
 
 import apiList, { server } from "../../lib/apiList";
 
+import { trace } from '@opentelemetry/api';
+
 const useStyles = makeStyles((theme) => ({
   body: {
     height: "inherit",
@@ -89,12 +91,16 @@ const FilterPopup = (props) => {
                       name="rejected"
                       checked={searchOptions.status.rejected}
                       onChange={(event) => {
-                        setSearchOptions({
-                          ...searchOptions,
-                          status: {
-                            ...searchOptions.status,
-                            [event.target.name]: event.target.checked,
-                          },
+                        const tracer = trace.getTracer('default');
+                        tracer.startActiveSpan('Checkbox Change - Rejected', span => {
+                          setSearchOptions({
+                            ...searchOptions,
+                            status: {
+                              ...searchOptions.status,
+                              [event.target.name]: event.target.checked,
+                            },
+                          });
+                          span.end();
                         });
                       }}
                     />
@@ -109,12 +115,16 @@ const FilterPopup = (props) => {
                       name="applied"
                       checked={searchOptions.status.applied}
                       onChange={(event) => {
-                        setSearchOptions({
-                          ...searchOptions,
-                          status: {
-                            ...searchOptions.status,
-                            [event.target.name]: event.target.checked,
-                          },
+                        const tracer = trace.getTracer('default');
+                        tracer.startActiveSpan('Checkbox Change - Applied', span => {
+                          setSearchOptions({
+                            ...searchOptions,
+                            status: {
+                              ...searchOptions.status,
+                              [event.target.name]: event.target.checked,
+                            },
+                          });
+                          span.end();
                         });
                       }}
                     />
@@ -129,12 +139,16 @@ const FilterPopup = (props) => {
                       name="shortlisted"
                       checked={searchOptions.status.shortlisted}
                       onChange={(event) => {
-                        setSearchOptions({
-                          ...searchOptions,
-                          status: {
-                            ...searchOptions.status,
-                            [event.target.name]: event.target.checked,
-                          },
+                        const tracer = trace.getTracer('default');
+                        tracer.startActiveSpan('Checkbox Change - Shortlisted', span => {
+                          setSearchOptions({
+                            ...searchOptions,
+                            status: {
+                              ...searchOptions.status,
+                              [event.target.name]: event.target.checked,
+                            },
+                          });
+                          span.end();
                         });
                       }}
                     />
@@ -161,18 +175,22 @@ const FilterPopup = (props) => {
                   <Checkbox
                     name="name"
                     checked={searchOptions.sort["jobApplicant.name"].status}
-                    onChange={(event) =>
-                      setSearchOptions({
-                        ...searchOptions,
-                        sort: {
-                          ...searchOptions.sort,
-                          "jobApplicant.name": {
-                            ...searchOptions.sort["jobApplicant.name"],
-                            status: event.target.checked,
+                    onChange={(event) => {
+                      const tracer = trace.getTracer('default');
+                      tracer.startActiveSpan('Checkbox Change - Name Sort', span => {
+                        setSearchOptions({
+                          ...searchOptions,
+                          sort: {
+                            ...searchOptions.sort,
+                            "jobApplicant.name": {
+                              ...searchOptions.sort["jobApplicant.name"],
+                              status: event.target.checked,
+                            },
                           },
-                        },
-                      })
-                    }
+                        });
+                        span.end();
+                      });
+                    }}
                     id="name"
                   />
                 </Grid>
@@ -185,15 +203,19 @@ const FilterPopup = (props) => {
                   <IconButton
                     disabled={!searchOptions.sort["jobApplicant.name"].status}
                     onClick={() => {
-                      setSearchOptions({
-                        ...searchOptions,
-                        sort: {
-                          ...searchOptions.sort,
-                          "jobApplicant.name": {
-                            ...searchOptions.sort["jobApplicant.name"],
-                            desc: !searchOptions.sort["jobApplicant.name"].desc,
+                      const tracer = trace.getTracer('default');
+                      tracer.startActiveSpan('IconButton Click - Name Sort', span => {
+                        setSearchOptions({
+                          ...searchOptions,
+                          sort: {
+                            ...searchOptions.sort,
+                            "jobApplicant.name": {
+                              ...searchOptions.sort["jobApplicant.name"],
+                              desc: !searchOptions.sort["jobApplicant.name"].desc,
+                            },
                           },
-                        },
+                        });
+                        span.end();
                       });
                     }}
                   >
@@ -217,18 +239,22 @@ const FilterPopup = (props) => {
                   <Checkbox
                     name="dateOfApplication"
                     checked={searchOptions.sort.dateOfApplication.status}
-                    onChange={(event) =>
-                      setSearchOptions({
-                        ...searchOptions,
-                        sort: {
-                          ...searchOptions.sort,
-                          dateOfApplication: {
-                            ...searchOptions.sort.dateOfApplication,
-                            status: event.target.checked,
+                    onChange={(event) => {
+                      const tracer = trace.getTracer('default');
+                      tracer.startActiveSpan('Checkbox Change - Date of Application Sort', span => {
+                        setSearchOptions({
+                          ...searchOptions,
+                          sort: {
+                            ...searchOptions.sort,
+                            dateOfApplication: {
+                              ...searchOptions.sort.dateOfApplication,
+                              status: event.target.checked,
+                            },
                           },
-                        },
-                      })
-                    }
+                        });
+                        span.end();
+                      });
+                    }}
                     id="dateOfApplication"
                   />
                 </Grid>
@@ -241,15 +267,19 @@ const FilterPopup = (props) => {
                   <IconButton
                     disabled={!searchOptions.sort.dateOfApplication.status}
                     onClick={() => {
-                      setSearchOptions({
-                        ...searchOptions,
-                        sort: {
-                          ...searchOptions.sort,
-                          dateOfApplication: {
-                            ...searchOptions.sort.dateOfApplication,
-                            desc: !searchOptions.sort.dateOfApplication.desc,
+                      const tracer = trace.getTracer('default');
+                      tracer.startActiveSpan('IconButton Click - Date of Application Sort', span => {
+                        setSearchOptions({
+                          ...searchOptions,
+                          sort: {
+                            ...searchOptions.sort,
+                            dateOfApplication: {
+                              ...searchOptions.sort.dateOfApplication,
+                              desc: !searchOptions.sort.dateOfApplication.desc,
+                            },
                           },
-                        },
+                        });
+                        span.end();
                       });
                     }}
                   >
@@ -273,18 +303,22 @@ const FilterPopup = (props) => {
                   <Checkbox
                     name="rating"
                     checked={searchOptions.sort["jobApplicant.rating"].status}
-                    onChange={(event) =>
-                      setSearchOptions({
-                        ...searchOptions,
-                        sort: {
-                          ...searchOptions.sort,
-                          "jobApplicant.rating": {
-                            ...searchOptions.sort[["jobApplicant.rating"]],
-                            status: event.target.checked,
+                    onChange={(event) => {
+                      const tracer = trace.getTracer('default');
+                      tracer.startActiveSpan('Checkbox Change - Rating Sort', span => {
+                        setSearchOptions({
+                          ...searchOptions,
+                          sort: {
+                            ...searchOptions.sort,
+                            "jobApplicant.rating": {
+                              ...searchOptions.sort[["jobApplicant.rating"]],
+                              status: event.target.checked,
+                            },
                           },
-                        },
-                      })
-                    }
+                        });
+                        span.end();
+                      });
+                    }}
                     id="rating"
                   />
                 </Grid>
@@ -297,16 +331,20 @@ const FilterPopup = (props) => {
                   <IconButton
                     disabled={!searchOptions.sort["jobApplicant.rating"].status}
                     onClick={() => {
-                      setSearchOptions({
-                        ...searchOptions,
-                        sort: {
-                          ...searchOptions.sort,
-                          "jobApplicant.rating": {
-                            ...searchOptions.sort["jobApplicant.rating"],
-                            desc: !searchOptions.sort["jobApplicant.rating"]
-                              .desc,
+                      const tracer = trace.getTracer('default');
+                      tracer.startActiveSpan('IconButton Click - Rating Sort', span => {
+                        setSearchOptions({
+                          ...searchOptions,
+                          sort: {
+                            ...searchOptions.sort,
+                            "jobApplicant.rating": {
+                              ...searchOptions.sort["jobApplicant.rating"],
+                              desc: !searchOptions.sort["jobApplicant.rating"]
+                                .desc,
+                            },
                           },
-                        },
+                        });
+                        span.end();
                       });
                     }}
                   >
@@ -326,7 +364,13 @@ const FilterPopup = (props) => {
               variant="contained"
               color="primary"
               style={{ padding: "10px 50px" }}
-              onClick={() => getData()}
+              onClick={() => {
+                const tracer = trace.getTracer('default');
+                tracer.startActiveSpan('Button Click - Apply Filters', span => {
+                  getData();
+                  span.end();
+                });
+              }}
             >
               Apply
             </Button>
@@ -365,24 +409,29 @@ const ApplicationTile = (props) => {
       application.jobApplicant.resume !== ""
     ) {
       const address = `${server}${application.jobApplicant.resume}`;
-      console.log(address);
-      axios(address, {
-        method: "GET",
-        responseType: "blob",
-      })
-        .then((response) => {
-          const file = new Blob([response.data], { type: "application/pdf" });
-          const fileURL = URL.createObjectURL(file);
-          window.open(fileURL);
+      const tracer = trace.getTracer('default');
+      tracer.startActiveSpan('Get Resume', span => {
+        console.log(address);
+        axios(address, {
+          method: "GET",
+          responseType: "blob",
         })
-        .catch((error) => {
-          console.log(error);
-          setPopup({
-            open: true,
-            severity: "error",
-            message: "Error",
+          .then((response) => {
+            const file = new Blob([response.data], { type: "application/pdf" });
+            const fileURL = URL.createObjectURL(file);
+            window.open(fileURL);
+            span.end();
+          })
+          .catch((error) => {
+            console.log(error);
+            setPopup({
+              open: true,
+              severity: "error",
+              message: "Error",
+            });
+            span.end();
           });
-        });
+      });
     } else {
       setPopup({
         open: true,
@@ -398,28 +447,33 @@ const ApplicationTile = (props) => {
       status: status,
       dateOfJoining: new Date().toISOString(),
     };
-    axios
-      .put(address, statusData, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      })
-      .then((response) => {
-        setPopup({
-          open: true,
-          severity: "success",
-          message: response.data.message,
+    const tracer = trace.getTracer('default');
+    tracer.startActiveSpan('Update Status', span => {
+      axios
+        .put(address, statusData, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        })
+        .then((response) => {
+          setPopup({
+            open: true,
+            severity: "success",
+            message: response.data.message,
+          });
+          getData();
+          span.end();
+        })
+        .catch((err) => {
+          setPopup({
+            open: true,
+            severity: "error",
+            message: err.response.data.message,
+          });
+          console.log(err.response);
+          span.end();
         });
-        getData();
-      })
-      .catch((err) => {
-        setPopup({
-          open: true,
-          severity: "error",
-          message: err.response.data.message,
-        });
-        console.log(err.response);
-      });
+    });
   };
 
   const buttonSet = {
@@ -695,34 +749,39 @@ const JobApplications = (props) => {
     });
     searchParams = [...searchParams, ...asc, ...desc];
     const queryString = searchParams.join("&");
-    console.log(queryString);
-    let address = `${apiList.applicants}?jobId=${jobId}`;
-    if (queryString !== "") {
-      address = `${address}&${queryString}`;
-    }
+    const tracer = trace.getTracer('default');
+    tracer.startActiveSpan('Get Data', span => {
+      console.log(queryString);
+      let address = `${apiList.applicants}?jobId=${jobId}`;
+      if (queryString !== "") {
+        address = `${address}&${queryString}`;
+      }
 
-    console.log(address);
+      console.log(address);
 
-    axios
-      .get(address, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      })
-      .then((response) => {
-        console.log(response.data);
-        setApplications(response.data);
-      })
-      .catch((err) => {
-        console.log(err.response);
-        // console.log(err.response.data);
-        setApplications([]);
-        setPopup({
-          open: true,
-          severity: "error",
-          message: err.response.data.message,
+      axios
+        .get(address, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        })
+        .then((response) => {
+          console.log(response.data);
+          setApplications(response.data);
+          span.end();
+        })
+        .catch((err) => {
+          console.log(err.response);
+          // console.log(err.response.data);
+          setApplications([]);
+          setPopup({
+            open: true,
+            severity: "error",
+            message: err.response.data.message,
+          });
+          span.end();
         });
-      });
+    });
   };
 
   return (
