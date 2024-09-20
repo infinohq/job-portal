@@ -42,8 +42,8 @@ def post_job(recruiter_token, title, skillsets, salary):
     headers = {"Authorization": f"Bearer {recruiter_token}"}
     payload = {
         "title": title,
-        "maxApplicants": 5,
-        "maxPositions": 1,
+        "maxApplicants": 5000,
+        "maxPositions": 10000,
         "deadline": "2026-02-22T18:17:24.519Z",
         "skillsets": [skillsets, "C++", "Javascript"],
         "jobType": "Full Time",
@@ -80,6 +80,12 @@ def clear_database():
     else:
         return response.status_code, response.text
 
+# Write applicant credentials to a file
+def write_applicant_to_file(email, password):
+    with open("applicant_users.txt", "a") as file:
+        file.write(f"{email},{password}\n")
+
+
 # Main script
 def create_synthetic_data(num_recruiters, num_jobs, num_applicants, clear_db=False):
     if clear_db:
@@ -91,7 +97,7 @@ def create_synthetic_data(num_recruiters, num_jobs, num_applicants, clear_db=Fal
     for i in range(num_recruiters):
         email = f"recruiter{i}@example.com"
         password = "password123"
-        name = f"Recruiter {i}"
+        name = generate_data(f"Just return a first and last name")
         contact_number = f"+91{random.randint(1000000000, 9999999999)}"
         bio = generate_data(f"Write a short bio for recruiter {name}")
 
@@ -118,13 +124,15 @@ def create_synthetic_data(num_recruiters, num_jobs, num_applicants, clear_db=Fal
     for i in range(num_applicants):
         email = f"applicant{i}@example.com"
         password = "password123"
-        name = f"Applicant {i}"
+        name = generate_data(f"Just return a first and last name")
         contact_number = f"+91{random.randint(1000000000, 9999999999)}"
         
         # Sign up applicant
         status_code, response = sign_up_applicant(email, password, name, contact_number)
         if status_code != 200:
             print(f"Failed to sign up applicant {name}: {response}")
+        else:
+            write_applicant_to_file(email, password) # Save to file
 
 # Command-line argument parser
 if __name__ == "__main__":
@@ -132,14 +140,15 @@ if __name__ == "__main__":
     parser.add_argument('--num_recruiters', type=int, required=True, help='Number of recruiters to create.')
     parser.add_argument('--num_jobs', type=int, required=True, help='Number of job postings to create.')
     parser.add_argument('--num_applicants', type=int, required=True, help='Number of applicants to create.')
-    parser.add_argument('--clear_db', action='store_true', default=False, help='Optionally clear the database before adding data.')
 
     args = parser.parse_args()
+
+    if os.path.exists("applicant_users.txt"):
+        os.remove("applicant_users.txt")
 
     create_synthetic_data(
         num_recruiters=args.num_recruiters,
         num_jobs=args.num_jobs,
-        num_applicants=args.num_applicants,
-        clear_db=args.clear_db
+        num_applicants=args.num_applicants
     )
 
