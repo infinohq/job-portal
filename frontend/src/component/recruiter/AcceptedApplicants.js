@@ -28,7 +28,7 @@ import { SetPopupContext } from "../../App";
 
 import apiList, { server } from "../../lib/apiList";
 
-import { diagLog } from '@opentelemetry/api';
+import { diag } from '@opentelemetry/api';
 
 const useStyles = makeStyles((theme) => ({
   body: {
@@ -406,7 +406,7 @@ const ApplicationTile = (props) => {
   const appliedOn = new Date(application.dateOfApplication);
 
   const changeRating = () => {
-    diagLog.info('Changing rating', { rating, applicantId: application.jobApplicant.userId });
+    diag.info('Changing rating', { rating, applicantId: application.jobApplicant.userId });
     axios
       .put(
         apiList.rating,
@@ -418,7 +418,7 @@ const ApplicationTile = (props) => {
         }
       )
       .then((response) => {
-        diagLog.info('Rating updated successfully', { response: response.data });
+        diag.info('Rating updated successfully', { response: response.data });
         setPopup({
           open: true,
           severity: "success",
@@ -429,7 +429,7 @@ const ApplicationTile = (props) => {
         setOpen(false);
       })
       .catch((err) => {
-        diagLog.error('Error updating rating', { error: err });
+        diag.error('Error updating rating', { error: err });
         setPopup({
           open: true,
           severity: "error",
@@ -465,19 +465,19 @@ const ApplicationTile = (props) => {
       application.jobApplicant.resume !== ""
     ) {
       const address = `${server}${application.jobApplicant.resume}`;
-      diagLog.info('Fetching resume', { address });
+      diag.info('Fetching resume', { address });
       axios(address, {
         method: "GET",
         responseType: "blob",
       })
         .then((response) => {
-          diagLog.info('Resume fetched successfully');
+          diag.info('Resume fetched successfully');
           const file = new Blob([response.data], { type: "application/pdf" });
           const fileURL = URL.createObjectURL(file);
           window.open(fileURL);
         })
         .catch((error) => {
-          diagLog.error('Error fetching resume', { error });
+          diag.error('Error fetching resume', { error });
           setPopup({
             open: true,
             severity: "error",
@@ -485,7 +485,7 @@ const ApplicationTile = (props) => {
           });
         });
     } else {
-      diagLog.warn('No resume found');
+      diag.warn('No resume found');
       setPopup({
         open: true,
         severity: "error",
@@ -500,7 +500,7 @@ const ApplicationTile = (props) => {
       status: status,
       dateOfJoining: new Date().toISOString(),
     };
-    diagLog.info('Updating status', { address, statusData });
+    diag.info('Updating status', { address, statusData });
     axios
       .put(address, statusData, {
         headers: {
@@ -508,7 +508,7 @@ const ApplicationTile = (props) => {
         },
       })
       .then((response) => {
-        diagLog.info('Status updated successfully', { response: response.data });
+        diag.info('Status updated successfully', { response: response.data });
         setPopup({
           open: true,
           severity: "success",
@@ -518,7 +518,7 @@ const ApplicationTile = (props) => {
         getData();
       })
       .catch((err) => {
-        diagLog.error('Error updating status', { error: err });
+        diag.error('Error updating status', { error: err });
         setPopup({
           open: true,
           severity: "error",
@@ -742,13 +742,13 @@ const AcceptedApplicants = (props) => {
 
     searchParams = [...searchParams, ...asc, ...desc];
     const queryString = searchParams.join("&");
-    diagLog.info('Query string for fetching data', { queryString });
+    diag.info('Query string for fetching data', { queryString });
     let address = `${apiList.applicants}`;
     if (queryString !== "") {
       address = `${address}?${queryString}`;
     }
 
-    diagLog.info('Fetching data from address', { address });
+    diag.info('Fetching data from address', { address });
 
     axios
       .get(address, {
@@ -757,11 +757,11 @@ const AcceptedApplicants = (props) => {
         },
       })
       .then((response) => {
-        diagLog.info('Data fetched successfully', { data: response.data });
+        diag.info('Data fetched successfully', { data: response.data });
         setApplications(response.data);
       })
       .catch((err) => {
-        diagLog.error('Error fetching data', { error: err.response });
+        diag.error('Error fetching data', { error: err.response });
         setApplications([]);
         setPopup({
           open: true,
