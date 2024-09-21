@@ -1,7 +1,7 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const jwtAuth = require("../lib/jwtAuth");
-const { diag } = require('@opentelemetry/api');
+const { diag, DiagConsoleLogger, DiagLogLevel } = require('@opentelemetry/api');
 const { MeterProvider } = require('@opentelemetry/sdk-metrics-base');
 
 const User = require("../db/User");
@@ -10,6 +10,8 @@ const Recruiter = require("../db/Recruiter");
 const Job = require("../db/Job");
 const Application = require("../db/Application");
 const Rating = require("../db/Rating");
+
+diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.DEBUG);
 
 const meterProvider = new MeterProvider();
 const meter = meterProvider.getMeter('default');
