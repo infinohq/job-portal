@@ -31,6 +31,6 @@
     "@opentelemetry/auto-instrumentations-node": "^0.27.0",
     "@opentelemetry/exporter-trace-otlp-http": "^0.27.0",
     "@opentelemetry/exporter-metrics-otlp-http": "^0.27.0",
-    "@opentelemetry/exporter-prometheus": "^0.53.0"
+    "@opentelemetry/exporter-prometheus": "^0.27.0"
   }
 }

@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const jwtAuth = require("../lib/jwtAuth");
 const { diag, DiagConsoleLogger, DiagLogLevel } = require('@opentelemetry/api');
 const { MeterProvider } = require('@opentelemetry/sdk-metrics-base');
+const { PrometheusExporter } = require('@opentelemetry/exporter-prometheus');
 
 const User = require("../db/User");
 const JobApplicant = require("../db/JobApplicant");
@@ -13,7 +14,21 @@ const Rating = require("../db/Rating");
 
 diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.DEBUG);
 
-const meterProvider = new MeterProvider();
+const prometheusExporter = new PrometheusExporter({
+  startServer: true,
+  port: 9464,
+  host: '0.0.0.0',
+  endpoint: 'metrics',
+  appendTimestamp: false,
+}, () => {
+  console.log('Prometheus scrape endpoint http://0.0.0.0:9464/metrics');
+});
+
+const meterProvider = new MeterProvider({
+  exporter: prometheusExporter,
+  interval: 1000,
+});
+// meterProvider.addMetricReader(prometheusExporter)
 const meter = meterProvider.getMeter('default');
 
 const jobPostCounter = meter.createCounter('job_post_requests', {
