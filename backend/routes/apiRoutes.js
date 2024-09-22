@@ -1,7 +1,7 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const jwtAuth = require("../lib/jwtAuth");
-const { diag, DiagConsoleLogger, DiagLogLevel } = require('@opentelemetry/api');
+const { diag, DiagConsoleLogger, DiagLogLevel, DiagLogger } = require('@opentelemetry/api');
 const { MeterProvider } = require('@opentelemetry/sdk-metrics-base');
 
 const User = require("../db/User");
@@ -11,7 +11,43 @@ const Job = require("../db/Job");
 const Application = require("../db/Application");
 const Rating = require("../db/Rating");
 
-diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.DEBUG);
+const fs = require('fs');
+const path = require('path');
+
+// Custom FileLogger without extending DiagLogger
+class FileLogger {
+  constructor(filePath) {
+    this.logFile = path.resolve(filePath);
+  }
+
+  logToFile(level, message, obj) {
+    const timestamp = new Date().toISOString();
+    const logEntry = `${timestamp} [${level.toUpperCase()}] ${message} ${JSON.stringify(obj)}\n`;
+    fs.appendFileSync(this.logFile, logEntry, { encoding: 'utf8' });
+  }
+
+  debug(message, obj = {}) {
+    this.logToFile('debug', message, obj);
+  }
+
+  info(message, obj = {}) {
+    this.logToFile('info', message, obj);
+  }
+
+  warn(message, obj = {}) {
+    this.logToFile('warn', message, obj);
+  }
+
+  error(message, obj = {}) {
+    this.logToFile('error', message, obj);
+  }
+}
+
+// Example usage
+const logger = new FileLogger('otel_app.log');
+
+// Set the custom file logger as the OpenTelemetry logger
+diag.setLogger(logger, DiagLogLevel.DEBUG);
 
 const meterProvider = new MeterProvider();
 const meter = meterProvider.getMeter('default');
