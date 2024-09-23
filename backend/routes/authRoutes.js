@@ -31,7 +31,7 @@ const loginErrorRate = meter.createCounter('login_errors', {
 router.post("/signup", (req, res) => {
   signupCounter.add(1);
   const data = req.body;
-  diag.debug('Received signup request with data:', data);
+  diag.debug(`Received signup request with data: ${data}`, {method: "POST", route: "/signup"});
   
   let user = new User({
     email: data.email,
@@ -42,7 +42,7 @@ router.post("/signup", (req, res) => {
   user
     .save()
     .then(() => {
-      diag.debug('User saved successfully:', user);
+      diag.debug(`User saved successfully: ${user}`, {method: "POST", route: "/signup", status: 200});
       
       const userDetails =
         user.type == "recruiter"
@@ -65,10 +65,10 @@ router.post("/signup", (req, res) => {
       userDetails
         .save()
         .then(() => {
-          diag.debug('User details saved successfully:', userDetails);
+          diag.debug(`User details saved successfully: ${userDetails}`, {method: "POST", route: "/signup", status: 200});
           
           const token = jwt.sign({ _id: user._id }, authKeys.jwtSecretKey);
-          diag.debug('JWT token generated:', token);
+          diag.debug(`JWT token generated: ${token}`, {method: "POST", route: "/signup", status: 200});
           
           res.json({
             token: token,
@@ -77,16 +77,16 @@ router.post("/signup", (req, res) => {
         })
         .catch((err) => {
           signupErrorRate.add(1);
-          diag.error('Error saving user details:', err);
+          diag.error(`Error saving user details: ${err}`, {method: "POST", route: "/signup", status: 400});
           
           user
             .delete()
             .then(() => {
-              diag.debug('User deleted after error in saving details:', user);
+              diag.debug(`User deleted after error in saving details: ${user}`, {method: "POST", route: "/signup", status: 400});
               res.status(400).json(err);
             })
             .catch((err) => {
-              diag.error('Error deleting user after failed details save:', err);
+              diag.error(`Error deleting user after failed details save: ${err}`, {method: "POST", route: "/signup", status: 400});
               res.json({ error: err });
             });
           err;
@@ -94,14 +94,14 @@ router.post("/signup", (req, res) => {
     })
     .catch((err) => {
       signupErrorRate.add(1);
-      diag.error('Error saving user:', err);
+      diag.error(`Error saving user: ${err}`, {method: "POST", route: "/signup", status: 400});
       res.status(400).json(err);
     });
 });
 
 router.post("/login", (req, res, next) => {
   loginCounter.add(1);
-  diag.debug('Received login request');
+  diag.debug('Received login request', {method: "POST", route: "/login"});
   
   passport.authenticate(
     "local",
@@ -109,19 +109,19 @@ router.post("/login", (req, res, next) => {
     function (err, user, info) {
       if (err) {
         loginErrorRate.add(1);
-        diag.error('Error during authentication:', err);
+        diag.error(`Error during authentication: ${err}`, {method: "POST", route: "/login", status: 400});
         return next(err);
       }
       if (!user) {
         loginErrorRate.add(1);
-        diag.debug('Authentication failed, user not found:', info);
+        diag.debug(`Authentication failed, user not found: ${info}`, {method: "POST", route: "/login", status: 401});
         res.status(401).json(info);
         return;
       }
-      diag.debug('User authenticated successfully:', user);
+      diag.debug(`User authenticated successfully: ${user}`, {method: "POST", route: "/login", status: 200});
       
       const token = jwt.sign({ _id: user._id }, authKeys.jwtSecretKey);
-      diag.debug('JWT token generated:', token);
+      diag.debug(`JWT token generated: ${token}`, {method: "POST", route: "/login", status: 200});
       
       res.json({
         token: token,
