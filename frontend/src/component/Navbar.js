@@ -6,6 +6,7 @@ import {
   makeStyles,
 } from "@material-ui/core";
 import { useHistory } from "react-router-dom";
+import { trace } from '@opentelemetry/api';
 
 import isAuth, { userType } from "../lib/isAuth";
 
@@ -24,10 +25,13 @@ const useStyles = makeStyles((theme) => ({
 const Navbar = (props) => {
   const classes = useStyles();
   let history = useHistory();
+  const tracer = trace.getTracer('navbar-tracer');
 
   const handleClick = (location) => {
-    console.log(location);
+    const span = tracer.startSpan('handleClick');
+    span.addEvent('Navigating to location', { location });
     history.push(location);
+    span.end();
   };
 
   return (
