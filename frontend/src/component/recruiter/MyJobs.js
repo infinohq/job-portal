@@ -29,6 +29,8 @@ import { SetPopupContext } from "../../App";
 
 import apiList from "../../lib/apiList";
 
+import { trace } from '@opentelemetry/api';
+
 const useStyles = makeStyles((theme) => ({
   body: {
     height: "inherit",
@@ -69,29 +71,52 @@ const JobTile = (props) => {
   const [openUpdate, setOpenUpdate] = useState(false);
   const [jobDetails, setJobDetails] = useState(job);
 
-  console.log(jobDetails);
+  const tracer = trace.getTracer('default');
+  tracer.startActiveSpan('JobTile', span => {
+    span.addEvent('jobDetails', { jobDetails });
+    span.end();
+  });
 
   const handleInput = (key, value) => {
     setJobDetails({
       ...jobDetails,
       [key]: value,
     });
+    tracer.startActiveSpan('handleInput', span => {
+      span.addEvent('Updated jobDetails', { key, value });
+      span.end();
+    });
   };
 
   const handleClick = (location) => {
     history.push(location);
+    tracer.startActiveSpan('handleClick', span => {
+      span.addEvent('Navigating to location', { location });
+      span.end();
+    });
   };
 
   const handleClose = () => {
     setOpen(false);
+    tracer.startActiveSpan('handleClose', span => {
+      span.addEvent('Modal closed');
+      span.end();
+    });
   };
 
   const handleCloseUpdate = () => {
     setOpenUpdate(false);
+    tracer.startActiveSpan('handleCloseUpdate', span => {
+      span.addEvent('Update modal closed');
+      span.end();
+    });
   };
 
   const handleDelete = () => {
-    console.log(job._id);
+    tracer.startActiveSpan('handleDelete', span => {
+      span.addEvent('Deleting job', { jobId: job._id });
+      span.end();
+    });
     axios
       .delete(`${apiList.jobs}/${job._id}`, {
         headers: {
@@ -108,7 +133,10 @@ const JobTile = (props) => {
         handleClose();
       })
       .catch((err) => {
-        console.log(err.response);
+        tracer.startActiveSpan('handleDeleteError', span => {
+          span.addEvent('Error deleting job', { error: err.response });
+          span.end();
+        });
         setPopup({
           open: true,
           severity: "error",
@@ -119,6 +147,10 @@ const JobTile = (props) => {
   };
 
   const handleJobUpdate = () => {
+    tracer.startActiveSpan('handleJobUpdate', span => {
+      span.addEvent('Updating job', { jobId: job._id, jobDetails });
+      span.end();
+    });
     axios
       .put(`${apiList.jobs}/${job._id}`, jobDetails, {
         headers: {
@@ -135,7 +167,10 @@ const JobTile = (props) => {
         handleCloseUpdate();
       })
       .catch((err) => {
-        console.log(err.response);
+        tracer.startActiveSpan('handleJobUpdateError', span => {
+          span.addEvent('Error updating job', { error: err.response });
+          span.end();
+        });
         setPopup({
           open: true,
           severity: "error",
@@ -758,13 +793,19 @@ const MyJobs = (props) => {
     });
     searchParams = [...searchParams, ...asc, ...desc];
     const queryString = searchParams.join("&");
-    console.log(queryString);
+    tracer.startActiveSpan('getData', span => {
+      span.addEvent('Query string', { queryString });
+      span.end();
+    });
     let address = apiList.jobs;
     if (queryString !== "") {
       address = `${address}?${queryString}`;
     }
 
-    console.log(address);
+    tracer.startActiveSpan('getData', span => {
+      span.addEvent('API address', { address });
+      span.end();
+    });
     axios
       .get(address, {
         headers: {
@@ -772,11 +813,17 @@ const MyJobs = (props) => {
         },
       })
       .then((response) => {
-        console.log(response.data);
+        tracer.startActiveSpan('getDataSuccess', span => {
+          span.addEvent('Jobs data received', { data: response.data });
+          span.end();
+        });
         setJobs(response.data);
       })
       .catch((err) => {
-        console.log(err.response.data);
+        tracer.startActiveSpan('getDataError', span => {
+          span.addEvent('Error fetching jobs', { error: err.response.data });
+          span.end();
+        });
         setPopup({
           open: true,
           severity: "error",
