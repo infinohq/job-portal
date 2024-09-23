@@ -395,7 +395,7 @@ router.get("/jobs", jwtAuth, (req, res) => {
 
 router.get("/jobs/:id", jwtAuth, (req, res) => {
   jobInfoGetCounter.add(1);
-  diag.debug(`Fetching job info. jobId: ${req.params.id}`, {method: "GET", route: "/jobs/:id"});
+  diag.debug(`Fetching job info. jobId: ${req.params.id}`, {method: "GET", route: "/jobs/id"});
   Job.findOne({ _id: req.params.id })
     .then((job) => {
       if (job == null) {

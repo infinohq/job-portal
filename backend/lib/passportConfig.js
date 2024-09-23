@@ -16,7 +16,7 @@ const filterJson = (obj, unwantedKeys) => {
       filteredObj[key] = obj[key];
     }
   });
-  diag.debug('Filtered object:', filteredObj);
+  diag.debug(`Filtered object: ${filteredObj}`);
   return filteredObj;
 };
 

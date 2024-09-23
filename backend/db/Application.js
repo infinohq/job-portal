@@ -39,7 +39,7 @@ let schema = new mongoose.Schema(
         {
           validator: function (value) {
             const isValid = this.dateOfApplication <= value;
-            diag.debug('Validating dateOfJoining:', { dateOfApplication: this.dateOfApplication, dateOfJoining: value, isValid });
+            diag.debug(`Validating dateOfJoining. date of application: ${this.dateOfApplication}, date of joining: ${value}, isValid: ${isValid}`);
             return isValid;
           },
           msg: "dateOfJoining should be greater than dateOfApplication",
@@ -52,7 +52,7 @@ let schema = new mongoose.Schema(
         validator: function (v) {
           const wordCount = v.split(" ").filter((ele) => ele != "").length;
           const isValid = wordCount <= 250;
-          diag.debug('Validating SOP word count:', { wordCount, isValid });
+          diag.debug(`Validating SOP word count. word count: ${wordCount}, isValid: ${isValid}`);
           return isValid;
         },
         msg: "Statement of purpose should not be greater than 250 words",
