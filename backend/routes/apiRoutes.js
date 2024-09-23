@@ -13,7 +13,6 @@ const Application = require("../db/Application");
 const Rating = require("../db/Rating");
 const { maybeThrowRandomError } = require("./error");
 
-
 const fs = require('fs');
 const path = require('path');
 

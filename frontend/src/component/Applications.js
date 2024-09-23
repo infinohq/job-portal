@@ -62,6 +62,7 @@ const ApplicationTile = (props) => {
 
   const fetchRating = () => {
     const span = trace.getTracer('default').startSpan('fetchRating');
+    console.log(`Fetching rating for job ID: ${application.job._id}`);
     axios
       .get(`${apiList.rating}?id=${application.job._id}`, {
         headers: {
@@ -70,11 +71,11 @@ const ApplicationTile = (props) => {
       })
       .then((response) => {
         setRating(response.data.rating);
-        console.log(response.data);
+        console.log(`Fetched rating: ${response.data.rating}`);
         span.end();
       })
       .catch((err) => {
-        console.log(err.response.data);
+        console.log(`Error fetching rating: ${err.response.data}`);
         setPopup({
           open: true,
           severity: "error",
@@ -86,6 +87,7 @@ const ApplicationTile = (props) => {
 
   const changeRating = () => {
     const span = trace.getTracer('default').startSpan('changeRating');
+    console.log(`Changing rating to: ${rating} for job ID: ${application.job._id}`);
     axios
       .put(
         apiList.rating,
@@ -97,7 +99,7 @@ const ApplicationTile = (props) => {
         }
       )
       .then((response) => {
-        console.log(response.data);
+        console.log(`Rating change response: ${response.data}`);
         setPopup({
           open: true,
           severity: "success",
@@ -108,7 +110,7 @@ const ApplicationTile = (props) => {
         span.end();
       })
       .catch((err) => {
-        console.log(err);
+        console.log(`Error changing rating: ${err}`);
         setPopup({
           open: true,
           severity: "error",
@@ -235,6 +237,7 @@ const Applications = (props) => {
 
   const getData = () => {
     const span = trace.getTracer('default').startSpan('getData');
+    console.log('Fetching applications data');
     axios
       .get(apiList.applications, {
         headers: {
@@ -242,12 +245,12 @@ const Applications = (props) => {
         },
       })
       .then((response) => {
-        console.log(response.data);
+        console.log(`Applications data fetched: ${response.data}`);
         setApplications(response.data);
         span.end();
       })
       .catch((err) => {
-        console.log(err.response.data);
+        console.log(`Error fetching applications data: ${err.response.data}`);
         setPopup({
           open: true,
           severity: "error",

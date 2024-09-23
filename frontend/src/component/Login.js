@@ -60,6 +60,7 @@ const Login = (props) => {
       ...loginDetails,
       [key]: value,
     });
+    span.addEvent(`Updated loginDetails with key: ${key}, value: ${value}`);
     span.end();
   };
 
@@ -75,6 +76,7 @@ const Login = (props) => {
         message: message,
       },
     });
+    span.addEvent(`Updated inputErrorHandler for key: ${key}, status: ${status}, message: ${message}`);
     span.end();
   };
 
