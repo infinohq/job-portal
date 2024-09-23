@@ -1,3 +1,7 @@
+from opentelemetry import trace
+from opentelemetry.metrics import get_meter_provider, set_meter_provider
+from opentelemetry.sdk.metrics import MeterProvider
+
 import requests
 import random
 import argparse
@@ -6,8 +10,24 @@ import os
 # Set up the base URL from the environment or use a default value
 BASE_URL = os.getenv('BASE_URL', 'http://localhost:4444')
 
+# Initialize MeterProvider
+meter_provider = MeterProvider()
+set_meter_provider(meter_provider)
+meter = get_meter_provider().get_meter(__name__)
+
+# Define counters and error rate meters
+search_jobs_counter = meter.create_counter("search_jobs_counter")
+search_jobs_error_rate = meter.create_counter("search_jobs_error_rate")
+view_jobs_counter = meter.create_counter("view_jobs_counter")
+view_jobs_error_rate = meter.create_counter("view_jobs_error_rate")
+apply_jobs_counter = meter.create_counter("apply_jobs_counter")
+apply_jobs_error_rate = meter.create_counter("apply_jobs_error_rate")
+login_applicant_counter = meter.create_counter("login_applicant_counter")
+login_applicant_error_rate = meter.create_counter("login_applicant_error_rate")
+
 # Function to simulate job searches
 def search_jobs(token, num_searches, search_options):
+    tracer = trace.get_tracer(__name__)
     job_ids = []
     for _ in range(num_searches):
         # Construct search query using available filters
@@ -22,74 +42,125 @@ def search_jobs(token, num_searches, search_options):
         query_string = "&".join(query_params)
         url = f"{BASE_URL}/api/jobs?{query_string}"
         
-        print(f"Performing job search: {url}")
-        print(f"Token: {token}")
+        with tracer.start_as_current_span("job_search"):
+            trace.get_current_span().set_attribute("url", url)
+            trace.get_current_span().set_attribute("token", token)
+        
         response = requests.get(url, headers={"Authorization": f"Bearer {token}"})
         
         if response.status_code == 200:
             jobs = response.json()
             job_ids_batch = [job["_id"] for job in jobs]
             job_ids.extend(job_ids_batch)
-            print(f"Search successful. Found {len(job_ids_batch)} jobs: {job_ids_batch}")
+            search_jobs_counter.add(1)
+            with tracer.start_as_current_span("search_success"):
+                trace.get_current_span().set_attribute("found_jobs_count", len(job_ids_batch))
+                trace.get_current_span().set_attribute("job_ids_batch", job_ids_batch)
         else:
-            print(f"Error during job search (status: {response.status_code}): {response.text}")
+            search_jobs_error_rate.add(1)
+            with tracer.start_as_current_span("search_error"):
+                trace.get_current_span().set_attribute("status_code", response.status_code)
+                trace.get_current_span().set_attribute("response_text", response.text)
 
     return job_ids
 
 # Function to simulate job views
 def view_jobs(token, job_ids, num_views):
-    print(f"Viewing {num_views} jobs.")
+    tracer = trace.get_tracer(__name__)
+    with tracer.start_as_current_span("view_jobs"):
+        trace.get_current_span().set_attribute("num_views", num_views)
+        trace.get_current_span().set_attribute("job_ids", job_ids)
+    
     for _ in range(min(num_views, len(job_ids))):
         job_id = random.choice(job_ids)
-        print(f"Viewing job with ID: {job_id}")
+        with tracer.start_as_current_span("view_job"):
+            trace.get_current_span().set_attribute("job_id", job_id)
+        
         response = requests.get(f"{BASE_URL}/api/jobs/{job_id}", headers={"Authorization": f"Bearer {token}"})
         
         if response.status_code == 200:
-            print(f"Successfully viewed job: {job_id}")
+            view_jobs_counter.add(1)
+            with tracer.start_as_current_span("view_success"):
+                trace.get_current_span().set_attribute("job_id", job_id)
         else:
-            print(f"Failed to view job {job_id} (status: {response.status_code}): {response.text}")
+            view_jobs_error_rate.add(1)
+            with tracer.start_as_current_span("view_error"):
+                trace.get_current_span().set_attribute("job_id", job_id)
+                trace.get_current_span().set_attribute("status_code", response.status_code)
+                trace.get_current_span().set_attribute("response_text", response.text)
 
 # Function to simulate job applications
 def apply_to_jobs(token, job_ids, num_applies):
-    print(f"Applying to {num_applies} jobs.")
+    tracer = trace.get_tracer(__name__)
+    with tracer.start_as_current_span("apply_jobs"):
+        trace.get_current_span().set_attribute("num_applies", num_applies)
+        trace.get_current_span().set_attribute("job_ids", job_ids)
+    
     for _ in range(min(num_applies, len(job_ids))):
         job_id = random.choice(job_ids)
         payload = {"sop": "This is a sample SOP."}
-        print(f"Applying to job with ID: {job_id}")
+        with tracer.start_as_current_span("apply_job"):
+            trace.get_current_span().set_attribute("job_id", job_id)
+        
         response = requests.post(f"{BASE_URL}/api/jobs/{job_id}/applications", json=payload, headers={"Authorization": f"Bearer {token}"})
         
         if response.status_code == 200:
-            print(f"Successfully applied to job: {job_id}")
+            apply_jobs_counter.add(1)
+            with tracer.start_as_current_span("apply_success"):
+                trace.get_current_span().set_attribute("job_id", job_id)
         else:
-            print(f"Failed to apply to job {job_id} (status: {response.status_code}): {response.text}")
+            apply_jobs_error_rate.add(1)
+            with tracer.start_as_current_span("apply_error"):
+                trace.get_current_span().set_attribute("job_id", job_id)
+                trace.get_current_span().set_attribute("status_code", response.status_code)
+                trace.get_current_span().set_attribute("response_text", response.text)
 
 # Function to load applicant users from file
 def load_applicants(file):
+    tracer = trace.get_tracer(__name__)
     applicants = []
     with open(file, "r") as f:
         for line in f:
             email, password = line.strip().split(",")
             applicants.append({"email": email, "password": password})
-    print(f"Loaded {len(applicants)} applicants from {file}")
+    with tracer.start_as_current_span("load_applicants"):
+        trace.get_current_span().set_attribute("applicant_count", len(applicants))
+        trace.get_current_span().set_attribute("file", file)
     return applicants
 
 # Function to log in applicant users and return tokens
 def login_applicant(email, password):
+    tracer = trace.get_tracer(__name__)
     payload = {"email": email, "password": password}
-    print(f"Logging in user: {email}")
+    with tracer.start_as_current_span("login_applicant"):
+        trace.get_current_span().set_attribute("email", email)
+    
     response = requests.post(f"{BASE_URL}/auth/login", json=payload)
     
     if response.status_code == 200:
         token = response.json()["token"]
-        print(f"Login successful for {email}")
+        login_applicant_counter.add(1)
+        with tracer.start_as_current_span("login_success"):
+            trace.get_current_span().set_attribute("email", email)
         return token
     else:
-        print(f"Failed to log in {email} (status: {response.status_code}): {response.text}")
+        login_applicant_error_rate.add(1)
+        with tracer.start_as_current_span("login_error"):
+            trace.get_current_span().set_attribute("email", email)
+            trace.get_current_span().set_attribute("status_code", response.status_code)
+            trace.get_current_span().set_attribute("response_text", response.text)
         return None
 
 # Main function to simulate traffic
 def simulate_traffic(num_searches, num_views, num_applies, applicant_file, search_options):
-    print(f"Starting traffic simulation with {num_searches} searches, {num_views} views, {num_applies} applications per applicant.")
+    tracer = trace.get_tracer(__name__)
+    with tracer.start_as_current_span("simulate_traffic"):
+        trace.get_current_span().set_attribute("num_searches", num_searches)
+        trace.get_current_span().set_attribute("num_views", num_views)
+        trace.get_current_span().set_attribute("num_applies", num_applies)
+        trace.get_current_span().set_attribute("applicant_file", applicant_file)
+        trace.get_current_span().set_attribute("search_options", search_options)
+    
     applicants = load_applicants(applicant_file)
     
     for applicant in applicants:
@@ -97,12 +168,15 @@ def simulate_traffic(num_searches, num_views, num_applies, applicant_file, searc
         if token:
             job_ids = search_jobs(token, num_searches, search_options)
             if job_ids:
-                print(f"Proceeding to view and apply to jobs. {len(job_ids)} jobs available.")
+                with tracer.start_as_current_span("proceed_to_view_apply"):
+                    trace.get_current_span().set_attribute("job_ids_count", len(job_ids))
                 view_jobs(token, job_ids, num_views)
                 apply_to_jobs(token, job_ids, num_applies)
             else:
-                print("No jobs found in the search.")
-        print("=" * 40)  # Separator between applicants for clarity
+                with tracer.start_as_current_span("no_jobs_found"):
+                    trace.get_current_span().set_attribute("message", "No jobs found in the search.")
+        with tracer.start_as_current_span("applicant_separator"):
+            trace.get_current_span().set_attribute("separator", "=" * 40)
 
 # Command-line argument parser
 if __name__ == "__main__":
@@ -124,4 +198,3 @@ if __name__ == "__main__":
     }
 
     simulate_traffic(args.num_searches, args.num_views, args.num_applies, args.applicant_file, search_options)
-

@@ -29,6 +29,8 @@ import { SetPopupContext } from "../../App";
 
 import apiList from "../../lib/apiList";
 
+import { trace } from '@opentelemetry/api';
+
 const useStyles = makeStyles((theme) => ({
   body: {
     height: "inherit",
@@ -69,28 +71,39 @@ const JobTile = (props) => {
   const [openUpdate, setOpenUpdate] = useState(false);
   const [jobDetails, setJobDetails] = useState(job);
 
+  const tracer = trace.getTracer('default');
+  tracer.startSpan('JobTile Component');
   console.log(jobDetails);
 
   const handleInput = (key, value) => {
+    tracer.startSpan('handleInput');
     setJobDetails({
       ...jobDetails,
       [key]: value,
     });
+    tracer.endSpan();
   };
 
   const handleClick = (location) => {
+    tracer.startSpan('handleClick');
     history.push(location);
+    tracer.endSpan();
   };
 
   const handleClose = () => {
+    tracer.startSpan('handleClose');
     setOpen(false);
+    tracer.endSpan();
   };
 
   const handleCloseUpdate = () => {
+    tracer.startSpan('handleCloseUpdate');
     setOpenUpdate(false);
+    tracer.endSpan();
   };
 
   const handleDelete = () => {
+    tracer.startSpan('handleDelete');
     console.log(job._id);
     axios
       .delete(`${apiList.jobs}/${job._id}`, {
@@ -99,6 +112,7 @@ const JobTile = (props) => {
         },
       })
       .then((response) => {
+        tracer.startSpan('handleDelete - success');
         setPopup({
           open: true,
           severity: "success",
@@ -106,8 +120,10 @@ const JobTile = (props) => {
         });
         getData();
         handleClose();
+        tracer.endSpan();
       })
       .catch((err) => {
+        tracer.startSpan('handleDelete - error');
         console.log(err.response);
         setPopup({
           open: true,
@@ -115,10 +131,13 @@ const JobTile = (props) => {
           message: err.response.data.message,
         });
         handleClose();
+        tracer.endSpan();
       });
+    tracer.endSpan();
   };
 
   const handleJobUpdate = () => {
+    tracer.startSpan('handleJobUpdate');
     axios
       .put(`${apiList.jobs}/${job._id}`, jobDetails, {
         headers: {
@@ -126,6 +145,7 @@ const JobTile = (props) => {
         },
       })
       .then((response) => {
+        tracer.startSpan('handleJobUpdate - success');
         setPopup({
           open: true,
           severity: "success",
@@ -133,8 +153,10 @@ const JobTile = (props) => {
         });
         getData();
         handleCloseUpdate();
+        tracer.endSpan();
       })
       .catch((err) => {
+        tracer.startSpan('handleJobUpdate - error');
         console.log(err.response);
         setPopup({
           open: true,
@@ -142,7 +164,9 @@ const JobTile = (props) => {
           message: err.response.data.message,
         });
         handleCloseUpdate();
+        tracer.endSpan();
       });
+    tracer.endSpan();
   };
 
   const postedOn = new Date(job.dateOfPosting);
@@ -714,6 +738,8 @@ const MyJobs = (props) => {
   }, []);
 
   const getData = () => {
+    const tracer = trace.getTracer('default');
+    tracer.startSpan('getData');
     let searchParams = [`myjobs=1`];
     if (searchOptions.query !== "") {
       searchParams = [...searchParams, `q=${searchOptions.query}`];
@@ -772,17 +798,22 @@ const MyJobs = (props) => {
         },
       })
       .then((response) => {
+        tracer.startSpan('getData - success');
         console.log(response.data);
         setJobs(response.data);
+        tracer.endSpan();
       })
       .catch((err) => {
+        tracer.startSpan('getData - error');
         console.log(err.response.data);
         setPopup({
           open: true,
           severity: "error",
           message: "Error",
         });
+        tracer.endSpan();
       });
+    tracer.endSpan();
   };
 
   return (

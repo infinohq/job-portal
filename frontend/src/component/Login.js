@@ -9,6 +9,7 @@ import {
 } from "@material-ui/core";
 import axios from "axios";
 import { Redirect } from "react-router-dom";
+import { trace } from '@opentelemetry/api';
 
 import PasswordInput from "../lib/PasswordInput";
 import EmailInput from "../lib/EmailInput";
@@ -52,55 +53,80 @@ const Login = (props) => {
   });
 
   const handleInput = (key, value) => {
-    setLoginDetails({
-      ...loginDetails,
-      [key]: value,
+    const tracer = trace.getTracer('default');
+    tracer.startActiveSpan('handleInput', span => {
+      setLoginDetails({
+        ...loginDetails,
+        [key]: value,
+      });
+      span.setAttribute('inputKey', key);
+      span.setAttribute('inputValue', value);
+      span.end();
     });
   };
 
   const handleInputError = (key, status, message) => {
-    setInputErrorHandler({
-      ...inputErrorHandler,
-      [key]: {
-        error: status,
-        message: message,
-      },
+    const tracer = trace.getTracer('default');
+    tracer.startActiveSpan('handleInputError', span => {
+      setInputErrorHandler({
+        ...inputErrorHandler,
+        [key]: {
+          error: status,
+          message: message,
+        },
+      });
+      span.setAttribute('errorKey', key);
+      span.setAttribute('errorStatus', status);
+      span.setAttribute('errorMessage', message);
+      span.end();
     });
   };
 
   const handleLogin = () => {
-    const verified = !Object.keys(inputErrorHandler).some((obj) => {
-      return inputErrorHandler[obj].error;
-    });
-    if (verified) {
-      axios
-        .post(apiList.login, loginDetails)
-        .then((response) => {
-          localStorage.setItem("token", response.data.token);
-          localStorage.setItem("type", response.data.type);
-          setLoggedin(isAuth());
-          setPopup({
-            open: true,
-            severity: "success",
-            message: "Logged in successfully",
-          });
-          console.log(response);
-        })
-        .catch((err) => {
-          setPopup({
-            open: true,
-            severity: "error",
-            message: err.response.data.message,
-          });
-          console.log(err.response);
-        });
-    } else {
-      setPopup({
-        open: true,
-        severity: "error",
-        message: "Incorrect Input",
+    const tracer = trace.getTracer('default');
+    tracer.startActiveSpan('handleLogin', span => {
+      const verified = !Object.keys(inputErrorHandler).some((obj) => {
+        return inputErrorHandler[obj].error;
       });
-    }
+      span.setAttribute('verified', verified);
+      if (verified) {
+        axios
+          .post(apiList.login, loginDetails)
+          .then((response) => {
+            localStorage.setItem("token", response.data.token);
+            localStorage.setItem("type", response.data.type);
+            setLoggedin(isAuth());
+            setPopup({
+              open: true,
+              severity: "success",
+              message: "Logged in successfully",
+            });
+            span.setAttribute('loginSuccess', true);
+            span.setAttribute('responseToken', response.data.token);
+            span.setAttribute('responseType', response.data.type);
+            console.log(response);
+          })
+          .catch((err) => {
+            setPopup({
+              open: true,
+              severity: "error",
+              message: err.response.data.message,
+            });
+            span.setAttribute('loginSuccess', false);
+            span.setAttribute('errorResponse', err.response.data.message);
+            console.log(err.response);
+          });
+      } else {
+        setPopup({
+          open: true,
+          severity: "error",
+          message: "Incorrect Input",
+        });
+        span.setAttribute('loginSuccess', false);
+        span.setAttribute('errorMessage', 'Incorrect Input');
+      }
+      span.end();
+    });
   };
 
   return loggedin ? (

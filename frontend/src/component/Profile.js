@@ -18,6 +18,8 @@ import { SetPopupContext } from "../App";
 
 import apiList from "../lib/apiList";
 
+import { trace } from '@opentelemetry/api';
+
 const useStyles = makeStyles((theme) => ({
   body: {
     height: "inherit",
@@ -137,6 +139,8 @@ const Profile = (props) => {
   }, []);
 
   const getData = () => {
+    const tracer = trace.getTracer('default');
+    const span = tracer.startSpan('getData');
     axios
       .get(apiList.user, {
         headers: {
@@ -144,6 +148,7 @@ const Profile = (props) => {
         },
       })
       .then((response) => {
+        span.addEvent('Received response from API');
         console.log(response.data);
         setProfileDetails(response.data);
         if (response.data.education.length > 0) {
@@ -157,12 +162,16 @@ const Profile = (props) => {
         }
       })
       .catch((err) => {
+        span.addEvent('Error occurred while fetching data');
         console.log(err.response.data);
         setPopup({
           open: true,
           severity: "error",
           message: "Error",
         });
+      })
+      .finally(() => {
+        span.end();
       });
   };
 
@@ -175,6 +184,8 @@ const Profile = (props) => {
   };
 
   const handleUpdate = () => {
+    const tracer = trace.getTracer('default');
+    const span = tracer.startSpan('handleUpdate');
     console.log(education);
 
     let updatedDetails = {
@@ -196,6 +207,7 @@ const Profile = (props) => {
         },
       })
       .then((response) => {
+        span.addEvent('Successfully updated user details');
         setPopup({
           open: true,
           severity: "success",
@@ -204,12 +216,16 @@ const Profile = (props) => {
         getData();
       })
       .catch((err) => {
+        span.addEvent('Error occurred while updating user details');
         setPopup({
           open: true,
           severity: "error",
           message: err.response.data.message,
         });
         console.log(err.response);
+      })
+      .finally(() => {
+        span.end();
       });
     setOpen(false);
   };

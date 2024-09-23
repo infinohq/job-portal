@@ -9,17 +9,23 @@ import {
 } from "@material-ui/core";
 import Visibility from "@material-ui/icons/Visibility";
 import VisibilityOff from "@material-ui/icons/VisibilityOff";
+import { diag } from '@opentelemetry/api';
 
 const PasswordInput = (props) => {
   const [showPassword, setShowPassword] = useState(false);
 
   const handleShowPassword = () => {
+    diag.debug('Toggling showPassword state. Current state:', showPassword);
     setShowPassword(!showPassword);
+    diag.debug('New showPassword state:', !showPassword);
   };
 
   const handleMouseDownPassword = (event) => {
+    diag.debug('Mouse down event on password visibility toggle button.');
     event.preventDefault();
   };
+
+  diag.debug('Rendering PasswordInput component with props:', props);
 
   return (
     <>
@@ -42,7 +48,10 @@ const PasswordInput = (props) => {
             </InputAdornment>
           }
           value={props.value}
-          onChange={(event) => props.onChange(event)}
+          onChange={(event) => {
+            diag.debug('Password input value changed:', event.target.value);
+            props.onChange(event);
+          }}
           labelWidth={props.labelWidth ? props.labelWidth : 70}
           className={props.className}
           onBlur={props.onBlur ? props.onBlur : null}

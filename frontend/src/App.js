@@ -1,6 +1,8 @@
 import { createContext, useState } from "react";
 import { BrowserRouter, Switch, Route } from "react-router-dom";
 import { Grid, makeStyles } from "@material-ui/core";
+import { MeterProvider } from '@opentelemetry/sdk-metrics-base';
+import { trace } from '@opentelemetry/api';
 
 import Welcome, { ErrorPage } from "./component/Welcome";
 import Navbar from "./component/Navbar";
@@ -33,79 +35,194 @@ const useStyles = makeStyles((theme) => ({
 
 export const SetPopupContext = createContext();
 
+const meterProvider = new MeterProvider();
+const meter = meterProvider.getMeter('default');
+
+const routeCounter = meter.createCounter('route_requests', {
+  description: 'Counts the number of requests to each route',
+});
+
+const errorRate = meter.createCounter('route_errors', {
+  description: 'Counts the number of errors encountered in each route',
+});
+
 function App() {
+  const tracer = trace.getTracer('default');
   const classes = useStyles();
   const [popup, setPopup] = useState({
     open: false,
     severity: "",
     message: "",
   });
-  return (
-    <BrowserRouter>
-      <SetPopupContext.Provider value={setPopup}>
-        <Grid container direction="column">
-          <Grid item xs>
-            <Navbar />
+
+  tracer.startActiveSpan('App Component', span => {
+    span.addEvent('Rendering App component');
+    span.addEvent('Popup state initialized', { popup });
+
+    return (
+      <BrowserRouter>
+        <SetPopupContext.Provider value={setPopup}>
+          <Grid container direction="column">
+            <Grid item xs>
+              <Navbar />
+            </Grid>
+            <Grid item className={classes.body}>
+              <Switch>
+                <Route exact path="/">
+                  {() => {
+                    routeCounter.add(1, { route: '/' });
+                    try {
+                      return <Welcome />;
+                    } catch (error) {
+                      errorRate.add(1, { route: '/' });
+                      throw error;
+                    }
+                  }}
+                </Route>
+                <Route exact path="/login">
+                  {() => {
+                    routeCounter.add(1, { route: '/login' });
+                    try {
+                      return <Login />;
+                    } catch (error) {
+                      errorRate.add(1, { route: '/login' });
+                      throw error;
+                    }
+                  }}
+                </Route>
+                <Route exact path="/signup">
+                  {() => {
+                    routeCounter.add(1, { route: '/signup' });
+                    try {
+                      return <Signup />;
+                    } catch (error) {
+                      errorRate.add(1, { route: '/signup' });
+                      throw error;
+                    }
+                  }}
+                </Route>
+                <Route exact path="/logout">
+                  {() => {
+                    routeCounter.add(1, { route: '/logout' });
+                    try {
+                      return <Logout />;
+                    } catch (error) {
+                      errorRate.add(1, { route: '/logout' });
+                      throw error;
+                    }
+                  }}
+                </Route>
+                <Route exact path="/home">
+                  {() => {
+                    routeCounter.add(1, { route: '/home' });
+                    try {
+                      return <Home />;
+                    } catch (error) {
+                      errorRate.add(1, { route: '/home' });
+                      throw error;
+                    }
+                  }}
+                </Route>
+                <Route exact path="/applications">
+                  {() => {
+                    routeCounter.add(1, { route: '/applications' });
+                    try {
+                      return <Applications />;
+                    } catch (error) {
+                      errorRate.add(1, { route: '/applications' });
+                      throw error;
+                    }
+                  }}
+                </Route>
+                <Route exact path="/profile">
+                  {() => {
+                    routeCounter.add(1, { route: '/profile' });
+                    try {
+                      return userType() === "recruiter" ? (
+                        <RecruiterProfile />
+                      ) : (
+                        <Profile />
+                      );
+                    } catch (error) {
+                      errorRate.add(1, { route: '/profile' });
+                      throw error;
+                    }
+                  }}
+                </Route>
+                <Route exact path="/addjob">
+                  {() => {
+                    routeCounter.add(1, { route: '/addjob' });
+                    try {
+                      return <CreateJobs />;
+                    } catch (error) {
+                      errorRate.add(1, { route: '/addjob' });
+                      throw error;
+                    }
+                  }}
+                </Route>
+                <Route exact path="/myjobs">
+                  {() => {
+                    routeCounter.add(1, { route: '/myjobs' });
+                    try {
+                      return <MyJobs />;
+                    } catch (error) {
+                      errorRate.add(1, { route: '/myjobs' });
+                      throw error;
+                    }
+                  }}
+                </Route>
+                <Route exact path="/job/applications/:jobId">
+                  {() => {
+                    routeCounter.add(1, { route: '/job/applications/:jobId' });
+                    try {
+                      return <JobApplications />;
+                    } catch (error) {
+                      errorRate.add(1, { route: '/job/applications/:jobId' });
+                      throw error;
+                    }
+                  }}
+                </Route>
+                <Route exact path="/employees">
+                  {() => {
+                    routeCounter.add(1, { route: '/employees' });
+                    try {
+                      return <AcceptedApplicants />;
+                    } catch (error) {
+                      errorRate.add(1, { route: '/employees' });
+                      throw error;
+                    }
+                  }}
+                </Route>
+                <Route>
+                  {() => {
+                    routeCounter.add(1, { route: 'error' });
+                    try {
+                      return <ErrorPage />;
+                    } catch (error) {
+                      errorRate.add(1, { route: 'error' });
+                      throw error;
+                    }
+                  }}
+                </Route>
+              </Switch>
+            </Grid>
           </Grid>
-          <Grid item className={classes.body}>
-            <Switch>
-              <Route exact path="/">
-                <Welcome />
-              </Route>
-              <Route exact path="/login">
-                <Login />
-              </Route>
-              <Route exact path="/signup">
-                <Signup />
-              </Route>
-              <Route exact path="/logout">
-                <Logout />
-              </Route>
-              <Route exact path="/home">
-                <Home />
-              </Route>
-              <Route exact path="/applications">
-                <Applications />
-              </Route>
-              <Route exact path="/profile">
-                {userType() === "recruiter" ? (
-                  <RecruiterProfile />
-                ) : (
-                  <Profile />
-                )}
-              </Route>
-              <Route exact path="/addjob">
-                <CreateJobs />
-              </Route>
-              <Route exact path="/myjobs">
-                <MyJobs />
-              </Route>
-              <Route exact path="/job/applications/:jobId">
-                <JobApplications />
-              </Route>
-              <Route exact path="/employees">
-                <AcceptedApplicants />
-              </Route>
-              <Route>
-                <ErrorPage />
-              </Route>
-            </Switch>
-          </Grid>
-        </Grid>
-        <MessagePopup
-          open={popup.open}
-          setOpen={(status) =>
-            setPopup({
-              ...popup,
-              open: status,
-            })
-          }
-          severity={popup.severity}
-          message={popup.message}
-        />
-      </SetPopupContext.Provider>
-    </BrowserRouter>
-  );
+          <MessagePopup
+            open={popup.open}
+            setOpen={(status) => {
+              span.addEvent('Popup status changed', { status });
+              setPopup({
+                ...popup,
+                open: status,
+              });
+            }}
+            severity={popup.severity}
+            message={popup.message}
+          />
+        </SetPopupContext.Provider>
+      </BrowserRouter>
+    );
+  });
 }
 
 export default App;

@@ -1,4 +1,8 @@
 const mongoose = require("mongoose");
+const { diag, DiagConsoleLogger, DiagLogLevel } = require('@opentelemetry/api');
+
+// Set up a logger
+diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.INFO);
 
 let schema = new mongoose.Schema(
   {
@@ -30,7 +34,9 @@ let schema = new mongoose.Schema(
             { validator: Number.isInteger, msg: "Year should be an integer" },
             {
               validator: function (value) {
-                return this.startYear <= value;
+                const isValid = this.startYear <= value;
+                diag.info(`Validating endYear: ${value}, startYear: ${this.startYear}, isValid: ${isValid}`);
+                return isValid;
               },
               msg: "End year should be greater than or equal to Start year",
             },
@@ -45,7 +51,9 @@ let schema = new mongoose.Schema(
       default: -1.0,
       validate: {
         validator: function (v) {
-          return v >= -1.0 && v <= 5.0;
+          const isValid = v >= -1.0 && v <= 5.0;
+          diag.info(`Validating rating: ${v}, isValid: ${isValid}`);
+          return isValid;
         },
         msg: "Invalid rating",
       },
@@ -59,5 +67,7 @@ let schema = new mongoose.Schema(
   },
   { collation: { locale: "en" } }
 );
+
+diag.info('Schema for JobApplicantInfo created');
 
 module.exports = mongoose.model("JobApplicantInfo", schema);

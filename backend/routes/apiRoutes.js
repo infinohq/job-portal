@@ -1,6 +1,8 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const jwtAuth = require("../lib/jwtAuth");
+const { diag } = require('@opentelemetry/api');
+const { MeterProvider } = require('@opentelemetry/sdk-metrics-base');
 
 const User = require("../db/User");
 const JobApplicant = require("../db/JobApplicant");
@@ -9,20 +11,130 @@ const Job = require("../db/Job");
 const Application = require("../db/Application");
 const Rating = require("../db/Rating");
 
+const meterProvider = new MeterProvider();
+const meter = meterProvider.getMeter('default');
+
+const jobAddCounter = meter.createCounter('job_add_counter', {
+  description: 'Count of jobs added'
+});
+const jobAddErrorCounter = meter.createCounter('job_add_error_counter', {
+  description: 'Count of errors when adding jobs'
+});
+
+const jobGetCounter = meter.createCounter('job_get_counter', {
+  description: 'Count of job retrievals'
+});
+const jobGetErrorCounter = meter.createCounter('job_get_error_counter', {
+  description: 'Count of errors when retrieving jobs'
+});
+
+const jobDetailGetCounter = meter.createCounter('job_detail_get_counter', {
+  description: 'Count of job detail retrievals'
+});
+const jobDetailGetErrorCounter = meter.createCounter('job_detail_get_error_counter', {
+  description: 'Count of errors when retrieving job details'
+});
+
+const jobUpdateCounter = meter.createCounter('job_update_counter', {
+  description: 'Count of job updates'
+});
+const jobUpdateErrorCounter = meter.createCounter('job_update_error_counter', {
+  description: 'Count of errors when updating jobs'
+});
+
+const jobDeleteCounter = meter.createCounter('job_delete_counter', {
+  description: 'Count of job deletions'
+});
+const jobDeleteErrorCounter = meter.createCounter('job_delete_error_counter', {
+  description: 'Count of errors when deleting jobs'
+});
+
+const userDetailGetCounter = meter.createCounter('user_detail_get_counter', {
+  description: 'Count of user detail retrievals'
+});
+const userDetailGetErrorCounter = meter.createCounter('user_detail_get_error_counter', {
+  description: 'Count of errors when retrieving user details'
+});
+
+const userIdDetailGetCounter = meter.createCounter('user_id_detail_get_counter', {
+  description: 'Count of user ID detail retrievals'
+});
+const userIdDetailGetErrorCounter = meter.createCounter('user_id_detail_get_error_counter', {
+  description: 'Count of errors when retrieving user ID details'
+});
+
+const userUpdateCounter = meter.createCounter('user_update_counter', {
+  description: 'Count of user updates'
+});
+const userUpdateErrorCounter = meter.createCounter('user_update_error_counter', {
+  description: 'Count of errors when updating users'
+});
+
+const jobApplicationCounter = meter.createCounter('job_application_counter', {
+  description: 'Count of job applications'
+});
+const jobApplicationErrorCounter = meter.createCounter('job_application_error_counter', {
+  description: 'Count of errors when applying for jobs'
+});
+
+const jobApplicationsGetCounter = meter.createCounter('job_applications_get_counter', {
+  description: 'Count of job applications retrievals'
+});
+const jobApplicationsGetErrorCounter = meter.createCounter('job_applications_get_error_counter', {
+  description: 'Count of errors when retrieving job applications'
+});
+
+const applicationsGetCounter = meter.createCounter('applications_get_counter', {
+  description: 'Count of applications retrievals'
+});
+const applicationsGetErrorCounter = meter.createCounter('applications_get_error_counter', {
+  description: 'Count of errors when retrieving applications'
+});
+
+const applicationStatusUpdateCounter = meter.createCounter('application_status_update_counter', {
+  description: 'Count of application status updates'
+});
+const applicationStatusUpdateErrorCounter = meter.createCounter('application_status_update_error_counter', {
+  description: 'Count of errors when updating application status'
+});
+
+const applicantsGetCounter = meter.createCounter('applicants_get_counter', {
+  description: 'Count of applicants retrievals'
+});
+const applicantsGetErrorCounter = meter.createCounter('applicants_get_error_counter', {
+  description: 'Count of errors when retrieving applicants'
+});
+
+const ratingUpdateCounter = meter.createCounter('rating_update_counter', {
+  description: 'Count of rating updates'
+});
+const ratingUpdateErrorCounter = meter.createCounter('rating_update_error_counter', {
+  description: 'Count of errors when updating ratings'
+});
+
+const personalRatingGetCounter = meter.createCounter('personal_rating_get_counter', {
+  description: 'Count of personal rating retrievals'
+});
+const personalRatingGetErrorCounter = meter.createCounter('personal_rating_get_error_counter', {
+  description: 'Count of errors when retrieving personal ratings'
+});
+
 const router = express.Router();
 
-// To add new job
 router.post("/jobs", jwtAuth, (req, res) => {
   const user = req.user;
+  diag.debug('User attempting to add job:', user);
 
   if (user.type != "recruiter") {
     res.status(401).json({
       message: "You don't have permissions to add jobs",
     });
+    jobAddErrorCounter.add(1);
     return;
   }
 
   const data = req.body;
+  diag.debug('Job data received:', data);
 
   let job = new Job({
     userId: user._id,
@@ -41,25 +153,24 @@ router.post("/jobs", jwtAuth, (req, res) => {
   job
     .save()
     .then(() => {
+      diag.debug('Job added successfully:', job);
       res.json({ message: "Job added successfully to the database" });
+      jobAddCounter.add(1);
     })
     .catch((err) => {
+      diag.error('Error adding job:', err);
       res.status(400).json(err);
+      jobAddErrorCounter.add(1);
     });
 });
 
-// to get all the jobs [pagination] [for recruiter personal and for everyone]
 router.get("/jobs", jwtAuth, (req, res) => {
   let user = req.user;
+  diag.debug('User requesting jobs:', user);
 
   let findParams = {};
   let sortParams = {};
 
-  // const page = parseInt(req.query.page) ? parseInt(req.query.page) : 1;
-  // const limit = parseInt(req.query.limit) ? parseInt(req.query.limit) : 10;
-  // const skip = page - 1 >= 0 ? (page - 1) * limit : 0;
-
-  // to list down jobs posted by a particular recruiter
   if (user.type === "recruiter" && req.query.myjobs) {
     findParams = {
       ...findParams,
@@ -83,7 +194,7 @@ router.get("/jobs", jwtAuth, (req, res) => {
     } else {
       jobTypes = [req.query.jobType];
     }
-    console.log(jobTypes);
+    diag.debug('Job types filter:', jobTypes);
     findParams = {
       ...findParams,
       jobType: {
@@ -165,12 +276,8 @@ router.get("/jobs", jwtAuth, (req, res) => {
     }
   }
 
-  console.log(findParams);
-  console.log(sortParams);
-
-  // Job.find(findParams).collation({ locale: "en" }).sort(sortParams);
-  // .skip(skip)
-  // .limit(limit)
+  diag.debug('Find parameters:', findParams);
+  diag.debug('Sort parameters:', sortParams);
 
   let arr = [
     {
@@ -203,7 +310,7 @@ router.get("/jobs", jwtAuth, (req, res) => {
     ];
   }
 
-  console.log(arr);
+  diag.debug('Aggregation pipeline:', arr);
 
   Job.aggregate(arr)
     .then((posts) => {
@@ -211,39 +318,51 @@ router.get("/jobs", jwtAuth, (req, res) => {
         res.status(404).json({
           message: "No job found",
         });
+        jobGetErrorCounter.add(1);
         return;
       }
+      diag.debug('Jobs found:', posts);
       res.json(posts);
+      jobGetCounter.add(1);
     })
     .catch((err) => {
+      diag.error('Error fetching jobs:', err);
       res.status(400).json(err);
+      jobGetErrorCounter.add(1);
     });
 });
 
-// to get info about a particular job
 router.get("/jobs/:id", jwtAuth, (req, res) => {
+  diag.debug('Fetching job with ID:', req.params.id);
   Job.findOne({ _id: req.params.id })
     .then((job) => {
       if (job == null) {
         res.status(400).json({
           message: "Job does not exist",
         });
+        jobDetailGetErrorCounter.add(1);
         return;
       }
+      diag.debug('Job found:', job);
       res.json(job);
+      jobDetailGetCounter.add(1);
     })
     .catch((err) => {
+      diag.error('Error fetching job:', err);
       res.status(400).json(err);
+      jobDetailGetErrorCounter.add(1);
     });
 });
 
-// to update info of a particular job
 router.put("/jobs/:id", jwtAuth, (req, res) => {
   const user = req.user;
+  diag.debug('User attempting to update job:', user);
+
   if (user.type != "recruiter") {
     res.status(401).json({
       message: "You don't have permissions to change the job details",
     });
+    jobUpdateErrorCounter.add(1);
     return;
   }
   Job.findOne({
@@ -255,9 +374,12 @@ router.put("/jobs/:id", jwtAuth, (req, res) => {
         res.status(404).json({
           message: "Job does not exist",
         });
+        jobUpdateErrorCounter.add(1);
         return;
       }
       const data = req.body;
+      diag.debug('Job update data:', data);
+
       if (data.maxApplicants) {
         job.maxApplicants = data.maxApplicants;
       }
@@ -270,26 +392,34 @@ router.put("/jobs/:id", jwtAuth, (req, res) => {
       job
         .save()
         .then(() => {
+          diag.debug('Job updated successfully:', job);
           res.json({
             message: "Job details updated successfully",
           });
+          jobUpdateCounter.add(1);
         })
         .catch((err) => {
+          diag.error('Error updating job:', err);
           res.status(400).json(err);
+          jobUpdateErrorCounter.add(1);
         });
     })
     .catch((err) => {
+      diag.error('Error finding job for update:', err);
       res.status(400).json(err);
+      jobUpdateErrorCounter.add(1);
     });
 });
 
-// to delete a job
 router.delete("/jobs/:id", jwtAuth, (req, res) => {
   const user = req.user;
+  diag.debug('User attempting to delete job:', user);
+
   if (user.type != "recruiter") {
     res.status(401).json({
       message: "You don't have permissions to delete the job",
     });
+    jobDeleteErrorCounter.add(1);
     return;
   }
   Job.findOneAndDelete({
@@ -301,20 +431,26 @@ router.delete("/jobs/:id", jwtAuth, (req, res) => {
         res.status(401).json({
           message: "You don't have permissions to delete the job",
         });
+        jobDeleteErrorCounter.add(1);
         return;
       }
+      diag.debug('Job deleted successfully:', job);
       res.json({
         message: "Job deleted successfully",
       });
+      jobDeleteCounter.add(1);
     })
     .catch((err) => {
+      diag.error('Error deleting job:', err);
       res.status(400).json(err);
+      jobDeleteErrorCounter.add(1);
     });
 });
 
-// get user's personal details
 router.get("/user", jwtAuth, (req, res) => {
   const user = req.user;
+  diag.debug('Fetching personal details for user:', user);
+
   if (user.type === "recruiter") {
     Recruiter.findOne({ userId: user._id })
       .then((recruiter) => {
@@ -322,12 +458,17 @@ router.get("/user", jwtAuth, (req, res) => {
           res.status(404).json({
             message: "User does not exist",
           });
+          userDetailGetErrorCounter.add(1);
           return;
         }
+        diag.debug('Recruiter details found:', recruiter);
         res.json(recruiter);
+        userDetailGetCounter.add(1);
       })
       .catch((err) => {
+        diag.error('Error fetching recruiter details:', err);
         res.status(400).json(err);
+        userDetailGetErrorCounter.add(1);
       });
   } else {
     JobApplicant.findOne({ userId: user._id })
@@ -336,26 +477,33 @@ router.get("/user", jwtAuth, (req, res) => {
           res.status(404).json({
             message: "User does not exist",
           });
+          userDetailGetErrorCounter.add(1);
           return;
         }
+        diag.debug('Job applicant details found:', jobApplicant);
         res.json(jobApplicant);
+        userDetailGetCounter.add(1);
       })
       .catch((err) => {
+        diag.error('Error fetching job applicant details:', err);
         res.status(400).json(err);
+        userDetailGetErrorCounter.add(1);
       });
   }
 });
 
-// get user details from id
 router.get("/user/:id", jwtAuth, (req, res) => {
+  diag.debug('Fetching user details for ID:', req.params.id);
   User.findOne({ _id: req.params.id })
     .then((userData) => {
       if (userData === null) {
         res.status(404).json({
           message: "User does not exist",
         });
+        userIdDetailGetErrorCounter.add(1);
         return;
       }
+      diag.debug('User data found:', userData);
 
       if (userData.type === "recruiter") {
         Recruiter.findOne({ userId: userData._id })
@@ -364,12 +512,17 @@ router.get("/user/:id", jwtAuth, (req, res) => {
               res.status(404).json({
                 message: "User does not exist",
               });
+              userIdDetailGetErrorCounter.add(1);
               return;
             }
+            diag.debug('Recruiter details found:', recruiter);
             res.json(recruiter);
+            userIdDetailGetCounter.add(1);
           })
           .catch((err) => {
+            diag.error('Error fetching recruiter details:', err);
             res.status(400).json(err);
+            userIdDetailGetErrorCounter.add(1);
           });
       } else {
         JobApplicant.findOne({ userId: userData._id })
@@ -378,24 +531,33 @@ router.get("/user/:id", jwtAuth, (req, res) => {
               res.status(404).json({
                 message: "User does not exist",
               });
+              userIdDetailGetErrorCounter.add(1);
               return;
             }
+            diag.debug('Job applicant details found:', jobApplicant);
             res.json(jobApplicant);
+            userIdDetailGetCounter.add(1);
           })
           .catch((err) => {
+            diag.error('Error fetching job applicant details:', err);
             res.status(400).json(err);
+            userIdDetailGetErrorCounter.add(1);
           });
       }
     })
     .catch((err) => {
+      diag.error('Error fetching user data:', err);
       res.status(400).json(err);
+      userIdDetailGetErrorCounter.add(1);
     });
 });
 
-// update user details
 router.put("/user", jwtAuth, (req, res) => {
   const user = req.user;
   const data = req.body;
+  diag.debug('User attempting to update personal details:', user);
+  diag.debug('Update data:', data);
+
   if (user.type == "recruiter") {
     Recruiter.findOne({ userId: user._id })
       .then((recruiter) => {
@@ -403,6 +565,7 @@ router.put("/user", jwtAuth, (req, res) => {
           res.status(404).json({
             message: "User does not exist",
           });
+          userUpdateErrorCounter.add(1);
           return;
         }
         if (data.name) {
@@ -417,16 +580,22 @@ router.put("/user", jwtAuth, (req, res) => {
         recruiter
           .save()
           .then(() => {
+            diag.debug('Recruiter details updated successfully:', recruiter);
             res.json({
               message: "User information updated successfully",
             });
+            userUpdateCounter.add(1);
           })
           .catch((err) => {
+            diag.error('Error updating recruiter details:', err);
             res.status(400).json(err);
+            userUpdateErrorCounter.add(1);
           });
       })
       .catch((err) => {
+        diag.error('Error finding recruiter for update:', err);
         res.status(400).json(err);
+        userUpdateErrorCounter.add(1);
       });
   } else {
     JobApplicant.findOne({ userId: user._id })
@@ -435,6 +604,7 @@ router.put("/user", jwtAuth, (req, res) => {
           res.status(404).json({
             message: "User does not exist",
           });
+          userUpdateErrorCounter.add(1);
           return;
         }
         if (data.name) {
@@ -452,41 +622,44 @@ router.put("/user", jwtAuth, (req, res) => {
         if (data.profile) {
           jobApplicant.profile = data.profile;
         }
-        console.log(jobApplicant);
+        diag.debug('Job applicant update data:', jobApplicant);
         jobApplicant
           .save()
           .then(() => {
+            diag.debug('Job applicant details updated successfully:', jobApplicant);
             res.json({
               message: "User information updated successfully",
             });
+            userUpdateCounter.add(1);
           })
           .catch((err) => {
+            diag.error('Error updating job applicant details:', err);
             res.status(400).json(err);
+            userUpdateErrorCounter.add(1);
           });
       })
       .catch((err) => {
+        diag.error('Error finding job applicant for update:', err);
         res.status(400).json(err);
+        userUpdateErrorCounter.add(1);
       });
   }
 });
 
-// apply for a job [todo: test: done]
 router.post("/jobs/:id/applications", jwtAuth, (req, res) => {
   const user = req.user;
+  diag.debug('User attempting to apply for job:', user);
+
   if (user.type != "applicant") {
     res.status(401).json({
       message: "You don't have permissions to apply for a job",
     });
+    jobApplicationErrorCounter.add(1);
     return;
   }
   const data = req.body;
   const jobId = req.params.id;
-
-  // check whether applied previously
-  // find job
-  // check count of active applications < limit
-  // check user had < 10 active applications && check if user is not having any accepted jobs (user id)
-  // store the data in applications
+  diag.debug('Application data:', data);
 
   Application.findOne({
     userId: user._id,
@@ -496,11 +669,12 @@ router.post("/jobs/:id/applications", jwtAuth, (req, res) => {
     },
   })
     .then((appliedApplication) => {
-      console.log(appliedApplication);
+      diag.debug('Previously applied application:', appliedApplication);
       if (appliedApplication !== null) {
         res.status(400).json({
           message: "You have already applied for this job",
         });
+        jobApplicationErrorCounter.add(1);
         return;
       }
 
@@ -510,8 +684,11 @@ router.post("/jobs/:id/applications", jwtAuth, (req, res) => {
             res.status(404).json({
               message: "Job does not exist",
             });
+            jobApplicationErrorCounter.add(1);
             return;
           }
+          diag.debug('Job found for application:', job);
+
           Application.countDocuments({
             jobId: jobId,
             status: {
@@ -519,6 +696,7 @@ router.post("/jobs/:id/applications", jwtAuth, (req, res) => {
             },
           })
             .then((activeApplicationCount) => {
+              diag.debug('Active application count for job:', activeApplicationCount);
               if (activeApplicationCount < job.maxApplicants) {
                 Application.countDocuments({
                   userId: user._id,
@@ -527,11 +705,13 @@ router.post("/jobs/:id/applications", jwtAuth, (req, res) => {
                   },
                 })
                   .then((myActiveApplicationCount) => {
+                    diag.debug('User active application count:', myActiveApplicationCount);
                     if (myActiveApplicationCount < 10) {
                       Application.countDocuments({
                         userId: user._id,
                         status: "accepted",
                       }).then((acceptedJobs) => {
+                        diag.debug('User accepted jobs count:', acceptedJobs);
                         if (acceptedJobs === 0) {
                           const application = new Application({
                             userId: user._id,
@@ -543,18 +723,23 @@ router.post("/jobs/:id/applications", jwtAuth, (req, res) => {
                           application
                             .save()
                             .then(() => {
+                              diag.debug('Job application successful:', application);
                               res.json({
                                 message: "Job application successful",
                               });
+                              jobApplicationCounter.add(1);
                             })
                             .catch((err) => {
+                              diag.error('Error saving application:', err);
                               res.status(400).json(err);
+                              jobApplicationErrorCounter.add(1);
                             });
                         } else {
                           res.status(400).json({
                             message:
                               "You already have an accepted job. Hence you cannot apply.",
                           });
+                          jobApplicationErrorCounter.add(1);
                         }
                       });
                     } else {
@@ -562,44 +747,53 @@ router.post("/jobs/:id/applications", jwtAuth, (req, res) => {
                         message:
                           "You have 10 active applications. Hence you cannot apply.",
                       });
+                      jobApplicationErrorCounter.add(1);
                     }
                   })
                   .catch((err) => {
+                    diag.error('Error counting user active applications:', err);
                     res.status(400).json(err);
+                    jobApplicationErrorCounter.add(1);
                   });
               } else {
                 res.status(400).json({
                   message: "Application limit reached",
                 });
+                jobApplicationErrorCounter.add(1);
               }
             })
             .catch((err) => {
+              diag.error('Error counting active applications for job:', err);
               res.status(400).json(err);
+              jobApplicationErrorCounter.add(1);
             });
         })
         .catch((err) => {
+          diag.error('Error finding job for application:', err);
           res.status(400).json(err);
+          jobApplicationErrorCounter.add(1);
         });
     })
     .catch((err) => {
+      diag.error('Error checking previous applications:', err);
       res.json(400).json(err);
+      jobApplicationErrorCounter.add(1);
     });
 });
 
-// recruiter gets applications for a particular job [pagination] [todo: test: done]
 router.get("/jobs/:id/applications", jwtAuth, (req, res) => {
   const user = req.user;
+  diag.debug('User requesting applications for job:', user);
+
   if (user.type != "recruiter") {
     res.status(401).json({
       message: "You don't have permissions to view job applications",
     });
+    jobApplicationsGetErrorCounter.add(1);
     return;
   }
   const jobId = req.params.id;
-
-  // const page = parseInt(req.query.page) ? parseInt(req.query.page) : 1;
-  // const limit = parseInt(req.query.limit) ? parseInt(req.query.limit) : 10;
-  // const skip = page - 1 >= 0 ? (page - 1) * limit : 0;
+  diag.debug('Job ID for applications:', jobId);
 
   let findParams = {
     jobId: jobId,
@@ -615,26 +809,26 @@ router.get("/jobs/:id/applications", jwtAuth, (req, res) => {
     };
   }
 
+  diag.debug('Find parameters for applications:', findParams);
+
   Application.find(findParams)
     .collation({ locale: "en" })
     .sort(sortParams)
-    // .skip(skip)
-    // .limit(limit)
     .then((applications) => {
+      diag.debug('Applications found:', applications);
       res.json(applications);
+      jobApplicationsGetCounter.add(1);
     })
     .catch((err) => {
+      diag.error('Error fetching applications:', err);
       res.status(400).json(err);
+      jobApplicationsGetErrorCounter.add(1);
     });
 });
 
-// recruiter/applicant gets all his applications [pagination]
 router.get("/applications", jwtAuth, (req, res) => {
   const user = req.user;
-
-  // const page = parseInt(req.query.page) ? parseInt(req.query.page) : 1;
-  // const limit = parseInt(req.query.limit) ? parseInt(req.query.limit) : 10;
-  // const skip = page - 1 >= 0 ? (page - 1) * limit : 0;
+  diag.debug('User requesting all applications:', user);
 
   Application.aggregate([
     {
@@ -676,34 +870,26 @@ router.get("/applications", jwtAuth, (req, res) => {
     },
   ])
     .then((applications) => {
+      diag.debug('Applications found:', applications);
       res.json(applications);
+      applicationsGetCounter.add(1);
     })
     .catch((err) => {
+      diag.error('Error fetching all applications:', err);
       res.status(400).json(err);
+      applicationsGetErrorCounter.add(1);
     });
 });
 
-// update status of application: [Applicant: Can cancel, Recruiter: Can do everything] [todo: test: done]
 router.put("/applications/:id", jwtAuth, (req, res) => {
   const user = req.user;
   const id = req.params.id;
   const status = req.body.status;
-
-  // "applied", // when a applicant is applied
-  // "shortlisted", // when a applicant is shortlisted
-  // "accepted", // when a applicant is accepted
-  // "rejected", // when a applicant is rejected
-  // "deleted", // when any job is deleted
-  // "cancelled", // an application is cancelled by its author or when other application is accepted
-  // "finished", // when job is over
+  diag.debug('User attempting to update application status:', user);
+  diag.debug('Application ID:', id, 'New status:', status);
 
   if (user.type === "recruiter") {
     if (status === "accepted") {
-      // get job id from application
-      // get job info for maxPositions count
-      // count applications that are already accepted
-      // compare and if condition is satisfied, then save
-
       Application.findOne({
         _id: id,
         recruiterId: user._id,
@@ -713,8 +899,10 @@ router.put("/applications/:id", jwtAuth, (req, res) => {
             res.status(404).json({
               message: "Application not found",
             });
+            applicationStatusUpdateErrorCounter.add(1);
             return;
           }
+          diag.debug('Application found for acceptance:', application);
 
           Job.findOne({
             _id: application.jobId,
@@ -724,16 +912,18 @@ router.put("/applications/:id", jwtAuth, (req, res) => {
               res.status(404).json({
                 message: "Job does not exist",
               });
+              applicationStatusUpdateErrorCounter.add(1);
               return;
             }
+            diag.debug('Job found for application acceptance:', job);
 
             Application.countDocuments({
               recruiterId: user._id,
               jobId: job._id,
               status: "accepted",
             }).then((activeApplicationCount) => {
+              diag.debug('Active accepted applications count:', activeApplicationCount);
               if (activeApplicationCount < job.maxPositions) {
-                // accepted
                 application.status = status;
                 application.dateOfJoining = req.body.dateOfJoining;
                 application
@@ -776,36 +966,48 @@ router.put("/applications/:id", jwtAuth, (req, res) => {
                             }
                           )
                             .then(() => {
+                              diag.debug('Application accepted and job updated:', application);
                               res.json({
                                 message: `Application ${status} successfully`,
                               });
+                              applicationStatusUpdateCounter.add(1);
                             })
                             .catch((err) => {
+                              diag.error('Error updating job after acceptance:', err);
                               res.status(400).json(err);
+                              applicationStatusUpdateErrorCounter.add(1);
                             });
                         } else {
                           res.json({
                             message: `Application ${status} successfully`,
                           });
+                          applicationStatusUpdateCounter.add(1);
                         }
                       })
                       .catch((err) => {
+                        diag.error('Error updating other applications after acceptance:', err);
                         res.status(400).json(err);
+                        applicationStatusUpdateErrorCounter.add(1);
                       });
                   })
                   .catch((err) => {
+                    diag.error('Error saving application after acceptance:', err);
                     res.status(400).json(err);
+                    applicationStatusUpdateErrorCounter.add(1);
                   });
               } else {
                 res.status(400).json({
                   message: "All positions for this job are already filled",
                 });
+                applicationStatusUpdateErrorCounter.add(1);
               }
             });
           });
         })
         .catch((err) => {
+          diag.error('Error finding application for acceptance:', err);
           res.status(400).json(err);
+          applicationStatusUpdateErrorCounter.add(1);
         });
     } else {
       Application.findOneAndUpdate(
@@ -827,8 +1029,10 @@ router.put("/applications/:id", jwtAuth, (req, res) => {
             res.status(400).json({
               message: "Application status cannot be updated",
             });
+            applicationStatusUpdateErrorCounter.add(1);
             return;
           }
+          diag.debug('Application status updated:', application);
           if (status === "finished") {
             res.json({
               message: `Job ${status} successfully`,
@@ -838,15 +1042,17 @@ router.put("/applications/:id", jwtAuth, (req, res) => {
               message: `Application ${status} successfully`,
             });
           }
+          applicationStatusUpdateCounter.add(1);
         })
         .catch((err) => {
+          diag.error('Error updating application status:', err);
           res.status(400).json(err);
+          applicationStatusUpdateErrorCounter.add(1);
         });
     }
   } else {
     if (status === "cancelled") {
-      console.log(id);
-      console.log(user._id);
+      diag.debug('Applicant cancelling application:', id);
       Application.findOneAndUpdate(
         {
           _id: id,
@@ -859,26 +1065,30 @@ router.put("/applications/:id", jwtAuth, (req, res) => {
         }
       )
         .then((tmp) => {
-          console.log(tmp);
+          diag.debug('Application cancelled:', tmp);
           res.json({
             message: `Application ${status} successfully`,
           });
+          applicationStatusUpdateCounter.add(1);
         })
         .catch((err) => {
+          diag.error('Error cancelling application:', err);
           res.status(400).json(err);
+          applicationStatusUpdateErrorCounter.add(1);
         });
     } else {
       res.status(401).json({
         message: "You don't have permissions to update job status",
       });
+      applicationStatusUpdateErrorCounter.add(1);
     }
   }
 });
 
-// get a list of final applicants for current job : recruiter
-// get a list of final applicants for all his jobs : recuiter
 router.get("/applicants", jwtAuth, (req, res) => {
   const user = req.user;
+  diag.debug('User requesting applicants list:', user);
+
   if (user.type === "recruiter") {
     let findParams = {
       recruiterId: user._id,
@@ -940,6 +1150,9 @@ router.get("/applicants", jwtAuth, (req, res) => {
       }
     }
 
+    diag.debug('Find parameters for applicants:', findParams);
+    diag.debug('Sort parameters for applicants:', sortParams);
+
     Application.aggregate([
       {
         $lookup: {
@@ -967,26 +1180,33 @@ router.get("/applicants", jwtAuth, (req, res) => {
           res.status(404).json({
             message: "No applicants found",
           });
+          applicantsGetErrorCounter.add(1);
           return;
         }
+        diag.debug('Applicants found:', applications);
         res.json(applications);
+        applicantsGetCounter.add(1);
       })
       .catch((err) => {
+        diag.error('Error fetching applicants:', err);
         res.status(400).json(err);
+        applicantsGetErrorCounter.add(1);
       });
   } else {
     res.status(400).json({
       message: "You are not allowed to access applicants list",
     });
+    applicantsGetErrorCounter.add(1);
   }
 });
 
-// to add or update a rating [todo: test]
 router.put("/rating", jwtAuth, (req, res) => {
   const user = req.user;
   const data = req.body;
+  diag.debug('User attempting to add/update rating:', user);
+  diag.debug('Rating data:', data);
+
   if (user.type === "recruiter") {
-    // can rate applicant
     Rating.findOne({
       senderId: user._id,
       receiverId: data.applicantId,
@@ -994,7 +1214,7 @@ router.put("/rating", jwtAuth, (req, res) => {
     })
       .then((rating) => {
         if (rating === null) {
-          console.log("new rating");
+          diag.debug('No existing rating found, creating new rating');
           Application.countDocuments({
             userId: data.applicantId,
             recruiterId: user._id,
@@ -1003,9 +1223,8 @@ router.put("/rating", jwtAuth, (req, res) => {
             },
           })
             .then((acceptedApplicant) => {
+              diag.debug('Accepted applicant count:', acceptedApplicant);
               if (acceptedApplicant > 0) {
-                // add a new rating
-
                 rating = new Rating({
                   category: "applicant",
                   receiverId: data.applicantId,
@@ -1016,7 +1235,6 @@ router.put("/rating", jwtAuth, (req, res) => {
                 rating
                   .save()
                   .then(() => {
-                    // get the average of ratings
                     Rating.aggregate([
                       {
                         $match: {
@@ -1032,14 +1250,15 @@ router.put("/rating", jwtAuth, (req, res) => {
                       },
                     ])
                       .then((result) => {
-                        // update the user's rating
                         if (result === null) {
                           res.status(400).json({
                             message: "Error while calculating rating",
                           });
+                          ratingUpdateErrorCounter.add(1);
                           return;
                         }
                         const avg = result[0].average;
+                        diag.debug('Calculated average rating:', avg);
 
                         JobApplicant.findOneAndUpdate(
                           {
@@ -1057,40 +1276,50 @@ router.put("/rating", jwtAuth, (req, res) => {
                                 message:
                                   "Error while updating applicant's average rating",
                               });
+                              ratingUpdateErrorCounter.add(1);
                               return;
                             }
+                            diag.debug('Applicant rating updated successfully:', applicant);
                             res.json({
                               message: "Rating added successfully",
                             });
+                            ratingUpdateCounter.add(1);
                           })
                           .catch((err) => {
+                            diag.error('Error updating applicant rating:', err);
                             res.status(400).json(err);
+                            ratingUpdateErrorCounter.add(1);
                           });
                       })
                       .catch((err) => {
+                        diag.error('Error calculating average rating:', err);
                         res.status(400).json(err);
+                        ratingUpdateErrorCounter.add(1);
                       });
                   })
                   .catch((err) => {
+                    diag.error('Error saving new rating:', err);
                     res.status(400).json(err);
+                    ratingUpdateErrorCounter.add(1);
                   });
               } else {
-                // you cannot rate
                 res.status(400).json({
                   message:
                     "Applicant didn't worked under you. Hence you cannot give a rating.",
                 });
+                ratingUpdateErrorCounter.add(1);
               }
             })
             .catch((err) => {
+              diag.error('Error counting accepted applicants:', err);
               res.status(400).json(err);
+              ratingUpdateErrorCounter.add(1);
             });
         } else {
           rating.rating = data.rating;
           rating
             .save()
             .then(() => {
-              // get the average of ratings
               Rating.aggregate([
                 {
                   $match: {
@@ -1106,14 +1335,16 @@ router.put("/rating", jwtAuth, (req, res) => {
                 },
               ])
                 .then((result) => {
-                  // update the user's rating
                   if (result === null) {
                     res.status(400).json({
                       message: "Error while calculating rating",
                     });
+                    ratingUpdateErrorCounter.add(1);
                     return;
                   }
                   const avg = result[0].average;
+                  diag.debug('Calculated average rating:', avg);
+
                   JobApplicant.findOneAndUpdate(
                     {
                       userId: data.applicantId,
@@ -1130,41 +1361,48 @@ router.put("/rating", jwtAuth, (req, res) => {
                           message:
                             "Error while updating applicant's average rating",
                         });
+                        ratingUpdateErrorCounter.add(1);
                         return;
                       }
+                      diag.debug('Applicant rating updated successfully:', applicant);
                       res.json({
                         message: "Rating updated successfully",
                       });
+                      ratingUpdateCounter.add(1);
                     })
                     .catch((err) => {
+                      diag.error('Error updating applicant rating:', err);
                       res.status(400).json(err);
+                      ratingUpdateErrorCounter.add(1);
                     });
                 })
                 .catch((err) => {
+                  diag.error('Error calculating average rating:', err);
                   res.status(400).json(err);
+                  ratingUpdateErrorCounter.add(1);
                 });
             })
             .catch((err) => {
+              diag.error('Error saving updated rating:', err);
               res.status(400).json(err);
+              ratingUpdateErrorCounter.add(1);
             });
         }
       })
       .catch((err) => {
+        diag.error('Error finding existing rating:', err);
         res.status(400).json(err);
+        ratingUpdateErrorCounter.add(1);
       });
   } else {
-    // applicant can rate job
     Rating.findOne({
       senderId: user._id,
       receiverId: data.jobId,
       category: "job",
     })
       .then((rating) => {
-        console.log(user._id);
-        console.log(data.jobId);
-        console.log(rating);
+        diag.debug('Existing rating found:', rating);
         if (rating === null) {
-          console.log(rating);
           Application.countDocuments({
             userId: user._id,
             jobId: data.jobId,
@@ -1173,9 +1411,8 @@ router.put("/rating", jwtAuth, (req, res) => {
             },
           })
             .then((acceptedApplicant) => {
+              diag.debug('Accepted applicant count for job:', acceptedApplicant);
               if (acceptedApplicant > 0) {
-                // add a new rating
-
                 rating = new Rating({
                   category: "job",
                   receiverId: data.jobId,
@@ -1186,7 +1423,6 @@ router.put("/rating", jwtAuth, (req, res) => {
                 rating
                   .save()
                   .then(() => {
-                    // get the average of ratings
                     Rating.aggregate([
                       {
                         $match: {
@@ -1206,9 +1442,12 @@ router.put("/rating", jwtAuth, (req, res) => {
                           res.status(400).json({
                             message: "Error while calculating rating",
                           });
+                          ratingUpdateErrorCounter.add(1);
                           return;
                         }
                         const avg = result[0].average;
+                        diag.debug('Calculated average rating for job:', avg);
+
                         Job.findOneAndUpdate(
                           {
                             _id: data.jobId,
@@ -1225,41 +1464,50 @@ router.put("/rating", jwtAuth, (req, res) => {
                                 message:
                                   "Error while updating job's average rating",
                               });
+                              ratingUpdateErrorCounter.add(1);
                               return;
                             }
+                            diag.debug('Job rating updated successfully:', foundJob);
                             res.json({
                               message: "Rating added successfully",
                             });
+                            ratingUpdateCounter.add(1);
                           })
                           .catch((err) => {
+                            diag.error('Error updating job rating:', err);
                             res.status(400).json(err);
+                            ratingUpdateErrorCounter.add(1);
                           });
                       })
                       .catch((err) => {
+                        diag.error('Error calculating average rating for job:', err);
                         res.status(400).json(err);
+                        ratingUpdateErrorCounter.add(1);
                       });
                   })
                   .catch((err) => {
+                    diag.error('Error saving new job rating:', err);
                     res.status(400).json(err);
+                    ratingUpdateErrorCounter.add(1);
                   });
               } else {
-                // you cannot rate
                 res.status(400).json({
                   message:
                     "You haven't worked for this job. Hence you cannot give a rating.",
                 });
+                ratingUpdateErrorCounter.add(1);
               }
             })
             .catch((err) => {
+              diag.error('Error counting accepted applicants for job:', err);
               res.status(400).json(err);
+              ratingUpdateErrorCounter.add(1);
             });
         } else {
-          // update the rating
           rating.rating = data.rating;
           rating
             .save()
             .then(() => {
-              // get the average of ratings
               Rating.aggregate([
                 {
                   $match: {
@@ -1279,10 +1527,11 @@ router.put("/rating", jwtAuth, (req, res) => {
                     res.status(400).json({
                       message: "Error while calculating rating",
                     });
+                    ratingUpdateErrorCounter.add(1);
                     return;
                   }
                   const avg = result[0].average;
-                  console.log(avg);
+                  diag.debug('Calculated average rating for job:', avg);
 
                   Job.findOneAndUpdate(
                     {
@@ -1299,82 +1548,65 @@ router.put("/rating", jwtAuth, (req, res) => {
                         res.status(400).json({
                           message: "Error while updating job's average rating",
                         });
+                        ratingUpdateErrorCounter.add(1);
                         return;
                       }
+                      diag.debug('Job rating updated successfully:', foundJob);
                       res.json({
                         message: "Rating added successfully",
                       });
+                      ratingUpdateCounter.add(1);
                     })
                     .catch((err) => {
+                      diag.error('Error updating job rating:', err);
                       res.status(400).json(err);
+                      ratingUpdateErrorCounter.add(1);
                     });
                 })
                 .catch((err) => {
+                  diag.error('Error calculating average rating for job:', err);
                   res.status(400).json(err);
+                  ratingUpdateErrorCounter.add(1);
                 });
             })
             .catch((err) => {
+              diag.error('Error saving updated job rating:', err);
               res.status(400).json(err);
+              ratingUpdateErrorCounter.add(1);
             });
         }
       })
       .catch((err) => {
+        diag.error('Error finding existing job rating:', err);
         res.status(400).json(err);
+        ratingUpdateErrorCounter.add(1);
       });
   }
 });
 
-// get personal rating
 router.get("/rating", jwtAuth, (req, res) => {
   const user = req.user;
+  diag.debug('User requesting personal rating:', user);
+
   Rating.findOne({
     senderId: user._id,
     receiverId: req.query.id,
     category: user.type === "recruiter" ? "applicant" : "job",
   }).then((rating) => {
     if (rating === null) {
+      diag.debug('No personal rating found');
       res.json({
         rating: -1,
       });
+      personalRatingGetErrorCounter.add(1);
       return;
     }
+    diag.debug('Personal rating found:', rating);
     res.json({
       rating: rating.rating,
     });
+    personalRatingGetCounter.add(1);
   });
 });
-
-// Application.findOne({
-//   _id: id,
-//   userId: user._id,
-// })
-//   .then((application) => {
-//     application.status = status;
-//     application
-//       .save()
-//       .then(() => {
-//         res.json({
-//           message: `Application ${status} successfully`,
-//         });
-//       })
-//       .catch((err) => {
-//         res.status(400).json(err);
-//       });
-//   })
-//   .catch((err) => {
-//     res.status(400).json(err);
-//   });
-
-// router.get("/jobs", (req, res, next) => {
-//   passport.authenticate("jwt", { session: false }, function (err, user, info) {
-//     if (err) {
-//       return next(err);
-//     }
-//     if (!user) {
-//       res.status(401).json(info);
-//       return;
-//     }
-//   })(req, res, next);
-// });
 
 module.exports = router;
