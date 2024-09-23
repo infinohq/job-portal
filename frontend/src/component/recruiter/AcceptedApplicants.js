@@ -28,6 +28,8 @@ import { SetPopupContext } from "../../App";
 
 import apiList, { server } from "../../lib/apiList";
 
+import { diag } from '@opentelemetry/api';
+
 const useStyles = makeStyles((theme) => ({
   body: {
     height: "inherit",
@@ -404,6 +406,7 @@ const ApplicationTile = (props) => {
   const appliedOn = new Date(application.dateOfApplication);
 
   const changeRating = () => {
+    diag.info('Changing rating', { rating, applicantId: application.jobApplicant.userId });
     axios
       .put(
         apiList.rating,
@@ -415,7 +418,7 @@ const ApplicationTile = (props) => {
         }
       )
       .then((response) => {
-        console.log(response.data);
+        diag.info('Rating updated successfully', { response: response.data });
         setPopup({
           open: true,
           severity: "success",
@@ -426,8 +429,7 @@ const ApplicationTile = (props) => {
         setOpen(false);
       })
       .catch((err) => {
-        // console.log(err.response);
-        console.log(err);
+        diag.error('Error updating rating', { error: err });
         setPopup({
           open: true,
           severity: "error",
@@ -463,18 +465,19 @@ const ApplicationTile = (props) => {
       application.jobApplicant.resume !== ""
     ) {
       const address = `${server}${application.jobApplicant.resume}`;
-      console.log(address);
+      diag.info('Fetching resume', { address });
       axios(address, {
         method: "GET",
         responseType: "blob",
       })
         .then((response) => {
+          diag.info('Resume fetched successfully');
           const file = new Blob([response.data], { type: "application/pdf" });
           const fileURL = URL.createObjectURL(file);
           window.open(fileURL);
         })
         .catch((error) => {
-          console.log(error);
+          diag.error('Error fetching resume', { error });
           setPopup({
             open: true,
             severity: "error",
@@ -482,6 +485,7 @@ const ApplicationTile = (props) => {
           });
         });
     } else {
+      diag.warn('No resume found');
       setPopup({
         open: true,
         severity: "error",
@@ -496,6 +500,7 @@ const ApplicationTile = (props) => {
       status: status,
       dateOfJoining: new Date().toISOString(),
     };
+    diag.info('Updating status', { address, statusData });
     axios
       .put(address, statusData, {
         headers: {
@@ -503,6 +508,7 @@ const ApplicationTile = (props) => {
         },
       })
       .then((response) => {
+        diag.info('Status updated successfully', { response: response.data });
         setPopup({
           open: true,
           severity: "success",
@@ -512,12 +518,12 @@ const ApplicationTile = (props) => {
         getData();
       })
       .catch((err) => {
+        diag.error('Error updating status', { error: err });
         setPopup({
           open: true,
           severity: "error",
           message: err.response.data.message,
         });
-        console.log(err.response);
         handleCloseEndJob();
       });
   };
@@ -736,13 +742,13 @@ const AcceptedApplicants = (props) => {
 
     searchParams = [...searchParams, ...asc, ...desc];
     const queryString = searchParams.join("&");
-    console.log(queryString);
+    diag.info('Query string for fetching data', { queryString });
     let address = `${apiList.applicants}`;
     if (queryString !== "") {
       address = `${address}?${queryString}`;
     }
 
-    console.log(address);
+    diag.info('Fetching data from address', { address });
 
     axios
       .get(address, {
@@ -751,12 +757,11 @@ const AcceptedApplicants = (props) => {
         },
       })
       .then((response) => {
-        console.log(response.data);
+        diag.info('Data fetched successfully', { data: response.data });
         setApplications(response.data);
       })
       .catch((err) => {
-        console.log(err.response);
-        // console.log(err.response.data);
+        diag.error('Error fetching data', { error: err.response });
         setApplications([]);
         setPopup({
           open: true,

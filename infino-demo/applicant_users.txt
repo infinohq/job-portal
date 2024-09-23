@@ -1,0 +1,10 @@
+applicant0@example.com,password123
+applicant1@example.com,password123
+applicant2@example.com,password123
+applicant3@example.com,password123
+applicant4@example.com,password123
+applicant5@example.com,password123
+applicant6@example.com,password123
+applicant7@example.com,password123
+applicant8@example.com,password123
+applicant9@example.com,password123
