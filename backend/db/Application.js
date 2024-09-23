@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { diag } = require('@opentelemetry/api');
 
 let schema = new mongoose.Schema(
   {
@@ -37,7 +38,9 @@ let schema = new mongoose.Schema(
       validate: [
         {
           validator: function (value) {
-            return this.dateOfApplication <= value;
+            const isValid = this.dateOfApplication <= value;
+            diag.debug('Validating dateOfJoining:', { dateOfApplication: this.dateOfApplication, dateOfJoining: value, isValid });
+            return isValid;
           },
           msg: "dateOfJoining should be greater than dateOfApplication",
         },
@@ -47,7 +50,10 @@ let schema = new mongoose.Schema(
       type: String,
       validate: {
         validator: function (v) {
-          return v.split(" ").filter((ele) => ele != "").length <= 250;
+          const wordCount = v.split(" ").filter((ele) => ele != "").length;
+          const isValid = wordCount <= 250;
+          diag.debug('Validating SOP word count:', { sop: v, wordCount, isValid });
+          return isValid;
         },
         msg: "Statement of purpose should not be greater than 250 words",
       },
