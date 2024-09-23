@@ -11,6 +11,8 @@ const Recruiter = require("../db/Recruiter");
 const Job = require("../db/Job");
 const Application = require("../db/Application");
 const Rating = require("../db/Rating");
+const { maybeThrowRandomError } = require("./error");
+
 
 const fs = require('fs');
 const path = require('path');
@@ -713,6 +715,14 @@ router.post("/jobs/:id/applications", jwtAuth, (req, res) => {
   jobApplicationPostCounter.add(1);
   const user = req.user;
   diag.debug('User attempting to apply for job:', { userId: user._id, jobId: req.params.id });
+  is_error = maybeThrowRandomError();
+  if (is_error) {
+    jobApplicationPostErrorCounter.add(1);
+    res.status(500).json({
+      message: "Something went wrong",
+    });
+    return;
+  }
 
   if (user.type != "applicant") {
     jobApplicationPostErrorCounter.add(1);
