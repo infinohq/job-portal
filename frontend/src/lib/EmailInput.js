@@ -1,4 +1,5 @@
 import { TextField } from "@material-ui/core";
+import { trace } from '@opentelemetry/api';
 
 const EmailInput = (props) => {
   const {
@@ -11,6 +12,8 @@ const EmailInput = (props) => {
     className,
   } = props;
 
+  const tracer = trace.getTracer('default');
+
   return (
     <TextField
       label={label}
@@ -19,20 +22,33 @@ const EmailInput = (props) => {
       onChange={onChange}
       helperText={inputErrorHandler.email.message}
       onBlur={(event) => {
-        if (event.target.value === "") {
-          if (required) {
-            handleInputError("email", true, "Email is required");
+        tracer.startActiveSpan('onBlur', span => {
+          const inputValue = event.target.value;
+          span.addEvent('onBlur event triggered', { inputValue });
+
+          if (inputValue === "") {
+            span.addEvent('Input value is empty');
+            if (required) {
+              span.addEvent('Email is required');
+              handleInputError("email", true, "Email is required");
+            } else {
+              span.addEvent('Email is not required');
+              handleInputError("email", false, "");
+            }
           } else {
-            handleInputError("email", false, "");
+            const re = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+            const isEmailValid = re.test(String(inputValue).toLowerCase());
+            span.addEvent('Email validation', { isEmailValid });
+
+            if (isEmailValid) {
+              handleInputError("email", false, "");
+            } else {
+              span.addEvent('Incorrect email format');
+              handleInputError("email", true, "Incorrect email format");
+            }
           }
-        } else {
-          const re = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
-          if (re.test(String(event.target.value).toLowerCase())) {
-            handleInputError("email", false, "");
-          } else {
-            handleInputError("email", true, "Incorrect email format");
-          }
-        }
+          span.end();
+        });
       }}
       error={inputErrorHandler.email.error}
       className={className}
