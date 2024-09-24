@@ -16,6 +16,8 @@ import { SetPopupContext } from "../../App";
 
 import apiList from "../../lib/apiList";
 
+import { diag } from '@opentelemetry/api';
+
 const useStyles = makeStyles((theme) => ({
   body: {
     height: "inherit",
@@ -42,6 +44,7 @@ const Profile = (props) => {
   const [phone, setPhone] = useState("");
 
   const handleInput = (key, value) => {
+    diag.debug(`Updating profileDetails: setting ${key} to ${value}`);
     setProfileDetails({
       ...profileDetails,
       [key]: value,
@@ -49,10 +52,12 @@ const Profile = (props) => {
   };
 
   useEffect(() => {
+    diag.debug('Component mounted, calling getData');
     getData();
   }, []);
 
   const getData = () => {
+    diag.debug('Fetching user data from API');
     axios
       .get(apiList.user, {
         headers: {
@@ -60,12 +65,12 @@ const Profile = (props) => {
         },
       })
       .then((response) => {
-        console.log(response.data);
+        diag.debug('Received user data', response.data);
         setProfileDetails(response.data);
         setPhone(response.data.contactNumber);
       })
       .catch((err) => {
-        console.log(err.response.data);
+        diag.error('Error fetching user data', err.response.data);
         setPopup({
           open: true,
           severity: "error",
@@ -75,6 +80,7 @@ const Profile = (props) => {
   };
 
   const handleUpdate = () => {
+    diag.debug('Updating user profile');
     let updatedDetails = {
       ...profileDetails,
     };
@@ -90,6 +96,7 @@ const Profile = (props) => {
       };
     }
 
+    diag.debug('Sending updated profile details to API', updatedDetails);
     axios
       .put(apiList.user, updatedDetails, {
         headers: {
@@ -97,6 +104,7 @@ const Profile = (props) => {
         },
       })
       .then((response) => {
+        diag.debug('Profile updated successfully', response.data);
         setPopup({
           open: true,
           severity: "success",
@@ -105,12 +113,12 @@ const Profile = (props) => {
         getData();
       })
       .catch((err) => {
+        diag.error('Error updating profile', err.response.data);
         setPopup({
           open: true,
           severity: "error",
           message: err.response.data.message,
         });
-        console.log(err.response);
       });
   };
 
