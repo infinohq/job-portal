@@ -52,6 +52,7 @@ const Profile = (props) => {
         ...profileDetails,
         [key]: value,
       });
+      span.addEvent(`Updated profileDetails with key: ${key} and value: ${value}`);
       span.end();
     });
   };
@@ -73,6 +74,7 @@ const Profile = (props) => {
           span.setAttribute("responseData", JSON.stringify(response.data));
           setProfileDetails(response.data);
           setPhone(response.data.contactNumber);
+          span.addEvent("Fetched and set profile details from API");
           span.end();
         })
         .catch((err) => {
@@ -82,6 +84,7 @@ const Profile = (props) => {
             severity: "error",
             message: "Error",
           });
+          span.addEvent("Error fetching profile details from API");
           span.end();
         });
     });
@@ -105,6 +108,7 @@ const Profile = (props) => {
         };
       }
       span.setAttribute("updatedDetails", JSON.stringify(updatedDetails));
+      span.addEvent("Prepared updated profile details for API call");
 
       axios
         .put(apiList.user, updatedDetails, {
@@ -119,6 +123,7 @@ const Profile = (props) => {
             severity: "success",
             message: response.data.message,
           });
+          span.addEvent("Profile details updated successfully");
           getData();
           span.end();
         })
@@ -129,6 +134,7 @@ const Profile = (props) => {
             severity: "error",
             message: err.response.data.message,
           });
+          span.addEvent("Error updating profile details");
           span.end();
         });
     });
