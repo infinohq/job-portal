@@ -9,16 +9,25 @@ import {
 } from "@material-ui/core";
 import Visibility from "@material-ui/icons/Visibility";
 import VisibilityOff from "@material-ui/icons/VisibilityOff";
+import { trace } from '@opentelemetry/api';
 
 const PasswordInput = (props) => {
   const [showPassword, setShowPassword] = useState(false);
+  const tracer = trace.getTracer('default');
 
   const handleShowPassword = () => {
-    setShowPassword(!showPassword);
+    tracer.startActiveSpan('handleShowPassword', span => {
+      setShowPassword(!showPassword);
+      span.setAttribute('showPassword', !showPassword);
+      span.end();
+    });
   };
 
   const handleMouseDownPassword = (event) => {
-    event.preventDefault();
+    tracer.startActiveSpan('handleMouseDownPassword', span => {
+      event.preventDefault();
+      span.end();
+    });
   };
 
   return (
@@ -42,10 +51,23 @@ const PasswordInput = (props) => {
             </InputAdornment>
           }
           value={props.value}
-          onChange={(event) => props.onChange(event)}
+          onChange={(event) => {
+            tracer.startActiveSpan('onChange', span => {
+              props.onChange(event);
+              span.setAttribute('value', event.target.value);
+              span.end();
+            });
+          }}
           labelWidth={props.labelWidth ? props.labelWidth : 70}
           className={props.className}
-          onBlur={props.onBlur ? props.onBlur : null}
+          onBlur={(event) => {
+            if (props.onBlur) {
+              tracer.startActiveSpan('onBlur', span => {
+                props.onBlur(event);
+                span.end();
+              });
+            }
+          }}
         />
         {props.helperText ? (
           <FormHelperText>{props.helperText}</FormHelperText>

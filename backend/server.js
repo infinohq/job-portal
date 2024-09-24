@@ -4,6 +4,7 @@ const mongoose = require("mongoose");
 const passportConfig = require("./lib/passportConfig");
 const cors = require("cors");
 const fs = require("fs");
+const { diag } = require('@opentelemetry/api');
 
 // MongoDB
 mongoose
@@ -13,17 +14,20 @@ mongoose
     useCreateIndex: true,
     useFindAndModify: false,
   })
-  .then((res) => console.log("Connected to DB"))
-  .catch((err) => console.log(err));
+  .then((res) => diag.info("Connected to DB"))
+  .catch((err) => diag.error("Error connecting to DB", err));
 
 // initialising directories
 if (!fs.existsSync("./public")) {
+  diag.info("Creating directory: ./public");
   fs.mkdirSync("./public");
 }
 if (!fs.existsSync("./public/resume")) {
+  diag.info("Creating directory: ./public/resume");
   fs.mkdirSync("./public/resume");
 }
 if (!fs.existsSync("./public/profile")) {
+  diag.info("Creating directory: ./public/profile");
   fs.mkdirSync("./public/profile");
 }
 
@@ -45,5 +49,5 @@ app.use("/upload", require("./routes/uploadRoutes"));
 app.use("/host", require("./routes/downloadRoutes"));
 
 app.listen(port, () => {
-  console.log(`Server started on port ${port}!`);
+  diag.info(`Server started on port ${port}!`);
 });
