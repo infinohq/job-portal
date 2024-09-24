@@ -24,6 +24,7 @@ import { SetPopupContext } from "../App";
 
 import apiList from "../lib/apiList";
 import isAuth from "../lib/isAuth";
+import { trace } from '@opentelemetry/api';
 
 const useStyles = makeStyles((theme) => ({
   body: {
@@ -59,6 +60,7 @@ const MultifieldInput = (props) => {
                 const newEdu = [...education];
                 newEdu[key].institutionName = event.target.value;
                 setEducation(newEdu);
+                trace.getTracer('default').addEvent(`Updated institutionName for key ${key}: ${event.target.value}`);
               }}
               variant="outlined"
             />
@@ -73,6 +75,7 @@ const MultifieldInput = (props) => {
                 const newEdu = [...education];
                 newEdu[key].startYear = event.target.value;
                 setEducation(newEdu);
+                trace.getTracer('default').addEvent(`Updated startYear for key ${key}: ${event.target.value}`);
               }}
             />
           </Grid>
@@ -86,6 +89,7 @@ const MultifieldInput = (props) => {
                 const newEdu = [...education];
                 newEdu[key].endYear = event.target.value;
                 setEducation(newEdu);
+                trace.getTracer('default').addEvent(`Updated endYear for key ${key}: ${event.target.value}`);
               }}
             />
           </Grid>
@@ -95,7 +99,7 @@ const MultifieldInput = (props) => {
         <Button
           variant="contained"
           color="secondary"
-          onClick={() =>
+          onClick={() => {
             setEducation([
               ...education,
               {
@@ -103,8 +107,9 @@ const MultifieldInput = (props) => {
                 startYear: "",
                 endYear: "",
               },
-            ])
-          }
+            ]);
+            trace.getTracer('default').addEvent('Added another institution details');
+          }}
           className={classes.inputBox}
         >
           Add another institution details
@@ -169,6 +174,7 @@ const Login = (props) => {
       ...signupDetails,
       [key]: value,
     });
+    trace.getTracer('default').addEvent(`Updated signupDetails for key ${key}: ${value}`);
   };
 
   const handleInputError = (key, status, message) => {
@@ -181,6 +187,7 @@ const Login = (props) => {
         message: message,
       },
     });
+    trace.getTracer('default').addEvent(`Updated inputErrorHandler for key ${key}: status=${status}, message=${message}`);
   };
 
   const handleLogin = () => {
@@ -198,7 +205,7 @@ const Login = (props) => {
       }
     });
 
-    console.log(education);
+    trace.getTracer('default').addEvent(`Education details: ${JSON.stringify(education)}`);
 
     let updatedDetails = {
       ...signupDetails,
@@ -213,6 +220,7 @@ const Login = (props) => {
     };
 
     setSignupDetails(updatedDetails);
+    trace.getTracer('default').addEvent(`Updated signupDetails with education: ${JSON.stringify(updatedDetails)}`);
 
     const verified = !Object.keys(tmpErrorHandler).some((obj) => {
       return tmpErrorHandler[obj].error;
@@ -230,7 +238,7 @@ const Login = (props) => {
             severity: "success",
             message: "Logged in successfully",
           });
-          console.log(response);
+          trace.getTracer('default').addEvent(`Login successful: ${JSON.stringify(response.data)}`);
         })
         .catch((err) => {
           setPopup({
@@ -238,7 +246,7 @@ const Login = (props) => {
             severity: "error",
             message: err.response.data.message,
           });
-          console.log(err.response);
+          trace.getTracer('default').addEvent(`Login error: ${JSON.stringify(err.response.data)}`);
         });
     } else {
       setInputErrorHandler(tmpErrorHandler);
@@ -247,6 +255,7 @@ const Login = (props) => {
         severity: "error",
         message: "Incorrect Input",
       });
+      trace.getTracer('default').addEvent('Login failed due to incorrect input');
     }
   };
 
@@ -281,12 +290,13 @@ const Login = (props) => {
     }
 
     setSignupDetails(updatedDetails);
+    trace.getTracer('default').addEvent(`Updated signupDetails with contactNumber: ${updatedDetails.contactNumber}`);
 
     const verified = !Object.keys(tmpErrorHandler).some((obj) => {
       return tmpErrorHandler[obj].error;
     });
 
-    console.log(updatedDetails);
+    trace.getTracer('default').addEvent(`Recruiter details: ${JSON.stringify(updatedDetails)}`);
 
     if (verified) {
       axios
@@ -300,7 +310,7 @@ const Login = (props) => {
             severity: "success",
             message: "Logged in successfully",
           });
-          console.log(response);
+          trace.getTracer('default').addEvent(`Recruiter login successful: ${JSON.stringify(response.data)}`);
         })
         .catch((err) => {
           setPopup({
@@ -308,7 +318,7 @@ const Login = (props) => {
             severity: "error",
             message: err.response.data.message,
           });
-          console.log(err.response);
+          trace.getTracer('default').addEvent(`Recruiter login error: ${JSON.stringify(err.response.data)}`);
         });
     } else {
       setInputErrorHandler(tmpErrorHandler);
@@ -317,6 +327,7 @@ const Login = (props) => {
         severity: "error",
         message: "Incorrect Input",
       });
+      trace.getTracer('default').addEvent('Recruiter login failed due to incorrect input');
     }
   };
 
