@@ -28,6 +28,8 @@ import { SetPopupContext } from "../../App";
 
 import apiList, { server } from "../../lib/apiList";
 
+import { trace } from '@opentelemetry/api';
+
 const useStyles = makeStyles((theme) => ({
   body: {
     height: "inherit",
@@ -404,6 +406,11 @@ const ApplicationTile = (props) => {
   const appliedOn = new Date(application.dateOfApplication);
 
   const changeRating = () => {
+    const tracer = trace.getTracer('default');
+    const span = tracer.startSpan('changeRating');
+    span.setAttribute('rating', rating);
+    span.setAttribute('applicantId', application.jobApplicant.userId);
+
     axios
       .put(
         apiList.rating,
@@ -436,6 +443,9 @@ const ApplicationTile = (props) => {
         // fetchRating();
         getData();
         setOpen(false);
+      })
+      .finally(() => {
+        span.end();
       });
   };
 
@@ -458,6 +468,10 @@ const ApplicationTile = (props) => {
   };
 
   const getResume = () => {
+    const tracer = trace.getTracer('default');
+    const span = tracer.startSpan('getResume');
+    span.setAttribute('resume', application.jobApplicant.resume);
+
     if (
       application.jobApplicant.resume &&
       application.jobApplicant.resume !== ""
@@ -480,6 +494,9 @@ const ApplicationTile = (props) => {
             severity: "error",
             message: "Error",
           });
+        })
+        .finally(() => {
+          span.end();
         });
     } else {
       setPopup({
@@ -487,10 +504,15 @@ const ApplicationTile = (props) => {
         severity: "error",
         message: "No resume found",
       });
+      span.end();
     }
   };
 
   const updateStatus = (status) => {
+    const tracer = trace.getTracer('default');
+    const span = tracer.startSpan('updateStatus');
+    span.setAttribute('status', status);
+
     const address = `${apiList.applications}/${application._id}`;
     const statusData = {
       status: status,
@@ -519,6 +541,9 @@ const ApplicationTile = (props) => {
         });
         console.log(err.response);
         handleCloseEndJob();
+      })
+      .finally(() => {
+        span.end();
       });
   };
 
@@ -717,6 +742,9 @@ const AcceptedApplicants = (props) => {
   }, []);
 
   const getData = () => {
+    const tracer = trace.getTracer('default');
+    const span = tracer.startSpan('getData');
+
     let searchParams = [];
     searchParams = [...searchParams, `status=accepted`];
 
@@ -763,6 +791,9 @@ const AcceptedApplicants = (props) => {
           severity: "error",
           message: err.response.data.message,
         });
+      })
+      .finally(() => {
+        span.end();
       });
   };
 
