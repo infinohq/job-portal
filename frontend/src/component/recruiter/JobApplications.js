@@ -93,6 +93,7 @@ const FilterPopup = (props) => {
                       onChange={(event) => {
                         const tracer = trace.getTracer('default');
                         tracer.startActiveSpan('Checkbox Change - Rejected', span => {
+                          console.log(`Checkbox Change - Rejected: ${event.target.checked}`);
                           setSearchOptions({
                             ...searchOptions,
                             status: {
@@ -117,6 +118,7 @@ const FilterPopup = (props) => {
                       onChange={(event) => {
                         const tracer = trace.getTracer('default');
                         tracer.startActiveSpan('Checkbox Change - Applied', span => {
+                          console.log(`Checkbox Change - Applied: ${event.target.checked}`);
                           setSearchOptions({
                             ...searchOptions,
                             status: {
@@ -141,6 +143,7 @@ const FilterPopup = (props) => {
                       onChange={(event) => {
                         const tracer = trace.getTracer('default');
                         tracer.startActiveSpan('Checkbox Change - Shortlisted', span => {
+                          console.log(`Checkbox Change - Shortlisted: ${event.target.checked}`);
                           setSearchOptions({
                             ...searchOptions,
                             status: {
@@ -178,6 +181,7 @@ const FilterPopup = (props) => {
                     onChange={(event) => {
                       const tracer = trace.getTracer('default');
                       tracer.startActiveSpan('Checkbox Change - Name Sort', span => {
+                        console.log(`Checkbox Change - Name Sort: ${event.target.checked}`);
                         setSearchOptions({
                           ...searchOptions,
                           sort: {
@@ -205,6 +209,7 @@ const FilterPopup = (props) => {
                     onClick={() => {
                       const tracer = trace.getTracer('default');
                       tracer.startActiveSpan('IconButton Click - Name Sort', span => {
+                        console.log(`IconButton Click - Name Sort: ${!searchOptions.sort["jobApplicant.name"].desc}`);
                         setSearchOptions({
                           ...searchOptions,
                           sort: {
@@ -242,6 +247,7 @@ const FilterPopup = (props) => {
                     onChange={(event) => {
                       const tracer = trace.getTracer('default');
                       tracer.startActiveSpan('Checkbox Change - Date of Application Sort', span => {
+                        console.log(`Checkbox Change - Date of Application Sort: ${event.target.checked}`);
                         setSearchOptions({
                           ...searchOptions,
                           sort: {
@@ -269,6 +275,7 @@ const FilterPopup = (props) => {
                     onClick={() => {
                       const tracer = trace.getTracer('default');
                       tracer.startActiveSpan('IconButton Click - Date of Application Sort', span => {
+                        console.log(`IconButton Click - Date of Application Sort: ${!searchOptions.sort.dateOfApplication.desc}`);
                         setSearchOptions({
                           ...searchOptions,
                           sort: {
@@ -306,6 +313,7 @@ const FilterPopup = (props) => {
                     onChange={(event) => {
                       const tracer = trace.getTracer('default');
                       tracer.startActiveSpan('Checkbox Change - Rating Sort', span => {
+                        console.log(`Checkbox Change - Rating Sort: ${event.target.checked}`);
                         setSearchOptions({
                           ...searchOptions,
                           sort: {
@@ -333,6 +341,7 @@ const FilterPopup = (props) => {
                     onClick={() => {
                       const tracer = trace.getTracer('default');
                       tracer.startActiveSpan('IconButton Click - Rating Sort', span => {
+                        console.log(`IconButton Click - Rating Sort: ${!searchOptions.sort["jobApplicant.rating"].desc}`);
                         setSearchOptions({
                           ...searchOptions,
                           sort: {
@@ -367,6 +376,7 @@ const FilterPopup = (props) => {
               onClick={() => {
                 const tracer = trace.getTracer('default');
                 tracer.startActiveSpan('Button Click - Apply Filters', span => {
+                  console.log('Button Click - Apply Filters');
                   getData();
                   span.end();
                 });
@@ -411,7 +421,7 @@ const ApplicationTile = (props) => {
       const address = `${server}${application.jobApplicant.resume}`;
       const tracer = trace.getTracer('default');
       tracer.startActiveSpan('Get Resume', span => {
-        console.log(address);
+        console.log(`Get Resume - Address: ${address}`);
         axios(address, {
           method: "GET",
           responseType: "blob",
@@ -423,7 +433,7 @@ const ApplicationTile = (props) => {
             span.end();
           })
           .catch((error) => {
-            console.log(error);
+            console.log(`Get Resume - Error: ${error}`);
             setPopup({
               open: true,
               severity: "error",
@@ -449,6 +459,7 @@ const ApplicationTile = (props) => {
     };
     const tracer = trace.getTracer('default');
     tracer.startActiveSpan('Update Status', span => {
+      console.log(`Update Status - Address: ${address}, Status: ${status}`);
       axios
         .put(address, statusData, {
           headers: {
@@ -456,6 +467,7 @@ const ApplicationTile = (props) => {
           },
         })
         .then((response) => {
+          console.log(`Update Status - Success: ${response.data.message}`);
           setPopup({
             open: true,
             severity: "success",
@@ -465,6 +477,7 @@ const ApplicationTile = (props) => {
           span.end();
         })
         .catch((err) => {
+          console.log(`Update Status - Error: ${err.response.data.message}`);
           setPopup({
             open: true,
             severity: "error",
@@ -751,13 +764,13 @@ const JobApplications = (props) => {
     const queryString = searchParams.join("&");
     const tracer = trace.getTracer('default');
     tracer.startActiveSpan('Get Data', span => {
-      console.log(queryString);
+      console.log(`Get Data - Query String: ${queryString}`);
       let address = `${apiList.applicants}?jobId=${jobId}`;
       if (queryString !== "") {
         address = `${address}&${queryString}`;
       }
 
-      console.log(address);
+      console.log(`Get Data - Address: ${address}`);
 
       axios
         .get(address, {
@@ -766,12 +779,12 @@ const JobApplications = (props) => {
           },
         })
         .then((response) => {
-          console.log(response.data);
+          console.log(`Get Data - Response: ${response.data}`);
           setApplications(response.data);
           span.end();
         })
         .catch((err) => {
-          console.log(err.response);
+          console.log(`Get Data - Error: ${err.response}`);
           // console.log(err.response.data);
           setApplications([]);
           setPopup({

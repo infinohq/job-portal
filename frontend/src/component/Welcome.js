@@ -5,6 +5,7 @@ const Welcome = (props) => {
   const tracer = trace.getTracer('default');
   tracer.startActiveSpan('Welcome Component', span => {
     span.addEvent('Rendering Welcome component');
+    span.addEvent('Props received', { props });
     span.end();
   });
 
@@ -28,6 +29,7 @@ export const ErrorPage = (props) => {
   const tracer = trace.getTracer('default');
   tracer.startActiveSpan('ErrorPage Component', span => {
     span.addEvent('Rendering ErrorPage component');
+    span.addEvent('Props received', { props });
     span.end();
   });
 

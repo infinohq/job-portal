@@ -7,6 +7,7 @@ const MessagePopup = (props) => {
 
   const handleClose = (event, reason) => {
     tracer.startActiveSpan('handleClose', span => {
+      span.addEvent(`handleClose called with reason: ${reason}`);
       if (reason === "clickaway") {
         span.addEvent('Clickaway reason detected, not closing Snackbar');
         span.end();

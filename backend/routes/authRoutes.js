@@ -31,7 +31,7 @@ const loginErrorRate = meter.createCounter('login_errors', {
 router.post("/signup", (req, res) => {
   signupCounter.add(1);
   const data = req.body;
-  diag.debug(`Received signup request with data: ${data}`, {method: "POST", route: "/signup"});
+  diag.debug(`Received signup request with data: ${JSON.stringify(data)}`, {method: "POST", route: "/signup"});
   
   let user = new User({
     email: data.email,
@@ -42,7 +42,7 @@ router.post("/signup", (req, res) => {
   user
     .save()
     .then(() => {
-      diag.debug(`User saved successfully: ${user}`, {method: "POST", route: "/signup", status: 200});
+      diag.debug(`User saved successfully: ${JSON.stringify(user)}`, {method: "POST", route: "/signup", status: 200});
       
       const userDetails =
         user.type == "recruiter"
@@ -65,7 +65,7 @@ router.post("/signup", (req, res) => {
       userDetails
         .save()
         .then(() => {
-          diag.debug(`User details saved successfully: ${userDetails}`, {method: "POST", route: "/signup", status: 200});
+          diag.debug(`User details saved successfully: ${JSON.stringify(userDetails)}`, {method: "POST", route: "/signup", status: 200});
           
           const token = jwt.sign({ _id: user._id }, authKeys.jwtSecretKey);
           diag.debug(`JWT token generated: ${token}`, {method: "POST", route: "/signup", status: 200});
@@ -82,7 +82,7 @@ router.post("/signup", (req, res) => {
           user
             .delete()
             .then(() => {
-              diag.debug(`User deleted after error in saving details: ${user}`, {method: "POST", route: "/signup", status: 400});
+              diag.debug(`User deleted after error in saving details: ${JSON.stringify(user)}`, {method: "POST", route: "/signup", status: 400});
               res.status(400).json(err);
             })
             .catch((err) => {
@@ -114,11 +114,11 @@ router.post("/login", (req, res, next) => {
       }
       if (!user) {
         loginErrorRate.add(1);
-        diag.debug(`Authentication failed, user not found: ${info}`, {method: "POST", route: "/login", status: 401});
+        diag.debug(`Authentication failed, user not found: ${JSON.stringify(info)}`, {method: "POST", route: "/login", status: 401});
         res.status(401).json(info);
         return;
       }
-      diag.debug(`User authenticated successfully: ${user}`, {method: "POST", route: "/login", status: 200});
+      diag.debug(`User authenticated successfully: ${JSON.stringify(user)}`, {method: "POST", route: "/login", status: 200});
       
       const token = jwt.sign({ _id: user._id }, authKeys.jwtSecretKey);
       diag.debug(`JWT token generated: ${token}`, {method: "POST", route: "/login", status: 200});

@@ -1,0 +1,4584 @@
+diff --git a/backend/db/Application.js b/backend/db/Application.js
+index e2215e7..9a7fdeb 100644
+--- a/backend/db/Application.js
++++ b/backend/db/Application.js
+@@ -1,4 +1,5 @@
+ const mongoose = require("mongoose");
++const { diag } = require('@opentelemetry/api');
+ 
+ let schema = new mongoose.Schema(
+   {
+@@ -37,7 +38,9 @@ let schema = new mongoose.Schema(
+       validate: [
+         {
+           validator: function (value) {
+-            return this.dateOfApplication <= value;
++            const isValid = this.dateOfApplication <= value;
++            diag.debug('Validating dateOfJoining:', { dateOfApplication: this.dateOfApplication, dateOfJoining: value, isValid });
++            return isValid;
+           },
+           msg: "dateOfJoining should be greater than dateOfApplication",
+         },
+@@ -47,7 +50,10 @@ let schema = new mongoose.Schema(
+       type: String,
+       validate: {
+         validator: function (v) {
+-          return v.split(" ").filter((ele) => ele != "").length <= 250;
++          const wordCount = v.split(" ").filter((ele) => ele != "").length;
++          const isValid = wordCount <= 250;
++          diag.debug('Validating SOP word count:', { sop: v, wordCount, isValid });
++          return isValid;
+         },
+         msg: "Statement of purpose should not be greater than 250 words",
+       },
+diff --git a/backend/db/Job.js b/backend/db/Job.js
+index fce4b15..0adeabc 100644
+--- a/backend/db/Job.js
++++ b/backend/db/Job.js
+@@ -1,4 +1,5 @@
+ const mongoose = require("mongoose");
++const { diag } = require('@opentelemetry/api');
+ 
+ let schema = new mongoose.Schema(
+   {
+@@ -19,6 +20,7 @@ let schema = new mongoose.Schema(
+         },
+         {
+           validator: function (value) {
++            diag.debug(`Validating maxApplicants: ${value}`);
+             return value > 0;
+           },
+           msg: "maxApplicants should greater than 0",
+@@ -34,6 +36,7 @@ let schema = new mongoose.Schema(
+         },
+         {
+           validator: function (value) {
++            diag.debug(`Validating maxPositions: ${value}`);
+             return value > 0;
+           },
+           msg: "maxPositions should greater than 0",
+@@ -50,6 +53,7 @@ let schema = new mongoose.Schema(
+         },
+         {
+           validator: function (value) {
++            diag.debug(`Validating activeApplications: ${value}`);
+             return value >= 0;
+           },
+           msg: "activeApplications should greater than equal to 0",
+@@ -66,6 +70,7 @@ let schema = new mongoose.Schema(
+         },
+         {
+           validator: function (value) {
++            diag.debug(`Validating acceptedCandidates: ${value}`);
+             return value >= 0;
+           },
+           msg: "acceptedCandidates should greater than equal to 0",
+@@ -81,6 +86,7 @@ let schema = new mongoose.Schema(
+       validate: [
+         {
+           validator: function (value) {
++            diag.debug(`Validating deadline: ${value} against dateOfPosting: ${this.dateOfPosting}`);
+             return this.dateOfPosting < value;
+           },
+           msg: "deadline should be greater than dateOfPosting",
+@@ -111,6 +117,7 @@ let schema = new mongoose.Schema(
+         },
+         {
+           validator: function (value) {
++            diag.debug(`Validating salary: ${value}`);
+             return value >= 0;
+           },
+           msg: "Salary should be positive",
+@@ -123,6 +130,7 @@ let schema = new mongoose.Schema(
+       default: -1.0,
+       validate: {
+         validator: function (v) {
++          diag.debug(`Validating rating: ${v}`);
+           return v >= -1.0 && v <= 5.0;
+         },
+         msg: "Invalid rating",
+diff --git a/backend/db/JobApplicant.js b/backend/db/JobApplicant.js
+index f84d5c7..efd4d9f 100644
+--- a/backend/db/JobApplicant.js
++++ b/backend/db/JobApplicant.js
+@@ -1,4 +1,8 @@
+ const mongoose = require("mongoose");
++const { diag, DiagConsoleLogger, DiagLogLevel } = require('@opentelemetry/api');
++
++// Initialize the logger
++diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.INFO);
+ 
+ let schema = new mongoose.Schema(
+   {
+@@ -30,7 +34,9 @@ let schema = new mongoose.Schema(
+             { validator: Number.isInteger, msg: "Year should be an integer" },
+             {
+               validator: function (value) {
+-                return this.startYear <= value;
++                const isValid = this.startYear <= value;
++                diag.info(`Validating endYear: ${value}, startYear: ${this.startYear}, isValid: ${isValid}`);
++                return isValid;
+               },
+               msg: "End year should be greater than or equal to Start year",
+             },
+@@ -45,7 +51,9 @@ let schema = new mongoose.Schema(
+       default: -1.0,
+       validate: {
+         validator: function (v) {
+-          return v >= -1.0 && v <= 5.0;
++          const isValid = v >= -1.0 && v <= 5.0;
++          diag.info(`Validating rating: ${v}, isValid: ${isValid}`);
++          return isValid;
+         },
+         msg: "Invalid rating",
+       },
+@@ -60,4 +68,6 @@ let schema = new mongoose.Schema(
+   { collation: { locale: "en" } }
+ );
+ 
++diag.info('Schema for JobApplicantInfo created');
++
+ module.exports = mongoose.model("JobApplicantInfo", schema);
+diff --git a/backend/db/Rating.js b/backend/db/Rating.js
+index 523aa21..4f74e6a 100644
+--- a/backend/db/Rating.js
++++ b/backend/db/Rating.js
+@@ -1,4 +1,5 @@
+ const mongoose = require("mongoose");
++const { diag } = require('@opentelemetry/api');
+ 
+ let schema = new mongoose.Schema(
+   {
+@@ -21,7 +22,9 @@ let schema = new mongoose.Schema(
+       default: -1.0,
+       validate: {
+         validator: function (v) {
+-          return v >= -1.0 && v <= 5.0;
++          const isValid = v >= -1.0 && v <= 5.0;
++          diag.debug(`Validating rating: ${v}, isValid: ${isValid}`);
++          return isValid;
+         },
+         msg: "Invalid rating",
+       },
+@@ -30,6 +33,8 @@ let schema = new mongoose.Schema(
+   { collation: { locale: "en" } }
+ );
+ 
++diag.debug('Creating index for schema with fields: category, receiverId, senderId');
+ schema.index({ category: 1, receiverId: 1, senderId: 1 }, { unique: true });
+ 
++diag.debug('Exporting mongoose model: ratings');
+ module.exports = mongoose.model("ratings", schema);
+diff --git a/backend/db/Recruiter.js b/backend/db/Recruiter.js
+index 0c412b7..0c1f601 100644
+--- a/backend/db/Recruiter.js
++++ b/backend/db/Recruiter.js
+@@ -1,4 +1,5 @@
+ const mongoose = require("mongoose");
++const { diag } = require('@opentelemetry/api');
+ 
+ let schema = new mongoose.Schema(
+   {
+@@ -14,7 +15,9 @@ let schema = new mongoose.Schema(
+       type: String,
+       validate: {
+         validator: function (v) {
+-          return v !== "" ? /\+\d{1,3}\d{10}/.test(v) : true;
++          const isValid = v !== "" ? /\+\d{1,3}\d{10}/.test(v) : true;
++          diag.debug(`Validating contact number: ${v}, isValid: ${isValid}`);
++          return isValid;
+         },
+         msg: "Phone number is invalid!",
+       },
+@@ -26,4 +29,6 @@ let schema = new mongoose.Schema(
+   { collation: { locale: "en" } }
+ );
+ 
++diag.debug('Schema created with collation locale: en');
++
+ module.exports = mongoose.model("RecruiterInfo", schema);
+diff --git a/backend/db/User.js b/backend/db/User.js
+index c982d3c..e6f90af 100644
+--- a/backend/db/User.js
++++ b/backend/db/User.js
+@@ -1,6 +1,7 @@
+ const mongoose = require("mongoose");
+ const bcrypt = require("bcrypt");
+ require("mongoose-type-email");
++const { diag } = require('@opentelemetry/api');
+ 
+ let schema = new mongoose.Schema(
+   {
+@@ -26,16 +27,20 @@ let schema = new mongoose.Schema(
+ // Password hashing
+ schema.pre("save", function (next) {
+   let user = this;
++  diag.debug('Pre-save hook triggered for user:', { email: user.email });
+ 
+   // if the data is not modified
+   if (!user.isModified("password")) {
++    diag.debug('Password not modified for user:', { email: user.email });
+     return next();
+   }
+ 
+   bcrypt.hash(user.password, 10, (err, hash) => {
+     if (err) {
++      diag.error('Error hashing password for user:', { email: user.email, error: err });
+       return next(err);
+     }
++    diag.debug('Password hashed successfully for user:', { email: user.email });
+     user.password = hash;
+     next();
+   });
+@@ -44,15 +49,19 @@ schema.pre("save", function (next) {
+ // Password verification upon login
+ schema.methods.login = function (password) {
+   let user = this;
++  diag.debug('Login method called for user:', { email: user.email });
+ 
+   return new Promise((resolve, reject) => {
+     bcrypt.compare(password, user.password, (err, result) => {
+       if (err) {
++        diag.error('Error comparing password for user:', { email: user.email, error: err });
+         reject(err);
+       }
+       if (result) {
++        diag.debug('Password verification successful for user:', { email: user.email });
+         resolve();
+       } else {
++        diag.debug('Password verification failed for user:', { email: user.email });
+         reject();
+       }
+     });
+diff --git a/backend/lib/jwtAuth.js b/backend/lib/jwtAuth.js
+index 9eb5cb0..314617e 100644
+--- a/backend/lib/jwtAuth.js
++++ b/backend/lib/jwtAuth.js
+@@ -1,14 +1,18 @@
+ const passport = require("passport");
++const { diag } = require('@opentelemetry/api');
+ 
+ const jwtAuth = (req, res, next) => {
+   passport.authenticate("jwt", { session: false }, function (err, user, info) {
+     if (err) {
++      diag.error('Authentication error:', err);
+       return next(err);
+     }
+     if (!user) {
++      diag.warn('Authentication failed, no user found:', info);
+       res.status(401).json(info);
+       return;
+     }
++    diag.info('User authenticated successfully:', user);
+     req.user = user;
+     next();
+   })(req, res, next);
+diff --git a/backend/lib/passportConfig.js b/backend/lib/passportConfig.js
+index 5c3cb98..ea2e853 100644
+--- a/backend/lib/passportConfig.js
++++ b/backend/lib/passportConfig.js
+@@ -1,4 +1,5 @@
+ const passport = require("passport");
++const { diag } = require("@opentelemetry/api");
+ const Strategy = require("passport-local").Strategy;
+ 
+ const passportJWT = require("passport-jwt");
+@@ -15,6 +16,7 @@ const filterJson = (obj, unwantedKeys) => {
+       filteredObj[key] = obj[key];
+     }
+   });
++  diag.debug("Filtered object: ", filteredObj);
+   return filteredObj;
+ };
+ 
+@@ -25,12 +27,14 @@ passport.use(
+       passReqToCallback: true,
+     },
+     (req, email, password, done, res) => {
+-      // console.log(email, password);
++      diag.debug("Authenticating user with email: ", email);
+       User.findOne({ email: email }, (err, user) => {
+         if (err) {
++          diag.error("Error finding user: ", err);
+           return done(err);
+         }
+         if (!user) {
++          diag.warn("User not found for email: ", email);
+           return done(null, false, {
+             message: "User does not exist",
+           });
+@@ -39,17 +43,12 @@ passport.use(
+         user
+           .login(password)
+           .then(() => {
+-            // let userSecure = {};
+-            // const unwantedKeys = ["password", "__v"];
+-            // Object.keys(user["_doc"]).forEach((key) => {
+-            //   if (unwantedKeys.indexOf(key) === -1) {
+-            //     userSecure[key] = user[key];
+-            //   }
+-            // });
++            diag.debug("User logged in successfully: ", user._id);
+             user["_doc"] = filterJson(user["_doc"], ["password", "__v"]);
+             return done(null, user);
+           })
+           .catch((err) => {
++            diag.error("Login failed for user: ", user._id, " Error: ", err);
+             return done(err, false, {
+               message: "Password is incorrect.",
+             });
+@@ -66,10 +65,12 @@ passport.use(
+       secretOrKey: authKeys.jwtSecretKey,
+     },
+     (jwt_payload, done) => {
++      diag.debug("Authenticating JWT payload: ", jwt_payload);
+       User.findById(jwt_payload._id)
+         .then((user) => {
+-          console.log(Object.keys(jwt_payload));
++          diag.debug("User found for JWT payload: ", jwt_payload._id);
+           if (!user) {
++            diag.warn("User not found for JWT payload: ", jwt_payload._id);
+             return done(null, false, {
+               message: "JWT Token does not exist",
+             });
+@@ -78,6 +79,7 @@ passport.use(
+           return done(null, user);
+         })
+         .catch((err) => {
++          diag.error("Error processing JWT payload: ", jwt_payload, " Error: ", err);
+           return done(err, false, {
+             message: "Incorrect Token",
+           });
+diff --git a/backend/package.json b/backend/package.json
+index d84eaa6..43facd7 100644
+--- a/backend/package.json
++++ b/backend/package.json
+@@ -25,6 +25,10 @@
+     "passport": "^0.4.1",
+     "passport-jwt": "^4.0.0",
+     "passport-local": "^1.0.0",
+-    "uuid": "^8.3.2"
++    "uuid": "^8.3.2",
++    "@opentelemetry/api": "^1.0.0",
++    "@opentelemetry/sdk-node": "^0.27.0",
++    "@opentelemetry/instrumentation": "^0.27.0",
++    "@opentelemetry/auto-instrumentations-node": "^0.27.0"
+   }
+ }
+diff --git a/backend/routes/apiRoutes.js b/backend/routes/apiRoutes.js
+index 51618ff..fe35d27 100644
+--- a/backend/routes/apiRoutes.js
++++ b/backend/routes/apiRoutes.js
+@@ -1,6 +1,19 @@
+ const express = require("express");
+ const mongoose = require("mongoose");
+ const jwtAuth = require("../lib/jwtAuth");
++const { diag, metrics } = require('@opentelemetry/api');
++const { MeterProvider } = require('@opentelemetry/sdk-metrics-base');
++
++const meterProvider = new MeterProvider();
++const meter = meterProvider.getMeter('default');
++
++const requestCounter = meter.createCounter('request_counter', {
++  description: 'Counts the number of requests received',
++});
++
++const errorCounter = meter.createCounter('error_counter', {
++  description: 'Counts the number of errors encountered',
++});
+ 
+ const User = require("../db/User");
+ const JobApplicant = require("../db/JobApplicant");
+@@ -13,9 +26,12 @@ const router = express.Router();
+ 
+ // To add new job
+ router.post("/jobs", jwtAuth, (req, res) => {
++  requestCounter.add(1, { route: '/jobs', method: 'POST' });
+   const user = req.user;
++  diag.debug('User attempting to add job:', user);
+ 
+   if (user.type != "recruiter") {
++    errorCounter.add(1, { route: '/jobs', method: 'POST' });
+     res.status(401).json({
+       message: "You don't have permissions to add jobs",
+     });
+@@ -23,6 +39,7 @@ router.post("/jobs", jwtAuth, (req, res) => {
+   }
+ 
+   const data = req.body;
++  diag.debug('Job data received:', data);
+ 
+   let job = new Job({
+     userId: user._id,
+@@ -41,25 +58,25 @@ router.post("/jobs", jwtAuth, (req, res) => {
+   job
+     .save()
+     .then(() => {
++      diag.debug('Job added successfully:', job);
+       res.json({ message: "Job added successfully to the database" });
+     })
+     .catch((err) => {
++      errorCounter.add(1, { route: '/jobs', method: 'POST' });
++      diag.error('Error adding job:', err);
+       res.status(400).json(err);
+     });
+ });
+ 
+ // to get all the jobs [pagination] [for recruiter personal and for everyone]
+ router.get("/jobs", jwtAuth, (req, res) => {
++  requestCounter.add(1, { route: '/jobs', method: 'GET' });
+   let user = req.user;
++  diag.debug('User requesting jobs:', user);
+ 
+   let findParams = {};
+   let sortParams = {};
+ 
+-  // const page = parseInt(req.query.page) ? parseInt(req.query.page) : 1;
+-  // const limit = parseInt(req.query.limit) ? parseInt(req.query.limit) : 10;
+-  // const skip = page - 1 >= 0 ? (page - 1) * limit : 0;
+-
+-  // to list down jobs posted by a particular recruiter
+   if (user.type === "recruiter" && req.query.myjobs) {
+     findParams = {
+       ...findParams,
+@@ -83,7 +100,7 @@ router.get("/jobs", jwtAuth, (req, res) => {
+     } else {
+       jobTypes = [req.query.jobType];
+     }
+-    console.log(jobTypes);
++    diag.debug('Job types filter:', jobTypes);
+     findParams = {
+       ...findParams,
+       jobType: {
+@@ -165,12 +182,8 @@ router.get("/jobs", jwtAuth, (req, res) => {
+     }
+   }
+ 
+-  console.log(findParams);
+-  console.log(sortParams);
+-
+-  // Job.find(findParams).collation({ locale: "en" }).sort(sortParams);
+-  // .skip(skip)
+-  // .limit(limit)
++  diag.debug('Find parameters:', findParams);
++  diag.debug('Sort parameters:', sortParams);
+ 
+   let arr = [
+     {
+@@ -203,44 +216,58 @@ router.get("/jobs", jwtAuth, (req, res) => {
+     ];
+   }
+ 
+-  console.log(arr);
++  diag.debug('Aggregation pipeline:', arr);
+ 
+   Job.aggregate(arr)
+     .then((posts) => {
+       if (posts == null) {
++        errorCounter.add(1, { route: '/jobs', method: 'GET' });
+         res.status(404).json({
+           message: "No job found",
+         });
+         return;
+       }
++      diag.debug('Jobs found:', posts);
+       res.json(posts);
+     })
+     .catch((err) => {
++      errorCounter.add(1, { route: '/jobs', method: 'GET' });
++      diag.error('Error fetching jobs:', err);
+       res.status(400).json(err);
+     });
+ });
+ 
+ // to get info about a particular job
+ router.get("/jobs/:id", jwtAuth, (req, res) => {
++  requestCounter.add(1, { route: '/jobs/:id', method: 'GET' });
++  diag.debug('Fetching job with ID:', req.params.id);
+   Job.findOne({ _id: req.params.id })
+     .then((job) => {
+       if (job == null) {
++        errorCounter.add(1, { route: '/jobs/:id', method: 'GET' });
+         res.status(400).json({
+           message: "Job does not exist",
+         });
+         return;
+       }
++      diag.debug('Job found:', job);
+       res.json(job);
+     })
+     .catch((err) => {
++      errorCounter.add(1, { route: '/jobs/:id', method: 'GET' });
++      diag.error('Error fetching job:', err);
+       res.status(400).json(err);
+     });
+ });
+ 
+ // to update info of a particular job
+ router.put("/jobs/:id", jwtAuth, (req, res) => {
++  requestCounter.add(1, { route: '/jobs/:id', method: 'PUT' });
+   const user = req.user;
++  diag.debug('User attempting to update job:', user);
++
+   if (user.type != "recruiter") {
++    errorCounter.add(1, { route: '/jobs/:id', method: 'PUT' });
+     res.status(401).json({
+       message: "You don't have permissions to change the job details",
+     });
+@@ -252,12 +279,15 @@ router.put("/jobs/:id", jwtAuth, (req, res) => {
+   })
+     .then((job) => {
+       if (job == null) {
++        errorCounter.add(1, { route: '/jobs/:id', method: 'PUT' });
+         res.status(404).json({
+           message: "Job does not exist",
+         });
+         return;
+       }
+       const data = req.body;
++      diag.debug('Job update data:', data);
++
+       if (data.maxApplicants) {
+         job.maxApplicants = data.maxApplicants;
+       }
+@@ -270,23 +300,32 @@ router.put("/jobs/:id", jwtAuth, (req, res) => {
+       job
+         .save()
+         .then(() => {
++          diag.debug('Job updated successfully:', job);
+           res.json({
+             message: "Job details updated successfully",
+           });
+         })
+         .catch((err) => {
++          errorCounter.add(1, { route: '/jobs/:id', method: 'PUT' });
++          diag.error('Error updating job:', err);
+           res.status(400).json(err);
+         });
+     })
+     .catch((err) => {
++      errorCounter.add(1, { route: '/jobs/:id', method: 'PUT' });
++      diag.error('Error finding job for update:', err);
+       res.status(400).json(err);
+     });
+ });
+ 
+ // to delete a job
+ router.delete("/jobs/:id", jwtAuth, (req, res) => {
++  requestCounter.add(1, { route: '/jobs/:id', method: 'DELETE' });
+   const user = req.user;
++  diag.debug('User attempting to delete job:', user);
++
+   if (user.type != "recruiter") {
++    errorCounter.add(1, { route: '/jobs/:id', method: 'DELETE' });
+     res.status(401).json({
+       message: "You don't have permissions to delete the job",
+     });
+@@ -298,49 +337,64 @@ router.delete("/jobs/:id", jwtAuth, (req, res) => {
+   })
+     .then((job) => {
+       if (job === null) {
++        errorCounter.add(1, { route: '/jobs/:id', method: 'DELETE' });
+         res.status(401).json({
+           message: "You don't have permissions to delete the job",
+         });
+         return;
+       }
++      diag.debug('Job deleted successfully:', job);
+       res.json({
+         message: "Job deleted successfully",
+       });
+     })
+     .catch((err) => {
++      errorCounter.add(1, { route: '/jobs/:id', method: 'DELETE' });
++      diag.error('Error deleting job:', err);
+       res.status(400).json(err);
+     });
+ });
+ 
+ // get user's personal details
+ router.get("/user", jwtAuth, (req, res) => {
++  requestCounter.add(1, { route: '/user', method: 'GET' });
+   const user = req.user;
++  diag.debug('Fetching personal details for user:', user);
++
+   if (user.type === "recruiter") {
+     Recruiter.findOne({ userId: user._id })
+       .then((recruiter) => {
+         if (recruiter == null) {
++          errorCounter.add(1, { route: '/user', method: 'GET' });
+           res.status(404).json({
+             message: "User does not exist",
+           });
+           return;
+         }
++        diag.debug('Recruiter details found:', recruiter);
+         res.json(recruiter);
+       })
+       .catch((err) => {
++        errorCounter.add(1, { route: '/user', method: 'GET' });
++        diag.error('Error fetching recruiter details:', err);
+         res.status(400).json(err);
+       });
+   } else {
+     JobApplicant.findOne({ userId: user._id })
+       .then((jobApplicant) => {
+         if (jobApplicant == null) {
++          errorCounter.add(1, { route: '/user', method: 'GET' });
+           res.status(404).json({
+             message: "User does not exist",
+           });
+           return;
+         }
++        diag.debug('Job applicant details found:', jobApplicant);
+         res.json(jobApplicant);
+       })
+       .catch((err) => {
++        errorCounter.add(1, { route: '/user', method: 'GET' });
++        diag.error('Error fetching job applicant details:', err);
+         res.status(400).json(err);
+       });
+   }
+@@ -348,58 +402,77 @@ router.get("/user", jwtAuth, (req, res) => {
+ 
+ // get user details from id
+ router.get("/user/:id", jwtAuth, (req, res) => {
++  requestCounter.add(1, { route: '/user/:id', method: 'GET' });
++  diag.debug('Fetching user details for ID:', req.params.id);
+   User.findOne({ _id: req.params.id })
+     .then((userData) => {
+       if (userData === null) {
++        errorCounter.add(1, { route: '/user/:id', method: 'GET' });
+         res.status(404).json({
+           message: "User does not exist",
+         });
+         return;
+       }
++      diag.debug('User data found:', userData);
+ 
+       if (userData.type === "recruiter") {
+         Recruiter.findOne({ userId: userData._id })
+           .then((recruiter) => {
+             if (recruiter === null) {
++              errorCounter.add(1, { route: '/user/:id', method: 'GET' });
+               res.status(404).json({
+                 message: "User does not exist",
+               });
+               return;
+             }
++            diag.debug('Recruiter details found:', recruiter);
+             res.json(recruiter);
+           })
+           .catch((err) => {
++            errorCounter.add(1, { route: '/user/:id', method: 'GET' });
++            diag.error('Error fetching recruiter details:', err);
+             res.status(400).json(err);
+           });
+       } else {
+         JobApplicant.findOne({ userId: userData._id })
+           .then((jobApplicant) => {
+             if (jobApplicant === null) {
++              errorCounter.add(1, { route: '/user/:id', method: 'GET' });
+               res.status(404).json({
+                 message: "User does not exist",
+               });
+               return;
+             }
++            diag.debug('Job applicant details found:', jobApplicant);
+             res.json(jobApplicant);
+           })
+           .catch((err) => {
++            errorCounter.add(1, { route: '/user/:id', method: 'GET' });
++            diag.error('Error fetching job applicant details:', err);
+             res.status(400).json(err);
+           });
+       }
+     })
+     .catch((err) => {
++      errorCounter.add(1, { route: '/user/:id', method: 'GET' });
++      diag.error('Error fetching user data:', err);
+       res.status(400).json(err);
+     });
+ });
+ 
+ // update user details
+ router.put("/user", jwtAuth, (req, res) => {
++  requestCounter.add(1, { route: '/user', method: 'PUT' });
+   const user = req.user;
+   const data = req.body;
++  diag.debug('User attempting to update personal details:', user);
++  diag.debug('Update data:', data);
++
+   if (user.type == "recruiter") {
+     Recruiter.findOne({ userId: user._id })
+       .then((recruiter) => {
+         if (recruiter == null) {
++          errorCounter.add(1, { route: '/user', method: 'PUT' });
+           res.status(404).json({
+             message: "User does not exist",
+           });
+@@ -417,21 +490,27 @@ router.put("/user", jwtAuth, (req, res) => {
+         recruiter
+           .save()
+           .then(() => {
++            diag.debug('Recruiter details updated successfully:', recruiter);
+             res.json({
+               message: "User information updated successfully",
+             });
+           })
+           .catch((err) => {
++            errorCounter.add(1, { route: '/user', method: 'PUT' });
++            diag.error('Error updating recruiter details:', err);
+             res.status(400).json(err);
+           });
+       })
+       .catch((err) => {
++        errorCounter.add(1, { route: '/user', method: 'PUT' });
++        diag.error('Error finding recruiter for update:', err);
+         res.status(400).json(err);
+       });
+   } else {
+     JobApplicant.findOne({ userId: user._id })
+       .then((jobApplicant) => {
+         if (jobApplicant == null) {
++          errorCounter.add(1, { route: '/user', method: 'PUT' });
+           res.status(404).json({
+             message: "User does not exist",
+           });
+@@ -452,19 +531,24 @@ router.put("/user", jwtAuth, (req, res) => {
+         if (data.profile) {
+           jobApplicant.profile = data.profile;
+         }
+-        console.log(jobApplicant);
++        diag.debug('Job applicant details before update:', jobApplicant);
+         jobApplicant
+           .save()
+           .then(() => {
++            diag.debug('Job applicant details updated successfully:', jobApplicant);
+             res.json({
+               message: "User information updated successfully",
+             });
+           })
+           .catch((err) => {
++            errorCounter.add(1, { route: '/user', method: 'PUT' });
++            diag.error('Error updating job applicant details:', err);
+             res.status(400).json(err);
+           });
+       })
+       .catch((err) => {
++        errorCounter.add(1, { route: '/user', method: 'PUT' });
++        diag.error('Error finding job applicant for update:', err);
+         res.status(400).json(err);
+       });
+   }
+@@ -472,8 +556,12 @@ router.put("/user", jwtAuth, (req, res) => {
+ 
+ // apply for a job [todo: test: done]
+ router.post("/jobs/:id/applications", jwtAuth, (req, res) => {
++  requestCounter.add(1, { route: '/jobs/:id/applications', method: 'POST' });
+   const user = req.user;
++  diag.debug('User attempting to apply for job:', user);
++
+   if (user.type != "applicant") {
++    errorCounter.add(1, { route: '/jobs/:id/applications', method: 'POST' });
+     res.status(401).json({
+       message: "You don't have permissions to apply for a job",
+     });
+@@ -481,12 +569,7 @@ router.post("/jobs/:id/applications", jwtAuth, (req, res) => {
+   }
+   const data = req.body;
+   const jobId = req.params.id;
+-
+-  // check whether applied previously
+-  // find job
+-  // check count of active applications < limit
+-  // check user had < 10 active applications && check if user is not having any accepted jobs (user id)
+-  // store the data in applications
++  diag.debug('Application data:', data);
+ 
+   Application.findOne({
+     userId: user._id,
+@@ -496,8 +579,9 @@ router.post("/jobs/:id/applications", jwtAuth, (req, res) => {
+     },
+   })
+     .then((appliedApplication) => {
+-      console.log(appliedApplication);
++      diag.debug('Previously applied application:', appliedApplication);
+       if (appliedApplication !== null) {
++        errorCounter.add(1, { route: '/jobs/:id/applications', method: 'POST' });
+         res.status(400).json({
+           message: "You have already applied for this job",
+         });
+@@ -507,11 +591,14 @@ router.post("/jobs/:id/applications", jwtAuth, (req, res) => {
+       Job.findOne({ _id: jobId })
+         .then((job) => {
+           if (job === null) {
++            errorCounter.add(1, { route: '/jobs/:id/applications', method: 'POST' });
+             res.status(404).json({
+               message: "Job does not exist",
+             });
+             return;
+           }
++          diag.debug('Job found for application:', job);
++
+           Application.countDocuments({
+             jobId: jobId,
+             status: {
+@@ -519,6 +606,7 @@ router.post("/jobs/:id/applications", jwtAuth, (req, res) => {
+             },
+           })
+             .then((activeApplicationCount) => {
++              diag.debug('Active application count for job:', activeApplicationCount);
+               if (activeApplicationCount < job.maxApplicants) {
+                 Application.countDocuments({
+                   userId: user._id,
+@@ -527,11 +615,13 @@ router.post("/jobs/:id/applications", jwtAuth, (req, res) => {
+                   },
+                 })
+                   .then((myActiveApplicationCount) => {
++                    diag.debug('User active application count:', myActiveApplicationCount);
+                     if (myActiveApplicationCount < 10) {
+                       Application.countDocuments({
+                         userId: user._id,
+                         status: "accepted",
+                       }).then((acceptedJobs) => {
++                        diag.debug('User accepted jobs count:', acceptedJobs);
+                         if (acceptedJobs === 0) {
+                           const application = new Application({
+                             userId: user._id,
+@@ -543,14 +633,18 @@ router.post("/jobs/:id/applications", jwtAuth, (req, res) => {
+                           application
+                             .save()
+                             .then(() => {
++                              diag.debug('Application saved successfully:', application);
+                               res.json({
+                                 message: "Job application successful",
+                               });
+                             })
+                             .catch((err) => {
++                              errorCounter.add(1, { route: '/jobs/:id/applications', method: 'POST' });
++                              diag.error('Error saving application:', err);
+                               res.status(400).json(err);
+                             });
+                         } else {
++                          errorCounter.add(1, { route: '/jobs/:id/applications', method: 'POST' });
+                           res.status(400).json({
+                             message:
+                               "You already have an accepted job. Hence you cannot apply.",
+@@ -558,6 +652,7 @@ router.post("/jobs/:id/applications", jwtAuth, (req, res) => {
+                         }
+                       });
+                     } else {
++                      errorCounter.add(1, { route: '/jobs/:id/applications', method: 'POST' });
+                       res.status(400).json({
+                         message:
+                           "You have 10 active applications. Hence you cannot apply.",
+@@ -565,41 +660,51 @@ router.post("/jobs/:id/applications", jwtAuth, (req, res) => {
+                     }
+                   })
+                   .catch((err) => {
++                    errorCounter.add(1, { route: '/jobs/:id/applications', method: 'POST' });
++                    diag.error('Error counting user active applications:', err);
+                     res.status(400).json(err);
+                   });
+               } else {
++                errorCounter.add(1, { route: '/jobs/:id/applications', method: 'POST' });
+                 res.status(400).json({
+                   message: "Application limit reached",
+                 });
+               }
+             })
+             .catch((err) => {
++              errorCounter.add(1, { route: '/jobs/:id/applications', method: 'POST' });
++              diag.error('Error counting active applications for job:', err);
+               res.status(400).json(err);
+             });
+         })
+         .catch((err) => {
++          errorCounter.add(1, { route: '/jobs/:id/applications', method: 'POST' });
++          diag.error('Error finding job for application:', err);
+           res.status(400).json(err);
+         });
+     })
+     .catch((err) => {
++      errorCounter.add(1, { route: '/jobs/:id/applications', method: 'POST' });
++      diag.error('Error checking previous application:', err);
+       res.json(400).json(err);
+     });
+ });
+ 
+ // recruiter gets applications for a particular job [pagination] [todo: test: done]
+ router.get("/jobs/:id/applications", jwtAuth, (req, res) => {
++  requestCounter.add(1, { route: '/jobs/:id/applications', method: 'GET' });
+   const user = req.user;
++  diag.debug('User requesting applications for job:', user);
++
+   if (user.type != "recruiter") {
++    errorCounter.add(1, { route: '/jobs/:id/applications', method: 'GET' });
+     res.status(401).json({
+       message: "You don't have permissions to view job applications",
+     });
+     return;
+   }
+   const jobId = req.params.id;
+-
+-  // const page = parseInt(req.query.page) ? parseInt(req.query.page) : 1;
+-  // const limit = parseInt(req.query.limit) ? parseInt(req.query.limit) : 10;
+-  // const skip = page - 1 >= 0 ? (page - 1) * limit : 0;
++  diag.debug('Job ID for applications:', jobId);
+ 
+   let findParams = {
+     jobId: jobId,
+@@ -615,26 +720,27 @@ router.get("/jobs/:id/applications", jwtAuth, (req, res) => {
+     };
+   }
+ 
++  diag.debug('Find parameters for applications:', findParams);
++
+   Application.find(findParams)
+     .collation({ locale: "en" })
+     .sort(sortParams)
+-    // .skip(skip)
+-    // .limit(limit)
+     .then((applications) => {
++      diag.debug('Applications found:', applications);
+       res.json(applications);
+     })
+     .catch((err) => {
++      errorCounter.add(1, { route: '/jobs/:id/applications', method: 'GET' });
++      diag.error('Error fetching applications:', err);
+       res.status(400).json(err);
+     });
+ });
+ 
+ // recruiter/applicant gets all his applications [pagination]
+ router.get("/applications", jwtAuth, (req, res) => {
++  requestCounter.add(1, { route: '/applications', method: 'GET' });
+   const user = req.user;
+-
+-  // const page = parseInt(req.query.page) ? parseInt(req.query.page) : 1;
+-  // const limit = parseInt(req.query.limit) ? parseInt(req.query.limit) : 10;
+-  // const skip = page - 1 >= 0 ? (page - 1) * limit : 0;
++  diag.debug('User requesting all applications:', user);
+ 
+   Application.aggregate([
+     {
+@@ -676,64 +782,61 @@ router.get("/applications", jwtAuth, (req, res) => {
+     },
+   ])
+     .then((applications) => {
++      diag.debug('Applications found:', applications);
+       res.json(applications);
+     })
+     .catch((err) => {
++      errorCounter.add(1, { route: '/applications', method: 'GET' });
++      diag.error('Error fetching all applications:', err);
+       res.status(400).json(err);
+     });
+ });
+ 
+ // update status of application: [Applicant: Can cancel, Recruiter: Can do everything] [todo: test: done]
+ router.put("/applications/:id", jwtAuth, (req, res) => {
++  requestCounter.add(1, { route: '/applications/:id', method: 'PUT' });
+   const user = req.user;
+   const id = req.params.id;
+   const status = req.body.status;
+-
+-  // "applied", // when a applicant is applied
+-  // "shortlisted", // when a applicant is shortlisted
+-  // "accepted", // when a applicant is accepted
+-  // "rejected", // when a applicant is rejected
+-  // "deleted", // when any job is deleted
+-  // "cancelled", // an application is cancelled by its author or when other application is accepted
+-  // "finished", // when job is over
++  diag.debug('User attempting to update application status:', user);
++  diag.debug('Application ID:', id, 'New status:', status);
+ 
+   if (user.type === "recruiter") {
+     if (status === "accepted") {
+-      // get job id from application
+-      // get job info for maxPositions count
+-      // count applications that are already accepted
+-      // compare and if condition is satisfied, then save
+-
+       Application.findOne({
+         _id: id,
+         recruiterId: user._id,
+       })
+         .then((application) => {
+           if (application === null) {
++            errorCounter.add(1, { route: '/applications/:id', method: 'PUT' });
+             res.status(404).json({
+               message: "Application not found",
+             });
+             return;
+           }
++          diag.debug('Application found for acceptance:', application);
+ 
+           Job.findOne({
+             _id: application.jobId,
+             userId: user._id,
+           }).then((job) => {
+             if (job === null) {
++              errorCounter.add(1, { route: '/applications/:id', method: 'PUT' });
+               res.status(404).json({
+                 message: "Job does not exist",
+               });
+               return;
+             }
++            diag.debug('Job found for application acceptance:', job);
+ 
+             Application.countDocuments({
+               recruiterId: user._id,
+               jobId: job._id,
+               status: "accepted",
+             }).then((activeApplicationCount) => {
++              diag.debug('Active accepted applications count:', activeApplicationCount);
+               if (activeApplicationCount < job.maxPositions) {
+-                // accepted
+                 application.status = status;
+                 application.dateOfJoining = req.body.dateOfJoining;
+                 application
+@@ -776,11 +879,14 @@ router.put("/applications/:id", jwtAuth, (req, res) => {
+                             }
+                           )
+                             .then(() => {
++                              diag.debug('Application accepted and job updated:', application);
+                               res.json({
+                                 message: `Application ${status} successfully`,
+                               });
+                             })
+                             .catch((err) => {
++                              errorCounter.add(1, { route: '/applications/:id', method: 'PUT' });
++                              diag.error('Error updating job after acceptance:', err);
+                               res.status(400).json(err);
+                             });
+                         } else {
+@@ -790,13 +896,18 @@ router.put("/applications/:id", jwtAuth, (req, res) => {
+                         }
+                       })
+                       .catch((err) => {
++                        errorCounter.add(1, { route: '/applications/:id', method: 'PUT' });
++                        diag.error('Error updating other applications after acceptance:', err);
+                         res.status(400).json(err);
+                       });
+                   })
+                   .catch((err) => {
++                    errorCounter.add(1, { route: '/applications/:id', method: 'PUT' });
++                    diag.error('Error saving accepted application:', err);
+                     res.status(400).json(err);
+                   });
+               } else {
++                errorCounter.add(1, { route: '/applications/:id', method: 'PUT' });
+                 res.status(400).json({
+                   message: "All positions for this job are already filled",
+                 });
+@@ -805,6 +916,8 @@ router.put("/applications/:id", jwtAuth, (req, res) => {
+           });
+         })
+         .catch((err) => {
++          errorCounter.add(1, { route: '/applications/:id', method: 'PUT' });
++          diag.error('Error finding application for acceptance:', err);
+           res.status(400).json(err);
+         });
+     } else {
+@@ -824,11 +937,13 @@ router.put("/applications/:id", jwtAuth, (req, res) => {
+       )
+         .then((application) => {
+           if (application === null) {
++            errorCounter.add(1, { route: '/applications/:id', method: 'PUT' });
+             res.status(400).json({
+               message: "Application status cannot be updated",
+             });
+             return;
+           }
++          diag.debug('Application status updated:', application);
+           if (status === "finished") {
+             res.json({
+               message: `Job ${status} successfully`,
+@@ -840,13 +955,14 @@ router.put("/applications/:id", jwtAuth, (req, res) => {
+           }
+         })
+         .catch((err) => {
++          errorCounter.add(1, { route: '/applications/:id', method: 'PUT' });
++          diag.error('Error updating application status:', err);
+           res.status(400).json(err);
+         });
+     }
+   } else {
+     if (status === "cancelled") {
+-      console.log(id);
+-      console.log(user._id);
++      diag.debug('User cancelling application:', id);
+       Application.findOneAndUpdate(
+         {
+           _id: id,
+@@ -859,15 +975,18 @@ router.put("/applications/:id", jwtAuth, (req, res) => {
+         }
+       )
+         .then((tmp) => {
+-          console.log(tmp);
++          diag.debug('Application cancelled:', tmp);
+           res.json({
+             message: `Application ${status} successfully`,
+           });
+         })
+         .catch((err) => {
++          errorCounter.add(1, { route: '/applications/:id', method: 'PUT' });
++          diag.error('Error cancelling application:', err);
+           res.status(400).json(err);
+         });
+     } else {
++      errorCounter.add(1, { route: '/applications/:id', method: 'PUT' });
+       res.status(401).json({
+         message: "You don't have permissions to update job status",
+       });
+@@ -878,7 +997,10 @@ router.put("/applications/:id", jwtAuth, (req, res) => {
+ // get a list of final applicants for current job : recruiter
+ // get a list of final applicants for all his jobs : recuiter
+ router.get("/applicants", jwtAuth, (req, res) => {
++  requestCounter.add(1, { route: '/applicants', method: 'GET' });
+   const user = req.user;
++  diag.debug('User requesting applicants list:', user);
++
+   if (user.type === "recruiter") {
+     let findParams = {
+       recruiterId: user._id,
+@@ -940,6 +1062,9 @@ router.get("/applicants", jwtAuth, (req, res) => {
+       }
+     }
+ 
++    diag.debug('Find parameters for applicants:', findParams);
++    diag.debug('Sort parameters for applicants:', sortParams);
++
+     Application.aggregate([
+       {
+         $lookup: {
+@@ -964,17 +1089,22 @@ router.get("/applicants", jwtAuth, (req, res) => {
+     ])
+       .then((applications) => {
+         if (applications.length === 0) {
++          errorCounter.add(1, { route: '/applicants', method: 'GET' });
+           res.status(404).json({
+             message: "No applicants found",
+           });
+           return;
+         }
++        diag.debug('Applicants found:', applications);
+         res.json(applications);
+       })
+       .catch((err) => {
++        errorCounter.add(1, { route: '/applicants', method: 'GET' });
++        diag.error('Error fetching applicants:', err);
+         res.status(400).json(err);
+       });
+   } else {
++    errorCounter.add(1, { route: '/applicants', method: 'GET' });
+     res.status(400).json({
+       message: "You are not allowed to access applicants list",
+     });
+@@ -983,10 +1113,13 @@ router.get("/applicants", jwtAuth, (req, res) => {
+ 
+ // to add or update a rating [todo: test]
+ router.put("/rating", jwtAuth, (req, res) => {
++  requestCounter.add(1, { route: '/rating', method: 'PUT' });
+   const user = req.user;
+   const data = req.body;
++  diag.debug('User attempting to add/update rating:', user);
++  diag.debug('Rating data:', data);
++
+   if (user.type === "recruiter") {
+-    // can rate applicant
+     Rating.findOne({
+       senderId: user._id,
+       receiverId: data.applicantId,
+@@ -994,7 +1127,7 @@ router.put("/rating", jwtAuth, (req, res) => {
+     })
+       .then((rating) => {
+         if (rating === null) {
+-          console.log("new rating");
++          diag.debug('No existing rating found, creating new rating');
+           Application.countDocuments({
+             userId: data.applicantId,
+             recruiterId: user._id,
+@@ -1003,9 +1136,8 @@ router.put("/rating", jwtAuth, (req, res) => {
+             },
+           })
+             .then((acceptedApplicant) => {
++              diag.debug('Accepted applicant count:', acceptedApplicant);
+               if (acceptedApplicant > 0) {
+-                // add a new rating
+-
+                 rating = new Rating({
+                   category: "applicant",
+                   receiverId: data.applicantId,
+@@ -1016,7 +1148,6 @@ router.put("/rating", jwtAuth, (req, res) => {
+                 rating
+                   .save()
+                   .then(() => {
+-                    // get the average of ratings
+                     Rating.aggregate([
+                       {
+                         $match: {
+@@ -1032,14 +1163,15 @@ router.put("/rating", jwtAuth, (req, res) => {
+                       },
+                     ])
+                       .then((result) => {
+-                        // update the user's rating
+                         if (result === null) {
++                          errorCounter.add(1, { route: '/rating', method: 'PUT' });
+                           res.status(400).json({
+                             message: "Error while calculating rating",
+                           });
+                           return;
+                         }
+                         const avg = result[0].average;
++                        diag.debug('Calculated average rating:', avg);
+ 
+                         JobApplicant.findOneAndUpdate(
+                           {
+@@ -1053,29 +1185,37 @@ router.put("/rating", jwtAuth, (req, res) => {
+                         )
+                           .then((applicant) => {
+                             if (applicant === null) {
++                              errorCounter.add(1, { route: '/rating', method: 'PUT' });
+                               res.status(400).json({
+                                 message:
+                                   "Error while updating applicant's average rating",
+                               });
+                               return;
+                             }
++                            diag.debug('Applicant rating updated successfully:', applicant);
+                             res.json({
+                               message: "Rating added successfully",
+                             });
+                           })
+                           .catch((err) => {
++                            errorCounter.add(1, { route: '/rating', method: 'PUT' });
++                            diag.error('Error updating applicant rating:', err);
+                             res.status(400).json(err);
+                           });
+                       })
+                       .catch((err) => {
++                        errorCounter.add(1, { route: '/rating', method: 'PUT' });
++                        diag.error('Error calculating average rating:', err);
+                         res.status(400).json(err);
+                       });
+                   })
+                   .catch((err) => {
++                    errorCounter.add(1, { route: '/rating', method: 'PUT' });
++                    diag.error('Error saving new rating:', err);
+                     res.status(400).json(err);
+                   });
+               } else {
+-                // you cannot rate
++                errorCounter.add(1, { route: '/rating', method: 'PUT' });
+                 res.status(400).json({
+                   message:
+                     "Applicant didn't worked under you. Hence you cannot give a rating.",
+@@ -1083,6 +1223,8 @@ router.put("/rating", jwtAuth, (req, res) => {
+               }
+             })
+             .catch((err) => {
++              errorCounter.add(1, { route: '/rating', method: 'PUT' });
++              diag.error('Error counting accepted applicants:', err);
+               res.status(400).json(err);
+             });
+         } else {
+@@ -1090,7 +1232,6 @@ router.put("/rating", jwtAuth, (req, res) => {
+           rating
+             .save()
+             .then(() => {
+-              // get the average of ratings
+               Rating.aggregate([
+                 {
+                   $match: {
+@@ -1106,14 +1247,16 @@ router.put("/rating", jwtAuth, (req, res) => {
+                 },
+               ])
+                 .then((result) => {
+-                  // update the user's rating
+                   if (result === null) {
++                    errorCounter.add(1, { route: '/rating', method: 'PUT' });
+                     res.status(400).json({
+                       message: "Error while calculating rating",
+                     });
+                     return;
+                   }
+                   const avg = result[0].average;
++                  diag.debug('Calculated average rating:', avg);
++
+                   JobApplicant.findOneAndUpdate(
+                     {
+                       userId: data.applicantId,
+@@ -1126,45 +1269,51 @@ router.put("/rating", jwtAuth, (req, res) => {
+                   )
+                     .then((applicant) => {
+                       if (applicant === null) {
++                        errorCounter.add(1, { route: '/rating', method: 'PUT' });
+                         res.status(400).json({
+                           message:
+                             "Error while updating applicant's average rating",
+                         });
+                         return;
+                       }
++                      diag.debug('Applicant rating updated successfully:', applicant);
+                       res.json({
+                         message: "Rating updated successfully",
+                       });
+                     })
+                     .catch((err) => {
++                      errorCounter.add(1, { route: '/rating', method: 'PUT' });
++                      diag.error('Error updating applicant rating:', err);
+                       res.status(400).json(err);
+                     });
+                 })
+                 .catch((err) => {
++                  errorCounter.add(1, { route: '/rating', method: 'PUT' });
++                  diag.error('Error calculating average rating:', err);
+                   res.status(400).json(err);
+                 });
+             })
+             .catch((err) => {
++              errorCounter.add(1, { route: '/rating', method: 'PUT' });
++              diag.error('Error saving updated rating:', err);
+               res.status(400).json(err);
+             });
+         }
+       })
+       .catch((err) => {
++        errorCounter.add(1, { route: '/rating', method: 'PUT' });
++        diag.error('Error finding existing rating:', err);
+         res.status(400).json(err);
+       });
+   } else {
+-    // applicant can rate job
+     Rating.findOne({
+       senderId: user._id,
+       receiverId: data.jobId,
+       category: "job",
+     })
+       .then((rating) => {
+-        console.log(user._id);
+-        console.log(data.jobId);
+-        console.log(rating);
++        diag.debug('Existing rating found:', rating);
+         if (rating === null) {
+-          console.log(rating);
+           Application.countDocuments({
+             userId: user._id,
+             jobId: data.jobId,
+@@ -1173,9 +1322,8 @@ router.put("/rating", jwtAuth, (req, res) => {
+             },
+           })
+             .then((acceptedApplicant) => {
++              diag.debug('Accepted applicant count for job:', acceptedApplicant);
+               if (acceptedApplicant > 0) {
+-                // add a new rating
+-
+                 rating = new Rating({
+                   category: "job",
+                   receiverId: data.jobId,
+@@ -1186,7 +1334,6 @@ router.put("/rating", jwtAuth, (req, res) => {
+                 rating
+                   .save()
+                   .then(() => {
+-                    // get the average of ratings
+                     Rating.aggregate([
+                       {
+                         $match: {
+@@ -1203,12 +1350,15 @@ router.put("/rating", jwtAuth, (req, res) => {
+                     ])
+                       .then((result) => {
+                         if (result === null) {
++                          errorCounter.add(1, { route: '/rating', method: 'PUT' });
+                           res.status(400).json({
+                             message: "Error while calculating rating",
+                           });
+                           return;
+                         }
+                         const avg = result[0].average;
++                        diag.debug('Calculated average rating for job:', avg);
++
+                         Job.findOneAndUpdate(
+                           {
+                             _id: data.jobId,
+@@ -1221,29 +1371,37 @@ router.put("/rating", jwtAuth, (req, res) => {
+                         )
+                           .then((foundJob) => {
+                             if (foundJob === null) {
++                              errorCounter.add(1, { route: '/rating', method: 'PUT' });
+                               res.status(400).json({
+                                 message:
+                                   "Error while updating job's average rating",
+                               });
+                               return;
+                             }
++                            diag.debug('Job rating updated successfully:', foundJob);
+                             res.json({
+                               message: "Rating added successfully",
+                             });
+                           })
+                           .catch((err) => {
++                            errorCounter.add(1, { route: '/rating', method: 'PUT' });
++                            diag.error('Error updating job rating:', err);
+                             res.status(400).json(err);
+                           });
+                       })
+                       .catch((err) => {
++                        errorCounter.add(1, { route: '/rating', method: 'PUT' });
++                        diag.error('Error calculating average rating for job:', err);
+                         res.status(400).json(err);
+                       });
+                   })
+                   .catch((err) => {
++                    errorCounter.add(1, { route: '/rating', method: 'PUT' });
++                    diag.error('Error saving new job rating:', err);
+                     res.status(400).json(err);
+                   });
+               } else {
+-                // you cannot rate
++                errorCounter.add(1, { route: '/rating', method: 'PUT' });
+                 res.status(400).json({
+                   message:
+                     "You haven't worked for this job. Hence you cannot give a rating.",
+@@ -1251,15 +1409,15 @@ router.put("/rating", jwtAuth, (req, res) => {
+               }
+             })
+             .catch((err) => {
++              errorCounter.add(1, { route: '/rating', method: 'PUT' });
++              diag.error('Error counting accepted applicants for job:', err);
+               res.status(400).json(err);
+             });
+         } else {
+-          // update the rating
+           rating.rating = data.rating;
+           rating
+             .save()
+             .then(() => {
+-              // get the average of ratings
+               Rating.aggregate([
+                 {
+                   $match: {
+@@ -1276,13 +1434,14 @@ router.put("/rating", jwtAuth, (req, res) => {
+               ])
+                 .then((result) => {
+                   if (result === null) {
++                    errorCounter.add(1, { route: '/rating', method: 'PUT' });
+                     res.status(400).json({
+                       message: "Error while calculating rating",
+                     });
+                     return;
+                   }
+                   const avg = result[0].average;
+-                  console.log(avg);
++                  diag.debug('Calculated average rating for job:', avg);
+ 
+                   Job.findOneAndUpdate(
+                     {
+@@ -1296,29 +1455,39 @@ router.put("/rating", jwtAuth, (req, res) => {
+                   )
+                     .then((foundJob) => {
+                       if (foundJob === null) {
++                        errorCounter.add(1, { route: '/rating', method: 'PUT' });
+                         res.status(400).json({
+                           message: "Error while updating job's average rating",
+                         });
+                         return;
+                       }
++                      diag.debug('Job rating updated successfully:', foundJob);
+                       res.json({
+                         message: "Rating added successfully",
+                       });
+                     })
+                     .catch((err) => {
++                      errorCounter.add(1, { route: '/rating', method: 'PUT' });
++                      diag.error('Error updating job rating:', err);
+                       res.status(400).json(err);
+                     });
+                 })
+                 .catch((err) => {
++                  errorCounter.add(1, { route: '/rating', method: 'PUT' });
++                  diag.error('Error calculating average rating for job:', err);
+                   res.status(400).json(err);
+                 });
+             })
+             .catch((err) => {
++              errorCounter.add(1, { route: '/rating', method: 'PUT' });
++              diag.error('Error saving updated job rating:', err);
+               res.status(400).json(err);
+             });
+         }
+       })
+       .catch((err) => {
++        errorCounter.add(1, { route: '/rating', method: 'PUT' });
++        diag.error('Error finding existing job rating:', err);
+         res.status(400).json(err);
+       });
+   }
+@@ -1326,55 +1495,27 @@ router.put("/rating", jwtAuth, (req, res) => {
+ 
+ // get personal rating
+ router.get("/rating", jwtAuth, (req, res) => {
++  requestCounter.add(1, { route: '/rating', method: 'GET' });
+   const user = req.user;
++  diag.debug('User requesting personal rating:', user);
++
+   Rating.findOne({
+     senderId: user._id,
+     receiverId: req.query.id,
+     category: user.type === "recruiter" ? "applicant" : "job",
+   }).then((rating) => {
+     if (rating === null) {
++      diag.debug('No personal rating found');
+       res.json({
+         rating: -1,
+       });
+       return;
+     }
++    diag.debug('Personal rating found:', rating);
+     res.json({
+       rating: rating.rating,
+     });
+   });
+ });
+ 
+-// Application.findOne({
+-//   _id: id,
+-//   userId: user._id,
+-// })
+-//   .then((application) => {
+-//     application.status = status;
+-//     application
+-//       .save()
+-//       .then(() => {
+-//         res.json({
+-//           message: `Application ${status} successfully`,
+-//         });
+-//       })
+-//       .catch((err) => {
+-//         res.status(400).json(err);
+-//       });
+-//   })
+-//   .catch((err) => {
+-//     res.status(400).json(err);
+-//   });
+-
+-// router.get("/jobs", (req, res, next) => {
+-//   passport.authenticate("jwt", { session: false }, function (err, user, info) {
+-//     if (err) {
+-//       return next(err);
+-//     }
+-//     if (!user) {
+-//       res.status(401).json(info);
+-//       return;
+-//     }
+-//   })(req, res, next);
+-// });
+-
+ module.exports = router;
+diff --git a/backend/routes/authRoutes.js b/backend/routes/authRoutes.js
+index 7911934..40d9c55 100644
+--- a/backend/routes/authRoutes.js
++++ b/backend/routes/authRoutes.js
+@@ -2,15 +2,36 @@ const express = require("express");
+ const passport = require("passport");
+ const jwt = require("jsonwebtoken");
+ const authKeys = require("../lib/authKeys");
++const { diag } = require("@opentelemetry/api");
++const { MeterProvider } = require("@opentelemetry/sdk-metrics-base");
+ 
+ const User = require("../db/User");
+ const JobApplicant = require("../db/JobApplicant");
+ const Recruiter = require("../db/Recruiter");
+ 
++const meterProvider = new MeterProvider();
++const meter = meterProvider.getMeter('default');
++
++const signupCounter = meter.createCounter('signup_requests', {
++  description: 'Count of signup requests'
++});
++const signupErrorRate = meter.createCounter('signup_errors', {
++  description: 'Count of signup errors'
++});
++
++const loginCounter = meter.createCounter('login_requests', {
++  description: 'Count of login requests'
++});
++const loginErrorRate = meter.createCounter('login_errors', {
++  description: 'Count of login errors'
++});
++
+ const router = express.Router();
+ 
+ router.post("/signup", (req, res) => {
++  signupCounter.add(1);
+   const data = req.body;
++  diag.debug("Received signup request with data:", data);
+   let user = new User({
+     email: data.email,
+     password: data.password,
+@@ -20,6 +41,7 @@ router.post("/signup", (req, res) => {
+   user
+     .save()
+     .then(() => {
++      diag.debug("User saved successfully with ID:", user._id);
+       const userDetails =
+         user.type == "recruiter"
+           ? new Recruiter({
+@@ -41,44 +63,59 @@ router.post("/signup", (req, res) => {
+       userDetails
+         .save()
+         .then(() => {
+-          // Token
++          diag.debug("User details saved successfully for user ID:", user._id);
+           const token = jwt.sign({ _id: user._id }, authKeys.jwtSecretKey);
++          diag.debug("JWT token generated for user ID:", user._id);
+           res.json({
+             token: token,
+             type: user.type,
+           });
+         })
+         .catch((err) => {
++          signupErrorRate.add(1);
++          diag.error("Error saving user details for user ID:", user._id, err);
+           user
+             .delete()
+             .then(() => {
++              diag.debug("User deleted successfully after error for user ID:", user._id);
+               res.status(400).json(err);
+             })
+             .catch((err) => {
++              signupErrorRate.add(1);
++              diag.error("Error deleting user after failed user details save for user ID:", user._id, err);
+               res.json({ error: err });
+             });
+           err;
+         });
+     })
+     .catch((err) => {
++      signupErrorRate.add(1);
++      diag.error("Error saving user:", err);
+       res.status(400).json(err);
+     });
+ });
+ 
+ router.post("/login", (req, res, next) => {
++  loginCounter.add(1);
++  diag.debug("Received login request");
+   passport.authenticate(
+     "local",
+     { session: false },
+     function (err, user, info) {
+       if (err) {
++        loginErrorRate.add(1);
++        diag.error("Error during authentication:", err);
+         return next(err);
+       }
+       if (!user) {
++        loginErrorRate.add(1);
++        diag.debug("Authentication failed, user not found");
+         res.status(401).json(info);
+         return;
+       }
+-      // Token
++      diag.debug("User authenticated successfully with ID:", user._id);
+       const token = jwt.sign({ _id: user._id }, authKeys.jwtSecretKey);
++      diag.debug("JWT token generated for user ID:", user._id);
+       res.json({
+         token: token,
+         type: user.type,
+diff --git a/backend/routes/downloadRoutes.js b/backend/routes/downloadRoutes.js
+index 31798ef..b629764 100644
+--- a/backend/routes/downloadRoutes.js
++++ b/backend/routes/downloadRoutes.js
+@@ -1,31 +1,62 @@
+ const express = require("express");
+ const fs = require("fs");
+ const path = require("path");
++const { diag } = require("@opentelemetry/api");
++const { MeterProvider } = require("@opentelemetry/sdk-metrics-base");
++
++const meterProvider = new MeterProvider();
++const meter = meterProvider.getMeter('example-meter');
++
++const resumeRequestCounter = meter.createCounter('resume_requests', {
++  description: 'Count of requests to the resume endpoint',
++});
++
++const resumeErrorCounter = meter.createCounter('resume_errors', {
++  description: 'Count of errors in the resume endpoint',
++});
++
++const profileRequestCounter = meter.createCounter('profile_requests', {
++  description: 'Count of requests to the profile endpoint',
++});
++
++const profileErrorCounter = meter.createCounter('profile_errors', {
++  description: 'Count of errors in the profile endpoint',
++});
+ 
+ const router = express.Router();
+ 
+ router.get("/resume/:file", (req, res) => {
++  resumeRequestCounter.add(1);
+   const address = path.join(__dirname, `../public/resume/${req.params.file}`);
++  diag.debug(`Attempting to access resume file at address: ${address}`);
+   fs.access(address, fs.F_OK, (err) => {
+     if (err) {
++      resumeErrorCounter.add(1);
++      diag.error(`File not found at address: ${address}`);
+       res.status(404).json({
+         message: "File not found",
+       });
+       return;
+     }
++    diag.debug(`File found. Sending file from address: ${address}`);
+     res.sendFile(address);
+   });
+ });
+ 
+ router.get("/profile/:file", (req, res) => {
++  profileRequestCounter.add(1);
+   const address = path.join(__dirname, `../public/profile/${req.params.file}`);
++  diag.debug(`Attempting to access profile file at address: ${address}`);
+   fs.access(address, fs.F_OK, (err) => {
+     if (err) {
++      profileErrorCounter.add(1);
++      diag.error(`File not found at address: ${address}`);
+       res.status(404).json({
+         message: "File not found",
+       });
+       return;
+     }
++    diag.debug(`File found. Sending file from address: ${address}`);
+     res.sendFile(address);
+   });
+ });
+diff --git a/backend/routes/uploadRoutes.js b/backend/routes/uploadRoutes.js
+index b12d2aa..1f24955 100644
+--- a/backend/routes/uploadRoutes.js
++++ b/backend/routes/uploadRoutes.js
+@@ -3,6 +3,8 @@ const multer = require("multer");
+ const fs = require("fs");
+ const { v4: uuidv4 } = require("uuid");
+ const { promisify } = require("util");
++const { diag } = require("@opentelemetry/api");
++const { MeterProvider } = require("@opentelemetry/sdk-metrics-base");
+ 
+ const pipeline = promisify(require("stream").pipeline);
+ 
+@@ -10,26 +12,54 @@ const router = express.Router();
+ 
+ const upload = multer();
+ 
++const meterProvider = new MeterProvider();
++const meter = meterProvider.getMeter('file-upload-service');
++
++const resumeUploadCounter = meter.createCounter('resume_uploads', {
++  description: 'Count of resume uploads',
++});
++
++const resumeUploadErrorRate = meter.createCounter('resume_upload_errors', {
++  description: 'Count of errors during resume uploads',
++});
++
++const profileUploadCounter = meter.createCounter('profile_uploads', {
++  description: 'Count of profile uploads',
++});
++
++const profileUploadErrorRate = meter.createCounter('profile_upload_errors', {
++  description: 'Count of errors during profile uploads',
++});
++
+ router.post("/resume", upload.single("file"), (req, res) => {
+   const { file } = req;
++  diag.debug("Received file for resume upload", { fileExtension: file.detectedFileExtension });
++
+   if (file.detectedFileExtension != ".pdf") {
++    diag.warn("Invalid file format for resume upload", { fileExtension: file.detectedFileExtension });
++    resumeUploadErrorRate.add(1);
+     res.status(400).json({
+       message: "Invalid format",
+     });
+   } else {
+     const filename = `${uuidv4()}${file.detectedFileExtension}`;
++    diag.debug("Generated filename for resume", { filename });
+ 
+     pipeline(
+       file.stream,
+       fs.createWriteStream(`${__dirname}/../public/resume/${filename}`)
+     )
+       .then(() => {
++        diag.info("Resume file uploaded successfully", { filename });
++        resumeUploadCounter.add(1);
+         res.send({
+           message: "File uploaded successfully",
+           url: `/host/resume/${filename}`,
+         });
+       })
+       .catch((err) => {
++        diag.error("Error while uploading resume file", { error: err });
++        resumeUploadErrorRate.add(1);
+         res.status(400).json({
+           message: "Error while uploading",
+         });
+@@ -39,27 +69,36 @@ router.post("/resume", upload.single("file"), (req, res) => {
+ 
+ router.post("/profile", upload.single("file"), (req, res) => {
+   const { file } = req;
++  diag.debug("Received file for profile upload", { fileExtension: file.detectedFileExtension });
++
+   if (
+     file.detectedFileExtension != ".jpg" &&
+     file.detectedFileExtension != ".png"
+   ) {
++    diag.warn("Invalid file format for profile upload", { fileExtension: file.detectedFileExtension });
++    profileUploadErrorRate.add(1);
+     res.status(400).json({
+       message: "Invalid format",
+     });
+   } else {
+     const filename = `${uuidv4()}${file.detectedFileExtension}`;
++    diag.debug("Generated filename for profile", { filename });
+ 
+     pipeline(
+       file.stream,
+       fs.createWriteStream(`${__dirname}/../public/profile/${filename}`)
+     )
+       .then(() => {
++        diag.info("Profile image uploaded successfully", { filename });
++        profileUploadCounter.add(1);
+         res.send({
+           message: "Profile image uploaded successfully",
+           url: `/host/profile/${filename}`,
+         });
+       })
+       .catch((err) => {
++        diag.error("Error while uploading profile image", { error: err });
++        profileUploadErrorRate.add(1);
+         res.status(400).json({
+           message: "Error while uploading",
+         });
+diff --git a/backend/server.js b/backend/server.js
+index a09f526..8ecdd86 100644
+--- a/backend/server.js
++++ b/backend/server.js
+@@ -4,6 +4,7 @@ const mongoose = require("mongoose");
+ const passportConfig = require("./lib/passportConfig");
+ const cors = require("cors");
+ const fs = require("fs");
++const { diag } = require('@opentelemetry/api');
+ 
+ // MongoDB
+ mongoose
+@@ -13,17 +14,20 @@ mongoose
+     useCreateIndex: true,
+     useFindAndModify: false,
+   })
+-  .then((res) => console.log("Connected to DB"))
+-  .catch((err) => console.log(err));
++  .then((res) => diag.info("Connected to DB"))
++  .catch((err) => diag.error("Error connecting to DB", err));
+ 
+ // initialising directories
+ if (!fs.existsSync("./public")) {
++  diag.info("Creating directory: ./public");
+   fs.mkdirSync("./public");
+ }
+ if (!fs.existsSync("./public/resume")) {
++  diag.info("Creating directory: ./public/resume");
+   fs.mkdirSync("./public/resume");
+ }
+ if (!fs.existsSync("./public/profile")) {
++  diag.info("Creating directory: ./public/profile");
+   fs.mkdirSync("./public/profile");
+ }
+ 
+@@ -45,5 +49,5 @@ app.use("/upload", require("./routes/uploadRoutes"));
+ app.use("/host", require("./routes/downloadRoutes"));
+ 
+ app.listen(port, () => {
+-  console.log(`Server started on port ${port}!`);
++  diag.info(`Server started on port ${port}!`);
+ });
+diff --git a/frontend/package.json b/frontend/package.json
+index 00b0d96..73e0d5a 100644
+--- a/frontend/package.json
++++ b/frontend/package.json
+@@ -16,7 +16,12 @@
+     "react-phone-input-2": "^2.13.9",
+     "react-router-dom": "^5.2.0",
+     "react-scripts": "4.0.1",
+-    "web-vitals": "^0.2.4"
++    "web-vitals": "^0.2.4",
++    "@opentelemetry/api": "^1.0.0",
++    "@opentelemetry/sdk-trace-web": "^1.0.0",
++    "@opentelemetry/sdk-metrics": "^1.0.0",
++    "@opentelemetry/instrumentation": "^0.29.0",
++    "@opentelemetry/auto-instrumentations-web": "^0.29.0"
+   },
+   "scripts": {
+     "start": "react-scripts start",
+diff --git a/frontend/src/App.js b/frontend/src/App.js
+index 3e51b45..d7e7a20 100644
+--- a/frontend/src/App.js
++++ b/frontend/src/App.js
+@@ -1,6 +1,7 @@
+ import { createContext, useState } from "react";
+ import { BrowserRouter, Switch, Route } from "react-router-dom";
+ import { Grid, makeStyles } from "@material-ui/core";
++import { trace, metrics } from '@opentelemetry/api';
+ 
+ import Welcome, { ErrorPage } from "./component/Welcome";
+ import Navbar from "./component/Navbar";
+@@ -33,79 +34,191 @@ const useStyles = makeStyles((theme) => ({
+ 
+ export const SetPopupContext = createContext();
+ 
++const meter = metrics.getMeter('default');
++const requestCounter = meter.createCounter('request_counter', {
++  description: 'Counts the number of requests received',
++});
++const errorCounter = meter.createCounter('error_counter', {
++  description: 'Counts the number of errors encountered',
++});
++
+ function App() {
++  const tracer = trace.getTracer('default');
+   const classes = useStyles();
+   const [popup, setPopup] = useState({
+     open: false,
+     severity: "",
+     message: "",
+   });
+-  return (
+-    <BrowserRouter>
+-      <SetPopupContext.Provider value={setPopup}>
+-        <Grid container direction="column">
+-          <Grid item xs>
+-            <Navbar />
+-          </Grid>
+-          <Grid item className={classes.body}>
+-            <Switch>
+-              <Route exact path="/">
+-                <Welcome />
+-              </Route>
+-              <Route exact path="/login">
+-                <Login />
+-              </Route>
+-              <Route exact path="/signup">
+-                <Signup />
+-              </Route>
+-              <Route exact path="/logout">
+-                <Logout />
+-              </Route>
+-              <Route exact path="/home">
+-                <Home />
+-              </Route>
+-              <Route exact path="/applications">
+-                <Applications />
+-              </Route>
+-              <Route exact path="/profile">
+-                {userType() === "recruiter" ? (
+-                  <RecruiterProfile />
+-                ) : (
+-                  <Profile />
+-                )}
+-              </Route>
+-              <Route exact path="/addjob">
+-                <CreateJobs />
+-              </Route>
+-              <Route exact path="/myjobs">
+-                <MyJobs />
+-              </Route>
+-              <Route exact path="/job/applications/:jobId">
+-                <JobApplications />
+-              </Route>
+-              <Route exact path="/employees">
+-                <AcceptedApplicants />
+-              </Route>
+-              <Route>
+-                <ErrorPage />
+-              </Route>
+-            </Switch>
++
++  tracer.startActiveSpan('App Component', span => {
++    span.addEvent('Rendering App component');
++    span.addEvent('Popup state initialized', { popup });
++
++    return (
++      <BrowserRouter>
++        <SetPopupContext.Provider value={setPopup}>
++          <Grid container direction="column">
++            <Grid item xs>
++              <Navbar />
++            </Grid>
++            <Grid item className={classes.body}>
++              <Switch>
++                <Route exact path="/">
++                  {() => {
++                    requestCounter.add(1, { route: '/' });
++                    try {
++                      return <Welcome />;
++                    } catch (error) {
++                      errorCounter.add(1, { route: '/' });
++                      throw error;
++                    }
++                  }}
++                </Route>
++                <Route exact path="/login">
++                  {() => {
++                    requestCounter.add(1, { route: '/login' });
++                    try {
++                      return <Login />;
++                    } catch (error) {
++                      errorCounter.add(1, { route: '/login' });
++                      throw error;
++                    }
++                  }}
++                </Route>
++                <Route exact path="/signup">
++                  {() => {
++                    requestCounter.add(1, { route: '/signup' });
++                    try {
++                      return <Signup />;
++                    } catch (error) {
++                      errorCounter.add(1, { route: '/signup' });
++                      throw error;
++                    }
++                  }}
++                </Route>
++                <Route exact path="/logout">
++                  {() => {
++                    requestCounter.add(1, { route: '/logout' });
++                    try {
++                      return <Logout />;
++                    } catch (error) {
++                      errorCounter.add(1, { route: '/logout' });
++                      throw error;
++                    }
++                  }}
++                </Route>
++                <Route exact path="/home">
++                  {() => {
++                    requestCounter.add(1, { route: '/home' });
++                    try {
++                      return <Home />;
++                    } catch (error) {
++                      errorCounter.add(1, { route: '/home' });
++                      throw error;
++                    }
++                  }}
++                </Route>
++                <Route exact path="/applications">
++                  {() => {
++                    requestCounter.add(1, { route: '/applications' });
++                    try {
++                      return <Applications />;
++                    } catch (error) {
++                      errorCounter.add(1, { route: '/applications' });
++                      throw error;
++                    }
++                  }}
++                </Route>
++                <Route exact path="/profile">
++                  {() => {
++                    requestCounter.add(1, { route: '/profile' });
++                    try {
++                      return userType() === "recruiter" ? (
++                        <RecruiterProfile />
++                      ) : (
++                        <Profile />
++                      );
++                    } catch (error) {
++                      errorCounter.add(1, { route: '/profile' });
++                      throw error;
++                    }
++                  }}
++                </Route>
++                <Route exact path="/addjob">
++                  {() => {
++                    requestCounter.add(1, { route: '/addjob' });
++                    try {
++                      return <CreateJobs />;
++                    } catch (error) {
++                      errorCounter.add(1, { route: '/addjob' });
++                      throw error;
++                    }
++                  }}
++                </Route>
++                <Route exact path="/myjobs">
++                  {() => {
++                    requestCounter.add(1, { route: '/myjobs' });
++                    try {
++                      return <MyJobs />;
++                    } catch (error) {
++                      errorCounter.add(1, { route: '/myjobs' });
++                      throw error;
++                    }
++                  }}
++                </Route>
++                <Route exact path="/job/applications/:jobId">
++                  {() => {
++                    requestCounter.add(1, { route: '/job/applications/:jobId' });
++                    try {
++                      return <JobApplications />;
++                    } catch (error) {
++                      errorCounter.add(1, { route: '/job/applications/:jobId' });
++                      throw error;
++                    }
++                  }}
++                </Route>
++                <Route exact path="/employees">
++                  {() => {
++                    requestCounter.add(1, { route: '/employees' });
++                    try {
++                      return <AcceptedApplicants />;
++                    } catch (error) {
++                      errorCounter.add(1, { route: '/employees' });
++                      throw error;
++                    }
++                  }}
++                </Route>
++                <Route>
++                  {() => {
++                    requestCounter.add(1, { route: 'error' });
++                    try {
++                      return <ErrorPage />;
++                    } catch (error) {
++                      errorCounter.add(1, { route: 'error' });
++                      throw error;
++                    }
++                  }}
++                </Route>
++              </Switch>
++            </Grid>
+           </Grid>
+-        </Grid>
+-        <MessagePopup
+-          open={popup.open}
+-          setOpen={(status) =>
+-            setPopup({
+-              ...popup,
+-              open: status,
+-            })
+-          }
+-          severity={popup.severity}
+-          message={popup.message}
+-        />
+-      </SetPopupContext.Provider>
+-    </BrowserRouter>
+-  );
++          <MessagePopup
++            open={popup.open}
++            setOpen={(status) => {
++              span.addEvent('Popup status changed', { status });
++              setPopup({
++                ...popup,
++                open: status,
++              });
++            }}
++            severity={popup.severity}
++            message={popup.message}
++          />
++        </SetPopupContext.Provider>
++      </BrowserRouter>
++    );
++  });
+ }
+ 
+ export default App;
+diff --git a/frontend/src/App.test.js b/frontend/src/App.test.js
+index 1f03afe..5f60aa7 100644
+--- a/frontend/src/App.test.js
++++ b/frontend/src/App.test.js
+@@ -1,8 +1,17 @@
+ import { render, screen } from '@testing-library/react';
++import { trace } from '@opentelemetry/api'; // Import OpenTelemetry trace
+ import App from './App';
+ 
+ test('renders learn react link', () => {
+-  render(<App />);
+-  const linkElement = screen.getByText(/learn react/i);
+-  expect(linkElement).toBeInTheDocument();
++  const tracer = trace.getTracer('default'); // Get a tracer
++  tracer.startActiveSpan('renderApp', span => {
++    render(<App />);
++    span.addEvent('App component rendered'); // Log event after rendering
++
++    const linkElement = screen.getByText(/learn react/i);
++    span.addEvent('Link element retrieved', { elementText: linkElement.textContent }); // Log event with link element text
++
++    expect(linkElement).toBeInTheDocument();
++    span.end(); // End the span
++  });
+ });
+diff --git a/frontend/src/component/Applications.js b/frontend/src/component/Applications.js
+index d6e07a4..6302c14 100644
+--- a/frontend/src/component/Applications.js
++++ b/frontend/src/component/Applications.js
+@@ -18,6 +18,7 @@ import {
+ } from "@material-ui/core";
+ import Rating from "@material-ui/lab/Rating";
+ import axios from "axios";
++import { trace } from '@opentelemetry/api';
+ 
+ import { SetPopupContext } from "../App";
+ 
+@@ -60,6 +61,7 @@ const ApplicationTile = (props) => {
+   const joinedOn = new Date(application.dateOfJoining);
+ 
+   const fetchRating = () => {
++    const span = trace.getTracer('default').startSpan('fetchRating');
+     axios
+       .get(`${apiList.rating}?id=${application.job._id}`, {
+         headers: {
+@@ -68,20 +70,23 @@ const ApplicationTile = (props) => {
+       })
+       .then((response) => {
+         setRating(response.data.rating);
+-        console.log(response.data);
++        span.addEvent('Fetched rating', { rating: response.data.rating });
+       })
+       .catch((err) => {
+-        // console.log(err.response);
+-        console.log(err.response.data);
++        span.addEvent('Error fetching rating', { error: err.response.data });
+         setPopup({
+           open: true,
+           severity: "error",
+           message: "Error",
+         });
++      })
++      .finally(() => {
++        span.end();
+       });
+   };
+ 
+   const changeRating = () => {
++    const span = trace.getTracer('default').startSpan('changeRating');
+     axios
+       .put(
+         apiList.rating,
+@@ -93,7 +98,7 @@ const ApplicationTile = (props) => {
+         }
+       )
+       .then((response) => {
+-        console.log(response.data);
++        span.addEvent('Rating updated successfully', { response: response.data });
+         setPopup({
+           open: true,
+           severity: "success",
+@@ -103,8 +108,7 @@ const ApplicationTile = (props) => {
+         setOpen(false);
+       })
+       .catch((err) => {
+-        // console.log(err.response);
+-        console.log(err);
++        span.addEvent('Error updating rating', { error: err.response.data.message });
+         setPopup({
+           open: true,
+           severity: "error",
+@@ -112,6 +116,9 @@ const ApplicationTile = (props) => {
+         });
+         fetchRating();
+         setOpen(false);
++      })
++      .finally(() => {
++        span.end();
+       });
+   };
+ 
+@@ -229,6 +236,7 @@ const Applications = (props) => {
+   }, []);
+ 
+   const getData = () => {
++    const span = trace.getTracer('default').startSpan('getData');
+     axios
+       .get(apiList.applications, {
+         headers: {
+@@ -236,17 +244,19 @@ const Applications = (props) => {
+         },
+       })
+       .then((response) => {
+-        console.log(response.data);
++        span.addEvent('Fetched applications', { applications: response.data });
+         setApplications(response.data);
+       })
+       .catch((err) => {
+-        // console.log(err.response);
+-        console.log(err.response.data);
++        span.addEvent('Error fetching applications', { error: err.response.data });
+         setPopup({
+           open: true,
+           severity: "error",
+           message: "Error",
+         });
++      })
++      .finally(() => {
++        span.end();
+       });
+   };
+ 
+diff --git a/frontend/src/component/Home.js b/frontend/src/component/Home.js
+index b237895..f3ef8cb 100644
+--- a/frontend/src/component/Home.js
++++ b/frontend/src/component/Home.js
+@@ -29,6 +29,8 @@ import { SetPopupContext } from "../App";
+ import apiList from "../lib/apiList";
+ import { userType } from "../lib/isAuth";
+ 
++import { trace } from '@opentelemetry/api';
++
+ const useStyles = makeStyles((theme) => ({
+   body: {
+     height: "inherit",
+@@ -65,8 +67,9 @@ const JobTile = (props) => {
+   };
+ 
+   const handleApply = () => {
+-    console.log(job._id);
+-    console.log(sop);
++    const tracer = trace.getTracer('default');
++    const span = tracer.startSpan('handleApply');
++    span.addEvent('Applying for job', { jobId: job._id, sop: sop });
+     axios
+       .post(
+         `${apiList.jobs}/${job._id}/applications`,
+@@ -80,6 +83,7 @@ const JobTile = (props) => {
+         }
+       )
+       .then((response) => {
++        span.addEvent('Application successful', { message: response.data.message });
+         setPopup({
+           open: true,
+           severity: "success",
+@@ -88,13 +92,16 @@ const JobTile = (props) => {
+         handleClose();
+       })
+       .catch((err) => {
+-        console.log(err.response);
++        span.addEvent('Application failed', { error: err.response.data.message });
+         setPopup({
+           open: true,
+           severity: "error",
+           message: err.response.data.message,
+         });
+         handleClose();
++      })
++      .finally(() => {
++        span.end();
+       });
+   };
+ 
+@@ -547,6 +554,8 @@ const Home = (props) => {
+   }, []);
+ 
+   const getData = () => {
++    const tracer = trace.getTracer('default');
++    const span = tracer.startSpan('getData');
+     let searchParams = [];
+     if (searchOptions.query !== "") {
+       searchParams = [...searchParams, `q=${searchOptions.query}`];
+@@ -591,7 +600,7 @@ const Home = (props) => {
+     });
+     searchParams = [...searchParams, ...asc, ...desc];
+     const queryString = searchParams.join("&");
+-    console.log(queryString);
++    span.addEvent('Query string constructed', { queryString: queryString });
+     let address = apiList.jobs;
+     if (queryString !== "") {
+       address = `${address}?${queryString}`;
+@@ -604,7 +613,7 @@ const Home = (props) => {
+         },
+       })
+       .then((response) => {
+-        console.log(response.data);
++        span.addEvent('Data fetched successfully', { data: response.data });
+         setJobs(
+           response.data.filter((obj) => {
+             const today = new Date();
+@@ -614,12 +623,15 @@ const Home = (props) => {
+         );
+       })
+       .catch((err) => {
+-        console.log(err.response.data);
++        span.addEvent('Error fetching data', { error: err.response.data });
+         setPopup({
+           open: true,
+           severity: "error",
+           message: "Error",
+         });
++      })
++      .finally(() => {
++        span.end();
+       });
+   };
+ 
+diff --git a/frontend/src/component/Login.js b/frontend/src/component/Login.js
+index 33de1d4..479330b 100644
+--- a/frontend/src/component/Login.js
++++ b/frontend/src/component/Login.js
+@@ -9,6 +9,7 @@ import {
+ } from "@material-ui/core";
+ import axios from "axios";
+ import { Redirect } from "react-router-dom";
++import { trace } from '@opentelemetry/api';
+ 
+ import PasswordInput from "../lib/PasswordInput";
+ import EmailInput from "../lib/EmailInput";
+@@ -52,13 +53,21 @@ const Login = (props) => {
+   });
+ 
+   const handleInput = (key, value) => {
++    const span = trace.getTracer('default').startSpan('handleInput');
++    span.setAttribute('key', key);
++    span.setAttribute('value', value);
+     setLoginDetails({
+       ...loginDetails,
+       [key]: value,
+     });
++    span.end();
+   };
+ 
+   const handleInputError = (key, status, message) => {
++    const span = trace.getTracer('default').startSpan('handleInputError');
++    span.setAttribute('key', key);
++    span.setAttribute('status', status);
++    span.setAttribute('message', message);
+     setInputErrorHandler({
+       ...inputErrorHandler,
+       [key]: {
+@@ -66,16 +75,20 @@ const Login = (props) => {
+         message: message,
+       },
+     });
++    span.end();
+   };
+ 
+   const handleLogin = () => {
++    const span = trace.getTracer('default').startSpan('handleLogin');
+     const verified = !Object.keys(inputErrorHandler).some((obj) => {
+       return inputErrorHandler[obj].error;
+     });
++    span.setAttribute('verified', verified);
+     if (verified) {
+       axios
+         .post(apiList.login, loginDetails)
+         .then((response) => {
++          span.addEvent('Login successful', { token: response.data.token, type: response.data.type });
+           localStorage.setItem("token", response.data.token);
+           localStorage.setItem("type", response.data.type);
+           setLoggedin(isAuth());
+@@ -87,6 +100,7 @@ const Login = (props) => {
+           console.log(response);
+         })
+         .catch((err) => {
++          span.addEvent('Login failed', { errorMessage: err.response.data.message });
+           setPopup({
+             open: true,
+             severity: "error",
+@@ -95,12 +109,14 @@ const Login = (props) => {
+           console.log(err.response);
+         });
+     } else {
++      span.addEvent('Input verification failed');
+       setPopup({
+         open: true,
+         severity: "error",
+         message: "Incorrect Input",
+       });
+     }
++    span.end();
+   };
+ 
+   return loggedin ? (
+diff --git a/frontend/src/component/Logout.js b/frontend/src/component/Logout.js
+index db46530..5566df4 100644
+--- a/frontend/src/component/Logout.js
++++ b/frontend/src/component/Logout.js
+@@ -1,19 +1,24 @@
+ import { useEffect, useContext } from "react";
+ import { Redirect } from "react-router-dom";
++import { diag } from "@opentelemetry/api"; // Import OpenTelemetry for logging
+ 
+ import { SetPopupContext } from "../App";
+ 
+ const Logout = (props) => {
+   const setPopup = useContext(SetPopupContext);
+   useEffect(() => {
++    diag.debug("Removing token from localStorage");
+     localStorage.removeItem("token");
++    diag.debug("Removing type from localStorage");
+     localStorage.removeItem("type");
++    diag.debug("Setting popup with success message");
+     setPopup({
+       open: true,
+       severity: "success",
+       message: "Logged out successfully",
+     });
+   }, []);
++  diag.debug("Redirecting to /login");
+   return <Redirect to="/login" />;
+ };
+ 
+diff --git a/frontend/src/component/Navbar.js b/frontend/src/component/Navbar.js
+index 4b18c34..c82dbdb 100644
+--- a/frontend/src/component/Navbar.js
++++ b/frontend/src/component/Navbar.js
+@@ -6,6 +6,7 @@ import {
+   makeStyles,
+ } from "@material-ui/core";
+ import { useHistory } from "react-router-dom";
++import { trace } from '@opentelemetry/api';
+ 
+ import isAuth, { userType } from "../lib/isAuth";
+ 
+@@ -24,10 +25,13 @@ const useStyles = makeStyles((theme) => ({
+ const Navbar = (props) => {
+   const classes = useStyles();
+   let history = useHistory();
++  const tracer = trace.getTracer('navbar-tracer');
+ 
+   const handleClick = (location) => {
+-    console.log(location);
++    const span = tracer.startSpan('handleClick');
++    span.addEvent('Navigating to location', { location });
+     history.push(location);
++    span.end();
+   };
+ 
+   return (
+diff --git a/frontend/src/component/Profile.js b/frontend/src/component/Profile.js
+index 356801e..dadb707 100644
+--- a/frontend/src/component/Profile.js
++++ b/frontend/src/component/Profile.js
+@@ -17,6 +17,7 @@ import FaceIcon from "@material-ui/icons/Face";
+ import { SetPopupContext } from "../App";
+ 
+ import apiList from "../lib/apiList";
++import { trace } from "@opentelemetry/api";
+ 
+ const useStyles = makeStyles((theme) => ({
+   body: {
+@@ -47,6 +48,7 @@ const MultifieldInput = (props) => {
+                 const newEdu = [...education];
+                 newEdu[key].institutionName = event.target.value;
+                 setEducation(newEdu);
++                trace.getTracer('default').addEvent(`Updated institutionName for key ${key}: ${event.target.value}`);
+               }}
+               variant="outlined"
+               fullWidth
+@@ -62,6 +64,7 @@ const MultifieldInput = (props) => {
+                 const newEdu = [...education];
+                 newEdu[key].startYear = event.target.value;
+                 setEducation(newEdu);
++                trace.getTracer('default').addEvent(`Updated startYear for key ${key}: ${event.target.value}`);
+               }}
+             />
+           </Grid>
+@@ -75,6 +78,7 @@ const MultifieldInput = (props) => {
+                 const newEdu = [...education];
+                 newEdu[key].endYear = event.target.value;
+                 setEducation(newEdu);
++                trace.getTracer('default').addEvent(`Updated endYear for key ${key}: ${event.target.value}`);
+               }}
+             />
+           </Grid>
+@@ -84,7 +88,7 @@ const MultifieldInput = (props) => {
+         <Button
+           variant="contained"
+           color="secondary"
+-          onClick={() =>
++          onClick={() => {
+             setEducation([
+               ...education,
+               {
+@@ -92,8 +96,9 @@ const MultifieldInput = (props) => {
+                 startYear: "",
+                 endYear: "",
+               },
+-            ])
+-          }
++            ]);
++            trace.getTracer('default').addEvent('Added another institution details');
++          }}
+           className={classes.inputBox}
+         >
+           Add another institution details
+@@ -130,6 +135,7 @@ const Profile = (props) => {
+       ...profileDetails,
+       [key]: value,
+     });
++    trace.getTracer('default').addEvent(`Updated profileDetails: ${key} = ${value}`);
+   };
+ 
+   useEffect(() => {
+@@ -144,7 +150,7 @@ const Profile = (props) => {
+         },
+       })
+       .then((response) => {
+-        console.log(response.data);
++        trace.getTracer('default').addEvent(`Fetched user data: ${JSON.stringify(response.data)}`);
+         setProfileDetails(response.data);
+         if (response.data.education.length > 0) {
+           setEducation(
+@@ -154,10 +160,11 @@ const Profile = (props) => {
+               endYear: edu.endYear ? edu.endYear : "",
+             }))
+           );
++          trace.getTracer('default').addEvent(`Set education data: ${JSON.stringify(response.data.education)}`);
+         }
+       })
+       .catch((err) => {
+-        console.log(err.response.data);
++        trace.getTracer('default').addEvent(`Error fetching user data: ${err.response.data}`);
+         setPopup({
+           open: true,
+           severity: "error",
+@@ -168,14 +175,16 @@ const Profile = (props) => {
+ 
+   const handleClose = () => {
+     setOpen(false);
++    trace.getTracer('default').addEvent('Closed modal');
+   };
+ 
+   const editDetails = () => {
+     setOpen(true);
++    trace.getTracer('default').addEvent('Opened modal for editing details');
+   };
+ 
+   const handleUpdate = () => {
+-    console.log(education);
++    trace.getTracer('default').addEvent(`Updating education details: ${JSON.stringify(education)}`);
+ 
+     let updatedDetails = {
+       ...profileDetails,
+@@ -196,6 +205,7 @@ const Profile = (props) => {
+         },
+       })
+       .then((response) => {
++        trace.getTracer('default').addEvent(`Successfully updated user details: ${response.data.message}`);
+         setPopup({
+           open: true,
+           severity: "success",
+@@ -204,12 +214,12 @@ const Profile = (props) => {
+         getData();
+       })
+       .catch((err) => {
++        trace.getTracer('default').addEvent(`Error updating user details: ${err.response.data.message}`);
+         setPopup({
+           open: true,
+           severity: "error",
+           message: err.response.data.message,
+         });
+-        console.log(err.response);
+       });
+     setOpen(false);
+   };
+@@ -259,12 +269,13 @@ const Profile = (props) => {
+                   variant="outlined"
+                   helperText="Press enter to add skills"
+                   value={profileDetails.skills}
+-                  onAdd={(chip) =>
++                  onAdd={(chip) => {
+                     setProfileDetails({
+                       ...profileDetails,
+                       skills: [...profileDetails.skills, chip],
+-                    })
+-                  }
++                    });
++                    trace.getTracer('default').addEvent(`Added skill: ${chip}`);
++                  }}
+                   onDelete={(chip, index) => {
+                     let skills = profileDetails.skills;
+                     skills.splice(index, 1);
+@@ -272,6 +283,7 @@ const Profile = (props) => {
+                       ...profileDetails,
+                       skills: skills,
+                     });
++                    trace.getTracer('default').addEvent(`Deleted skill: ${chip}`);
+                   }}
+                   fullWidth
+                 />
+diff --git a/frontend/src/component/Signup.js b/frontend/src/component/Signup.js
+index 90c1cc5..5c1b96b 100644
+--- a/frontend/src/component/Signup.js
++++ b/frontend/src/component/Signup.js
+@@ -24,6 +24,7 @@ import { SetPopupContext } from "../App";
+ 
+ import apiList from "../lib/apiList";
+ import isAuth from "../lib/isAuth";
++import { trace } from '@opentelemetry/api';
+ 
+ const useStyles = makeStyles((theme) => ({
+   body: {
+@@ -59,6 +60,7 @@ const MultifieldInput = (props) => {
+                 const newEdu = [...education];
+                 newEdu[key].institutionName = event.target.value;
+                 setEducation(newEdu);
++                trace.getTracer('default').addEvent(`Updated institutionName for key ${key}: ${event.target.value}`);
+               }}
+               variant="outlined"
+             />
+@@ -73,6 +75,7 @@ const MultifieldInput = (props) => {
+                 const newEdu = [...education];
+                 newEdu[key].startYear = event.target.value;
+                 setEducation(newEdu);
++                trace.getTracer('default').addEvent(`Updated startYear for key ${key}: ${event.target.value}`);
+               }}
+             />
+           </Grid>
+@@ -86,6 +89,7 @@ const MultifieldInput = (props) => {
+                 const newEdu = [...education];
+                 newEdu[key].endYear = event.target.value;
+                 setEducation(newEdu);
++                trace.getTracer('default').addEvent(`Updated endYear for key ${key}: ${event.target.value}`);
+               }}
+             />
+           </Grid>
+@@ -95,7 +99,7 @@ const MultifieldInput = (props) => {
+         <Button
+           variant="contained"
+           color="secondary"
+-          onClick={() =>
++          onClick={() => {
+             setEducation([
+               ...education,
+               {
+@@ -103,8 +107,9 @@ const MultifieldInput = (props) => {
+                 startYear: "",
+                 endYear: "",
+               },
+-            ])
+-          }
++            ]);
++            trace.getTracer('default').addEvent('Added another institution details');
++          }}
+           className={classes.inputBox}
+         >
+           Add another institution details
+@@ -169,6 +174,7 @@ const Login = (props) => {
+       ...signupDetails,
+       [key]: value,
+     });
++    trace.getTracer('default').addEvent(`Updated signupDetails for key ${key}: ${value}`);
+   };
+ 
+   const handleInputError = (key, status, message) => {
+@@ -181,6 +187,7 @@ const Login = (props) => {
+         message: message,
+       },
+     });
++    trace.getTracer('default').addEvent(`Updated inputErrorHandler for key ${key}: status=${status}, message=${message}`);
+   };
+ 
+   const handleLogin = () => {
+@@ -198,7 +205,7 @@ const Login = (props) => {
+       }
+     });
+ 
+-    console.log(education);
++    trace.getTracer('default').addEvent(`Education details: ${JSON.stringify(education)}`);
+ 
+     let updatedDetails = {
+       ...signupDetails,
+@@ -213,6 +220,7 @@ const Login = (props) => {
+     };
+ 
+     setSignupDetails(updatedDetails);
++    trace.getTracer('default').addEvent(`Updated signupDetails with education: ${JSON.stringify(updatedDetails)}`);
+ 
+     const verified = !Object.keys(tmpErrorHandler).some((obj) => {
+       return tmpErrorHandler[obj].error;
+@@ -230,7 +238,7 @@ const Login = (props) => {
+             severity: "success",
+             message: "Logged in successfully",
+           });
+-          console.log(response);
++          trace.getTracer('default').addEvent(`Login successful: ${JSON.stringify(response.data)}`);
+         })
+         .catch((err) => {
+           setPopup({
+@@ -238,7 +246,7 @@ const Login = (props) => {
+             severity: "error",
+             message: err.response.data.message,
+           });
+-          console.log(err.response);
++          trace.getTracer('default').addEvent(`Login error: ${JSON.stringify(err.response.data)}`);
+         });
+     } else {
+       setInputErrorHandler(tmpErrorHandler);
+@@ -247,6 +255,7 @@ const Login = (props) => {
+         severity: "error",
+         message: "Incorrect Input",
+       });
++      trace.getTracer('default').addEvent('Login failed due to incorrect input');
+     }
+   };
+ 
+@@ -281,12 +290,13 @@ const Login = (props) => {
+     }
+ 
+     setSignupDetails(updatedDetails);
++    trace.getTracer('default').addEvent(`Updated signupDetails with contactNumber: ${updatedDetails.contactNumber}`);
+ 
+     const verified = !Object.keys(tmpErrorHandler).some((obj) => {
+       return tmpErrorHandler[obj].error;
+     });
+ 
+-    console.log(updatedDetails);
++    trace.getTracer('default').addEvent(`Recruiter details: ${JSON.stringify(updatedDetails)}`);
+ 
+     if (verified) {
+       axios
+@@ -300,7 +310,7 @@ const Login = (props) => {
+             severity: "success",
+             message: "Logged in successfully",
+           });
+-          console.log(response);
++          trace.getTracer('default').addEvent(`Recruiter login successful: ${JSON.stringify(response.data)}`);
+         })
+         .catch((err) => {
+           setPopup({
+@@ -308,7 +318,7 @@ const Login = (props) => {
+             severity: "error",
+             message: err.response.data.message,
+           });
+-          console.log(err.response);
++          trace.getTracer('default').addEvent(`Recruiter login error: ${JSON.stringify(err.response.data)}`);
+         });
+     } else {
+       setInputErrorHandler(tmpErrorHandler);
+@@ -317,6 +327,7 @@ const Login = (props) => {
+         severity: "error",
+         message: "Incorrect Input",
+       });
++      trace.getTracer('default').addEvent('Recruiter login failed due to incorrect input');
+     }
+   };
+ 
+diff --git a/frontend/src/component/Welcome.js b/frontend/src/component/Welcome.js
+index 2a20c77..dd0f916 100644
+--- a/frontend/src/component/Welcome.js
++++ b/frontend/src/component/Welcome.js
+@@ -1,6 +1,13 @@
+ import { Grid, Typography } from "@material-ui/core";
++import { trace } from '@opentelemetry/api';
+ 
+ const Welcome = (props) => {
++  const tracer = trace.getTracer('default');
++  tracer.startActiveSpan('Welcome Component', span => {
++    span.addEvent('Rendering Welcome component');
++    span.end();
++  });
++
+   return (
+     <Grid
+       container
+@@ -18,6 +25,12 @@ const Welcome = (props) => {
+ };
+ 
+ export const ErrorPage = (props) => {
++  const tracer = trace.getTracer('default');
++  tracer.startActiveSpan('ErrorPage Component', span => {
++    span.addEvent('Rendering ErrorPage component');
++    span.end();
++  });
++
+   return (
+     <Grid
+       container
+diff --git a/frontend/src/component/recruiter/AcceptedApplicants.js b/frontend/src/component/recruiter/AcceptedApplicants.js
+index e0d5405..926cf1e 100644
+--- a/frontend/src/component/recruiter/AcceptedApplicants.js
++++ b/frontend/src/component/recruiter/AcceptedApplicants.js
+@@ -28,6 +28,8 @@ import { SetPopupContext } from "../../App";
+ 
+ import apiList, { server } from "../../lib/apiList";
+ 
++import { trace } from '@opentelemetry/api';
++
+ const useStyles = makeStyles((theme) => ({
+   body: {
+     height: "inherit",
+@@ -404,6 +406,11 @@ const ApplicationTile = (props) => {
+   const appliedOn = new Date(application.dateOfApplication);
+ 
+   const changeRating = () => {
++    const tracer = trace.getTracer('default');
++    const span = tracer.startSpan('changeRating');
++    span.setAttribute('rating', rating);
++    span.setAttribute('applicantId', application.jobApplicant.userId);
++
+     axios
+       .put(
+         apiList.rating,
+@@ -436,6 +443,9 @@ const ApplicationTile = (props) => {
+         // fetchRating();
+         getData();
+         setOpen(false);
++      })
++      .finally(() => {
++        span.end();
+       });
+   };
+ 
+@@ -458,6 +468,10 @@ const ApplicationTile = (props) => {
+   };
+ 
+   const getResume = () => {
++    const tracer = trace.getTracer('default');
++    const span = tracer.startSpan('getResume');
++    span.setAttribute('resume', application.jobApplicant.resume);
++
+     if (
+       application.jobApplicant.resume &&
+       application.jobApplicant.resume !== ""
+@@ -480,6 +494,9 @@ const ApplicationTile = (props) => {
+             severity: "error",
+             message: "Error",
+           });
++        })
++        .finally(() => {
++          span.end();
+         });
+     } else {
+       setPopup({
+@@ -487,10 +504,15 @@ const ApplicationTile = (props) => {
+         severity: "error",
+         message: "No resume found",
+       });
++      span.end();
+     }
+   };
+ 
+   const updateStatus = (status) => {
++    const tracer = trace.getTracer('default');
++    const span = tracer.startSpan('updateStatus');
++    span.setAttribute('status', status);
++
+     const address = `${apiList.applications}/${application._id}`;
+     const statusData = {
+       status: status,
+@@ -519,6 +541,9 @@ const ApplicationTile = (props) => {
+         });
+         console.log(err.response);
+         handleCloseEndJob();
++      })
++      .finally(() => {
++        span.end();
+       });
+   };
+ 
+@@ -717,6 +742,9 @@ const AcceptedApplicants = (props) => {
+   }, []);
+ 
+   const getData = () => {
++    const tracer = trace.getTracer('default');
++    const span = tracer.startSpan('getData');
++
+     let searchParams = [];
+     searchParams = [...searchParams, `status=accepted`];
+ 
+@@ -763,6 +791,9 @@ const AcceptedApplicants = (props) => {
+           severity: "error",
+           message: err.response.data.message,
+         });
++      })
++      .finally(() => {
++        span.end();
+       });
+   };
+ 
+diff --git a/frontend/src/component/recruiter/CreateJobs.js b/frontend/src/component/recruiter/CreateJobs.js
+index 4d3a7d3..5c6b7b6 100644
+--- a/frontend/src/component/recruiter/CreateJobs.js
++++ b/frontend/src/component/recruiter/CreateJobs.js
+@@ -11,6 +11,7 @@ import {
+ } from "@material-ui/core";
+ import axios from "axios";
+ import ChipInput from "material-ui-chip-input";
++import { trace } from "@opentelemetry/api";
+ 
+ import { SetPopupContext } from "../../App";
+ 
+@@ -47,47 +48,61 @@ const CreateJobs = (props) => {
+   });
+ 
+   const handleInput = (key, value) => {
+-    setJobDetails({
+-      ...jobDetails,
+-      [key]: value,
++    const tracer = trace.getTracer("default");
++    tracer.startActiveSpan("handleInput", (span) => {
++      span.setAttribute("key", key);
++      span.setAttribute("value", value);
++      setJobDetails({
++        ...jobDetails,
++        [key]: value,
++      });
++      span.end();
+     });
+   };
+ 
+   const handleUpdate = () => {
+-    console.log(jobDetails);
+-    axios
+-      .post(apiList.jobs, jobDetails, {
+-        headers: {
+-          Authorization: `Bearer ${localStorage.getItem("token")}`,
+-        },
+-      })
+-      .then((response) => {
+-        setPopup({
+-          open: true,
+-          severity: "success",
+-          message: response.data.message,
+-        });
+-        setJobDetails({
+-          title: "",
+-          maxApplicants: 100,
+-          maxPositions: 30,
+-          deadline: new Date(new Date().getTime() + 10 * 24 * 60 * 60 * 1000)
+-            .toISOString()
+-            .substr(0, 16),
+-          skillsets: [],
+-          jobType: "Full Time",
+-          duration: 0,
+-          salary: 0,
+-        });
+-      })
+-      .catch((err) => {
+-        setPopup({
+-          open: true,
+-          severity: "error",
+-          message: err.response.data.message,
++    const tracer = trace.getTracer("default");
++    tracer.startActiveSpan("handleUpdate", (span) => {
++      span.setAttribute("jobDetails", JSON.stringify(jobDetails));
++      axios
++        .post(apiList.jobs, jobDetails, {
++          headers: {
++            Authorization: `Bearer ${localStorage.getItem("token")}`,
++          },
++        })
++        .then((response) => {
++          span.setAttribute("responseMessage", response.data.message);
++          setPopup({
++            open: true,
++            severity: "success",
++            message: response.data.message,
++          });
++          setJobDetails({
++            title: "",
++            maxApplicants: 100,
++            maxPositions: 30,
++            deadline: new Date(new Date().getTime() + 10 * 24 * 60 * 60 * 1000)
++              .toISOString()
++              .substr(0, 16),
++            skillsets: [],
++            jobType: "Full Time",
++            duration: 0,
++            salary: 0,
++          });
++        })
++        .catch((err) => {
++          span.setAttribute("errorMessage", err.response.data.message);
++          setPopup({
++            open: true,
++            severity: "error",
++            message: err.response.data.message,
++          });
++          console.log(err.response);
++        })
++        .finally(() => {
++          span.end();
+         });
+-        console.log(err.response);
+-      });
++    });
+   };
+ 
+   return (
+diff --git a/frontend/src/component/recruiter/JobApplications.js b/frontend/src/component/recruiter/JobApplications.js
+index 6a9f051..ab3b231 100644
+--- a/frontend/src/component/recruiter/JobApplications.js
++++ b/frontend/src/component/recruiter/JobApplications.js
+@@ -28,6 +28,8 @@ import { SetPopupContext } from "../../App";
+ 
+ import apiList, { server } from "../../lib/apiList";
+ 
++import { trace } from '@opentelemetry/api';
++
+ const useStyles = makeStyles((theme) => ({
+   body: {
+     height: "inherit",
+@@ -89,12 +91,16 @@ const FilterPopup = (props) => {
+                       name="rejected"
+                       checked={searchOptions.status.rejected}
+                       onChange={(event) => {
+-                        setSearchOptions({
+-                          ...searchOptions,
+-                          status: {
+-                            ...searchOptions.status,
+-                            [event.target.name]: event.target.checked,
+-                          },
++                        const tracer = trace.getTracer('default');
++                        tracer.startActiveSpan('Checkbox Change - Rejected', span => {
++                          setSearchOptions({
++                            ...searchOptions,
++                            status: {
++                              ...searchOptions.status,
++                              [event.target.name]: event.target.checked,
++                            },
++                          });
++                          span.end();
+                         });
+                       }}
+                     />
+@@ -109,12 +115,16 @@ const FilterPopup = (props) => {
+                       name="applied"
+                       checked={searchOptions.status.applied}
+                       onChange={(event) => {
+-                        setSearchOptions({
+-                          ...searchOptions,
+-                          status: {
+-                            ...searchOptions.status,
+-                            [event.target.name]: event.target.checked,
+-                          },
++                        const tracer = trace.getTracer('default');
++                        tracer.startActiveSpan('Checkbox Change - Applied', span => {
++                          setSearchOptions({
++                            ...searchOptions,
++                            status: {
++                              ...searchOptions.status,
++                              [event.target.name]: event.target.checked,
++                            },
++                          });
++                          span.end();
+                         });
+                       }}
+                     />
+@@ -129,12 +139,16 @@ const FilterPopup = (props) => {
+                       name="shortlisted"
+                       checked={searchOptions.status.shortlisted}
+                       onChange={(event) => {
+-                        setSearchOptions({
+-                          ...searchOptions,
+-                          status: {
+-                            ...searchOptions.status,
+-                            [event.target.name]: event.target.checked,
+-                          },
++                        const tracer = trace.getTracer('default');
++                        tracer.startActiveSpan('Checkbox Change - Shortlisted', span => {
++                          setSearchOptions({
++                            ...searchOptions,
++                            status: {
++                              ...searchOptions.status,
++                              [event.target.name]: event.target.checked,
++                            },
++                          });
++                          span.end();
+                         });
+                       }}
+                     />
+@@ -161,18 +175,22 @@ const FilterPopup = (props) => {
+                   <Checkbox
+                     name="name"
+                     checked={searchOptions.sort["jobApplicant.name"].status}
+-                    onChange={(event) =>
+-                      setSearchOptions({
+-                        ...searchOptions,
+-                        sort: {
+-                          ...searchOptions.sort,
+-                          "jobApplicant.name": {
+-                            ...searchOptions.sort["jobApplicant.name"],
+-                            status: event.target.checked,
++                    onChange={(event) => {
++                      const tracer = trace.getTracer('default');
++                      tracer.startActiveSpan('Checkbox Change - Name Sort', span => {
++                        setSearchOptions({
++                          ...searchOptions,
++                          sort: {
++                            ...searchOptions.sort,
++                            "jobApplicant.name": {
++                              ...searchOptions.sort["jobApplicant.name"],
++                              status: event.target.checked,
++                            },
+                           },
+-                        },
+-                      })
+-                    }
++                        });
++                        span.end();
++                      });
++                    }}
+                     id="name"
+                   />
+                 </Grid>
+@@ -185,15 +203,19 @@ const FilterPopup = (props) => {
+                   <IconButton
+                     disabled={!searchOptions.sort["jobApplicant.name"].status}
+                     onClick={() => {
+-                      setSearchOptions({
+-                        ...searchOptions,
+-                        sort: {
+-                          ...searchOptions.sort,
+-                          "jobApplicant.name": {
+-                            ...searchOptions.sort["jobApplicant.name"],
+-                            desc: !searchOptions.sort["jobApplicant.name"].desc,
++                      const tracer = trace.getTracer('default');
++                      tracer.startActiveSpan('IconButton Click - Name Sort', span => {
++                        setSearchOptions({
++                          ...searchOptions,
++                          sort: {
++                            ...searchOptions.sort,
++                            "jobApplicant.name": {
++                              ...searchOptions.sort["jobApplicant.name"],
++                              desc: !searchOptions.sort["jobApplicant.name"].desc,
++                            },
+                           },
+-                        },
++                        });
++                        span.end();
+                       });
+                     }}
+                   >
+@@ -217,18 +239,22 @@ const FilterPopup = (props) => {
+                   <Checkbox
+                     name="dateOfApplication"
+                     checked={searchOptions.sort.dateOfApplication.status}
+-                    onChange={(event) =>
+-                      setSearchOptions({
+-                        ...searchOptions,
+-                        sort: {
+-                          ...searchOptions.sort,
+-                          dateOfApplication: {
+-                            ...searchOptions.sort.dateOfApplication,
+-                            status: event.target.checked,
++                    onChange={(event) => {
++                      const tracer = trace.getTracer('default');
++                      tracer.startActiveSpan('Checkbox Change - Date of Application Sort', span => {
++                        setSearchOptions({
++                          ...searchOptions,
++                          sort: {
++                            ...searchOptions.sort,
++                            dateOfApplication: {
++                              ...searchOptions.sort.dateOfApplication,
++                              status: event.target.checked,
++                            },
+                           },
+-                        },
+-                      })
+-                    }
++                        });
++                        span.end();
++                      });
++                    }}
+                     id="dateOfApplication"
+                   />
+                 </Grid>
+@@ -241,15 +267,19 @@ const FilterPopup = (props) => {
+                   <IconButton
+                     disabled={!searchOptions.sort.dateOfApplication.status}
+                     onClick={() => {
+-                      setSearchOptions({
+-                        ...searchOptions,
+-                        sort: {
+-                          ...searchOptions.sort,
+-                          dateOfApplication: {
+-                            ...searchOptions.sort.dateOfApplication,
+-                            desc: !searchOptions.sort.dateOfApplication.desc,
++                      const tracer = trace.getTracer('default');
++                      tracer.startActiveSpan('IconButton Click - Date of Application Sort', span => {
++                        setSearchOptions({
++                          ...searchOptions,
++                          sort: {
++                            ...searchOptions.sort,
++                            dateOfApplication: {
++                              ...searchOptions.sort.dateOfApplication,
++                              desc: !searchOptions.sort.dateOfApplication.desc,
++                            },
+                           },
+-                        },
++                        });
++                        span.end();
+                       });
+                     }}
+                   >
+@@ -273,18 +303,22 @@ const FilterPopup = (props) => {
+                   <Checkbox
+                     name="rating"
+                     checked={searchOptions.sort["jobApplicant.rating"].status}
+-                    onChange={(event) =>
+-                      setSearchOptions({
+-                        ...searchOptions,
+-                        sort: {
+-                          ...searchOptions.sort,
+-                          "jobApplicant.rating": {
+-                            ...searchOptions.sort[["jobApplicant.rating"]],
+-                            status: event.target.checked,
++                    onChange={(event) => {
++                      const tracer = trace.getTracer('default');
++                      tracer.startActiveSpan('Checkbox Change - Rating Sort', span => {
++                        setSearchOptions({
++                          ...searchOptions,
++                          sort: {
++                            ...searchOptions.sort,
++                            "jobApplicant.rating": {
++                              ...searchOptions.sort[["jobApplicant.rating"]],
++                              status: event.target.checked,
++                            },
+                           },
+-                        },
+-                      })
+-                    }
++                        });
++                        span.end();
++                      });
++                    }}
+                     id="rating"
+                   />
+                 </Grid>
+@@ -297,16 +331,19 @@ const FilterPopup = (props) => {
+                   <IconButton
+                     disabled={!searchOptions.sort["jobApplicant.rating"].status}
+                     onClick={() => {
+-                      setSearchOptions({
+-                        ...searchOptions,
+-                        sort: {
+-                          ...searchOptions.sort,
+-                          "jobApplicant.rating": {
+-                            ...searchOptions.sort["jobApplicant.rating"],
+-                            desc: !searchOptions.sort["jobApplicant.rating"]
+-                              .desc,
++                      const tracer = trace.getTracer('default');
++                      tracer.startActiveSpan('IconButton Click - Rating Sort', span => {
++                        setSearchOptions({
++                          ...searchOptions,
++                          sort: {
++                            ...searchOptions.sort,
++                            "jobApplicant.rating": {
++                              ...searchOptions.sort["jobApplicant.rating"],
++                              desc: !searchOptions.sort["jobApplicant.rating"].desc,
++                            },
+                           },
+-                        },
++                        });
++                        span.end();
+                       });
+                     }}
+                   >
+@@ -326,7 +363,13 @@ const FilterPopup = (props) => {
+               variant="contained"
+               color="primary"
+               style={{ padding: "10px 50px" }}
+-              onClick={() => getData()}
++              onClick={() => {
++                const tracer = trace.getTracer('default');
++                tracer.startActiveSpan('Button Click - Apply Filters', span => {
++                  getData();
++                  span.end();
++                });
++              }}
+             >
+               Apply
+             </Button>
+@@ -365,24 +408,29 @@ const ApplicationTile = (props) => {
+       application.jobApplicant.resume !== ""
+     ) {
+       const address = `${server}${application.jobApplicant.resume}`;
+-      console.log(address);
+-      axios(address, {
+-        method: "GET",
+-        responseType: "blob",
+-      })
+-        .then((response) => {
+-          const file = new Blob([response.data], { type: "application/pdf" });
+-          const fileURL = URL.createObjectURL(file);
+-          window.open(fileURL);
++      const tracer = trace.getTracer('default');
++      tracer.startActiveSpan('Get Resume', span => {
++        console.log(address);
++        axios(address, {
++          method: "GET",
++          responseType: "blob",
+         })
+-        .catch((error) => {
+-          console.log(error);
+-          setPopup({
+-            open: true,
+-            severity: "error",
+-            message: "Error",
++          .then((response) => {
++            const file = new Blob([response.data], { type: "application/pdf" });
++            const fileURL = URL.createObjectURL(file);
++            window.open(fileURL);
++            span.end();
++          })
++          .catch((error) => {
++            console.log(error);
++            setPopup({
++              open: true,
++              severity: "error",
++              message: "Error",
++            });
++            span.end();
+           });
+-        });
++      });
+     } else {
+       setPopup({
+         open: true,
+@@ -398,28 +446,33 @@ const ApplicationTile = (props) => {
+       status: status,
+       dateOfJoining: new Date().toISOString(),
+     };
+-    axios
+-      .put(address, statusData, {
+-        headers: {
+-          Authorization: `Bearer ${localStorage.getItem("token")}`,
+-        },
+-      })
+-      .then((response) => {
+-        setPopup({
+-          open: true,
+-          severity: "success",
+-          message: response.data.message,
+-        });
+-        getData();
+-      })
+-      .catch((err) => {
+-        setPopup({
+-          open: true,
+-          severity: "error",
+-          message: err.response.data.message,
++    const tracer = trace.getTracer('default');
++    tracer.startActiveSpan('Update Status', span => {
++      axios
++        .put(address, statusData, {
++          headers: {
++            Authorization: `Bearer ${localStorage.getItem("token")}`,
++          },
++        })
++        .then((response) => {
++          setPopup({
++            open: true,
++            severity: "success",
++            message: response.data.message,
++          });
++          getData();
++          span.end();
++        })
++        .catch((err) => {
++          setPopup({
++            open: true,
++            severity: "error",
++            message: err.response.data.message,
++          });
++          console.log(err.response);
++          span.end();
+         });
+-        console.log(err.response);
+-      });
++    });
+   };
+ 
+   const buttonSet = {
+@@ -695,34 +748,39 @@ const JobApplications = (props) => {
+     });
+     searchParams = [...searchParams, ...asc, ...desc];
+     const queryString = searchParams.join("&");
+-    console.log(queryString);
+-    let address = `${apiList.applicants}?jobId=${jobId}`;
+-    if (queryString !== "") {
+-      address = `${address}&${queryString}`;
+-    }
++    const tracer = trace.getTracer('default');
++    tracer.startActiveSpan('Get Data', span => {
++      console.log(queryString);
++      let address = `${apiList.applicants}?jobId=${jobId}`;
++      if (queryString !== "") {
++        address = `${address}&${queryString}`;
++      }
+ 
+-    console.log(address);
++      console.log(address);
+ 
+-    axios
+-      .get(address, {
+-        headers: {
+-          Authorization: `Bearer ${localStorage.getItem("token")}`,
+-        },
+-      })
+-      .then((response) => {
+-        console.log(response.data);
+-        setApplications(response.data);
+-      })
+-      .catch((err) => {
+-        console.log(err.response);
+-        // console.log(err.response.data);
+-        setApplications([]);
+-        setPopup({
+-          open: true,
+-          severity: "error",
+-          message: err.response.data.message,
++      axios
++        .get(address, {
++          headers: {
++            Authorization: `Bearer ${localStorage.getItem("token")}`,
++          },
++        })
++        .then((response) => {
++          console.log(response.data);
++          setApplications(response.data);
++          span.end();
++        })
++        .catch((err) => {
++          console.log(err.response);
++          // console.log(err.response.data);
++          setApplications([]);
++          setPopup({
++            open: true,
++            severity: "error",
++            message: err.response.data.message,
++          });
++          span.end();
+         });
+-      });
++    });
+   };
+ 
+   return (
+diff --git a/frontend/src/component/recruiter/MyJobs.js b/frontend/src/component/recruiter/MyJobs.js
+index 64bf9ae..591f94f 100644
+--- a/frontend/src/component/recruiter/MyJobs.js
++++ b/frontend/src/component/recruiter/MyJobs.js
+@@ -29,6 +29,8 @@ import { SetPopupContext } from "../../App";
+ 
+ import apiList from "../../lib/apiList";
+ 
++import { trace } from '@opentelemetry/api';
++
+ const useStyles = makeStyles((theme) => ({
+   body: {
+     height: "inherit",
+@@ -69,29 +71,52 @@ const JobTile = (props) => {
+   const [openUpdate, setOpenUpdate] = useState(false);
+   const [jobDetails, setJobDetails] = useState(job);
+ 
+-  console.log(jobDetails);
++  const tracer = trace.getTracer('default');
++  tracer.startActiveSpan('JobTile', span => {
++    span.addEvent('jobDetails', { jobDetails });
++    span.end();
++  });
+ 
+   const handleInput = (key, value) => {
+     setJobDetails({
+       ...jobDetails,
+       [key]: value,
+     });
++    tracer.startActiveSpan('handleInput', span => {
++      span.addEvent('Updated jobDetails', { key, value });
++      span.end();
++    });
+   };
+ 
+   const handleClick = (location) => {
+     history.push(location);
++    tracer.startActiveSpan('handleClick', span => {
++      span.addEvent('Navigating to location', { location });
++      span.end();
++    });
+   };
+ 
+   const handleClose = () => {
+     setOpen(false);
++    tracer.startActiveSpan('handleClose', span => {
++      span.addEvent('Modal closed');
++      span.end();
++    });
+   };
+ 
+   const handleCloseUpdate = () => {
+     setOpenUpdate(false);
++    tracer.startActiveSpan('handleCloseUpdate', span => {
++      span.addEvent('Update modal closed');
++      span.end();
++    });
+   };
+ 
+   const handleDelete = () => {
+-    console.log(job._id);
++    tracer.startActiveSpan('handleDelete', span => {
++      span.addEvent('Deleting job', { jobId: job._id });
++      span.end();
++    });
+     axios
+       .delete(`${apiList.jobs}/${job._id}`, {
+         headers: {
+@@ -108,7 +133,10 @@ const JobTile = (props) => {
+         handleClose();
+       })
+       .catch((err) => {
+-        console.log(err.response);
++        tracer.startActiveSpan('handleDeleteError', span => {
++          span.addEvent('Error deleting job', { error: err.response });
++          span.end();
++        });
+         setPopup({
+           open: true,
+           severity: "error",
+@@ -119,6 +147,10 @@ const JobTile = (props) => {
+   };
+ 
+   const handleJobUpdate = () => {
++    tracer.startActiveSpan('handleJobUpdate', span => {
++      span.addEvent('Updating job', { jobId: job._id, jobDetails });
++      span.end();
++    });
+     axios
+       .put(`${apiList.jobs}/${job._id}`, jobDetails, {
+         headers: {
+@@ -135,7 +167,10 @@ const JobTile = (props) => {
+         handleCloseUpdate();
+       })
+       .catch((err) => {
+-        console.log(err.response);
++        tracer.startActiveSpan('handleJobUpdateError', span => {
++          span.addEvent('Error updating job', { error: err.response });
++          span.end();
++        });
+         setPopup({
+           open: true,
+           severity: "error",
+@@ -758,13 +793,19 @@ const MyJobs = (props) => {
+     });
+     searchParams = [...searchParams, ...asc, ...desc];
+     const queryString = searchParams.join("&");
+-    console.log(queryString);
++    tracer.startActiveSpan('getData', span => {
++      span.addEvent('Query string', { queryString });
++      span.end();
++    });
+     let address = apiList.jobs;
+     if (queryString !== "") {
+       address = `${address}?${queryString}`;
+     }
+ 
+-    console.log(address);
++    tracer.startActiveSpan('getData', span => {
++      span.addEvent('API address', { address });
++      span.end();
++    });
+     axios
+       .get(address, {
+         headers: {
+@@ -772,11 +813,17 @@ const MyJobs = (props) => {
+         },
+       })
+       .then((response) => {
+-        console.log(response.data);
++        tracer.startActiveSpan('getDataSuccess', span => {
++          span.addEvent('Jobs data received', { data: response.data });
++          span.end();
++        });
+         setJobs(response.data);
+       })
+       .catch((err) => {
+-        console.log(err.response.data);
++        tracer.startActiveSpan('getDataError', span => {
++          span.addEvent('Error fetching jobs', { error: err.response.data });
++          span.end();
++        });
+         setPopup({
+           open: true,
+           severity: "error",
+diff --git a/frontend/src/component/recruiter/Profile.js b/frontend/src/component/recruiter/Profile.js
+index ab42023..73561f6 100644
+--- a/frontend/src/component/recruiter/Profile.js
++++ b/frontend/src/component/recruiter/Profile.js
+@@ -16,6 +16,8 @@ import { SetPopupContext } from "../../App";
+ 
+ import apiList from "../../lib/apiList";
+ 
++import { diag } from '@opentelemetry/api';
++
+ const useStyles = makeStyles((theme) => ({
+   body: {
+     height: "inherit",
+@@ -42,6 +44,7 @@ const Profile = (props) => {
+   const [phone, setPhone] = useState("");
+ 
+   const handleInput = (key, value) => {
++    diag.debug(`Updating profileDetails: setting ${key} to ${value}`);
+     setProfileDetails({
+       ...profileDetails,
+       [key]: value,
+@@ -49,10 +52,12 @@ const Profile = (props) => {
+   };
+ 
+   useEffect(() => {
++    diag.debug('Component mounted, calling getData');
+     getData();
+   }, []);
+ 
+   const getData = () => {
++    diag.debug('Fetching user data from API');
+     axios
+       .get(apiList.user, {
+         headers: {
+@@ -60,12 +65,12 @@ const Profile = (props) => {
+         },
+       })
+       .then((response) => {
+-        console.log(response.data);
++        diag.debug('Received user data', response.data);
+         setProfileDetails(response.data);
+         setPhone(response.data.contactNumber);
+       })
+       .catch((err) => {
+-        console.log(err.response.data);
++        diag.error('Error fetching user data', err.response.data);
+         setPopup({
+           open: true,
+           severity: "error",
+@@ -75,6 +80,7 @@ const Profile = (props) => {
+   };
+ 
+   const handleUpdate = () => {
++    diag.debug('Updating user profile');
+     let updatedDetails = {
+       ...profileDetails,
+     };
+@@ -90,6 +96,7 @@ const Profile = (props) => {
+       };
+     }
+ 
++    diag.debug('Sending updated profile details to API', updatedDetails);
+     axios
+       .put(apiList.user, updatedDetails, {
+         headers: {
+@@ -97,6 +104,7 @@ const Profile = (props) => {
+         },
+       })
+       .then((response) => {
++        diag.debug('Profile updated successfully', response.data);
+         setPopup({
+           open: true,
+           severity: "success",
+@@ -105,12 +113,12 @@ const Profile = (props) => {
+         getData();
+       })
+       .catch((err) => {
++        diag.error('Error updating profile', err.response.data);
+         setPopup({
+           open: true,
+           severity: "error",
+           message: err.response.data.message,
+         });
+-        console.log(err.response);
+       });
+   };
+ 
+diff --git a/frontend/src/index.js b/frontend/src/index.js
+index ef2edf8..b599da2 100644
+--- a/frontend/src/index.js
++++ b/frontend/src/index.js
+@@ -3,6 +3,10 @@ import ReactDOM from 'react-dom';
+ import './index.css';
+ import App from './App';
+ import reportWebVitals from './reportWebVitals';
++import { diag } from '@opentelemetry/api';
++
++// Log message for ReactDOM.render
++diag.info('Rendering the React application to the DOM');
+ 
+ ReactDOM.render(
+   <React.StrictMode>
+@@ -11,6 +15,9 @@ ReactDOM.render(
+   document.getElementById('root')
+ );
+ 
++// Log message for reportWebVitals
++diag.info('Initializing web vitals reporting');
++
+ // If you want to start measuring performance in your app, pass a function
+ // to log results (for example: reportWebVitals(console.log))
+ // or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
+diff --git a/frontend/src/lib/EmailInput.js b/frontend/src/lib/EmailInput.js
+index deba1a6..1d44a7b 100644
+--- a/frontend/src/lib/EmailInput.js
++++ b/frontend/src/lib/EmailInput.js
+@@ -1,4 +1,5 @@
+ import { TextField } from "@material-ui/core";
++import { trace } from '@opentelemetry/api';
+ 
+ const EmailInput = (props) => {
+   const {
+@@ -11,6 +12,8 @@ const EmailInput = (props) => {
+     className,
+   } = props;
+ 
++  const tracer = trace.getTracer('default');
++
+   return (
+     <TextField
+       label={label}
+@@ -19,20 +22,33 @@ const EmailInput = (props) => {
+       onChange={onChange}
+       helperText={inputErrorHandler.email.message}
+       onBlur={(event) => {
+-        if (event.target.value === "") {
+-          if (required) {
+-            handleInputError("email", true, "Email is required");
+-          } else {
+-            handleInputError("email", false, "");
+-          }
+-        } else {
+-          const re = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+-          if (re.test(String(event.target.value).toLowerCase())) {
+-            handleInputError("email", false, "");
++        tracer.startActiveSpan('onBlur', span => {
++          const inputValue = event.target.value;
++          span.addEvent('onBlur event triggered', { inputValue });
++
++          if (inputValue === "") {
++            span.addEvent('Input value is empty');
++            if (required) {
++              span.addEvent('Email is required');
++              handleInputError("email", true, "Email is required");
++            } else {
++              span.addEvent('Email is not required');
++              handleInputError("email", false, "");
++            }
+           } else {
+-            handleInputError("email", true, "Incorrect email format");
++            const re = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
++            const isEmailValid = re.test(String(inputValue).toLowerCase());
++            span.addEvent('Email validation', { isEmailValid });
++
++            if (isEmailValid) {
++              handleInputError("email", false, "");
++            } else {
++              span.addEvent('Incorrect email format');
++              handleInputError("email", true, "Incorrect email format");
++            }
+           }
+-        }
++          span.end();
++        });
+       }}
+       error={inputErrorHandler.email.error}
+       className={className}
+diff --git a/frontend/src/lib/FileUploadInput.js b/frontend/src/lib/FileUploadInput.js
+index d564926..2006b8d 100644
+--- a/frontend/src/lib/FileUploadInput.js
++++ b/frontend/src/lib/FileUploadInput.js
+@@ -2,6 +2,7 @@ import { useState, useContext } from "react";
+ import { Grid, Button, TextField, LinearProgress } from "@material-ui/core";
+ import { CloudUpload } from "@material-ui/icons";
+ import Axios from "axios";
++import { trace } from "@opentelemetry/api";
+ 
+ import { SetPopupContext } from "../App";
+ 
+@@ -14,7 +15,9 @@ const FileUploadInput = (props) => {
+   const [uploadPercentage, setUploadPercentage] = useState(0);
+ 
+   const handleUpload = () => {
+-    console.log(file);
++    const span = trace.getTracer("default").startSpan("handleUpload");
++    span.addEvent("File selected for upload", { fileName: file.name });
++    
+     const data = new FormData();
+     data.append("file", file);
+     Axios.post(uploadTo, data, {
+@@ -22,15 +25,15 @@ const FileUploadInput = (props) => {
+         "Content-Type": "multipart/form-data",
+       },
+       onUploadProgress: (progressEvent) => {
+-        setUploadPercentage(
+-          parseInt(
+-            Math.round((progressEvent.loaded * 100) / progressEvent.total)
+-          )
++        const percentage = parseInt(
++          Math.round((progressEvent.loaded * 100) / progressEvent.total)
+         );
++        setUploadPercentage(percentage);
++        span.addEvent("Upload progress", { uploadPercentage: percentage });
+       },
+     })
+       .then((response) => {
+-        console.log(response.data);
++        span.addEvent("Upload successful", { responseData: response.data });
+         handleInput(identifier, response.data.url);
+         setPopup({
+           open: true,
+@@ -39,15 +42,15 @@ const FileUploadInput = (props) => {
+         });
+       })
+       .catch((err) => {
+-        console.log(err.response);
++        span.addEvent("Upload failed", { errorResponse: err.response });
+         setPopup({
+           open: true,
+           severity: "error",
+           message: err.response.statusText,
+-          //   message: err.response.data
+-          //     ? err.response.data.message
+-          //     : err.response.statusText,
+         });
++      })
++      .finally(() => {
++        span.end();
+       });
+   };
+ 
+@@ -66,15 +69,14 @@ const FileUploadInput = (props) => {
+               type="file"
+               style={{ display: "none" }}
+               onChange={(event) => {
+-                console.log(event.target.files);
++                const span = trace.getTracer("default").startSpan("fileInputChange");
++                span.addEvent("File input changed", { files: event.target.files });
++                
+                 setUploadPercentage(0);
+                 setFile(event.target.files[0]);
++                
++                span.end();
+               }}
+-              // onChange={onChange}
+-              // onChange={
+-              //   (e) => {}
+-              //   //   setSource({ ...source, place_img: e.target.files[0] })
+-              // }
+             />
+           </Button>
+         </Grid>
+diff --git a/frontend/src/lib/MessagePopup.js b/frontend/src/lib/MessagePopup.js
+index cab6b30..3330f22 100644
+--- a/frontend/src/lib/MessagePopup.js
++++ b/frontend/src/lib/MessagePopup.js
+@@ -1,13 +1,18 @@
+ import { Snackbar, Slide } from "@material-ui/core";
+ import { Alert } from "@material-ui/lab";
++import { diag } from '@opentelemetry/api';
+ 
+ const MessagePopup = (props) => {
+   const handleClose = (event, reason) => {
++    diag.debug('handleClose called with reason:', reason);
+     if (reason === "clickaway") {
++      diag.debug('handleClose early return due to clickaway');
+       return;
+     }
++    diag.debug('Setting open to false');
+     props.setOpen(false);
+   };
++  diag.debug('Rendering MessagePopup with props:', props);
+   return (
+     <Snackbar open={props.open} onClose={handleClose} autoHideDuration={2000}>
+       <Alert onClose={handleClose} severity={props.severity}>
+diff --git a/frontend/src/lib/PasswordInput.js b/frontend/src/lib/PasswordInput.js
+index 00c97d3..6c1eeb2 100644
+--- a/frontend/src/lib/PasswordInput.js
++++ b/frontend/src/lib/PasswordInput.js
+@@ -9,16 +9,25 @@ import {
+ } from "@material-ui/core";
+ import Visibility from "@material-ui/icons/Visibility";
+ import VisibilityOff from "@material-ui/icons/VisibilityOff";
++import { trace } from '@opentelemetry/api';
+ 
+ const PasswordInput = (props) => {
+   const [showPassword, setShowPassword] = useState(false);
++  const tracer = trace.getTracer('default');
+ 
+   const handleShowPassword = () => {
+-    setShowPassword(!showPassword);
++    tracer.startActiveSpan('handleShowPassword', span => {
++      setShowPassword(!showPassword);
++      span.setAttribute('showPassword', !showPassword);
++      span.end();
++    });
+   };
+ 
+   const handleMouseDownPassword = (event) => {
+-    event.preventDefault();
++    tracer.startActiveSpan('handleMouseDownPassword', span => {
++      event.preventDefault();
++      span.end();
++    });
+   };
+ 
+   return (
+@@ -42,10 +51,23 @@ const PasswordInput = (props) => {
+             </InputAdornment>
+           }
+           value={props.value}
+-          onChange={(event) => props.onChange(event)}
++          onChange={(event) => {
++            tracer.startActiveSpan('onChange', span => {
++              props.onChange(event);
++              span.setAttribute('value', event.target.value);
++              span.end();
++            });
++          }}
+           labelWidth={props.labelWidth ? props.labelWidth : 70}
+           className={props.className}
+-          onBlur={props.onBlur ? props.onBlur : null}
++          onBlur={(event) => {
++            if (props.onBlur) {
++              tracer.startActiveSpan('onBlur', span => {
++                props.onBlur(event);
++                span.end();
++              });
++            }
++          }}
+         />
+         {props.helperText ? (
+           <FormHelperText>{props.helperText}</FormHelperText>
+diff --git a/frontend/src/lib/apiList.js b/frontend/src/lib/apiList.js
+index f2eb26b..e2bd7c3 100644
+--- a/frontend/src/lib/apiList.js
++++ b/frontend/src/lib/apiList.js
+@@ -1,4 +1,7 @@
++import { diag } from '@opentelemetry/api';
++
+ export const server = "http://localhost:4444";
++diag.debug(`Server URL: ${server}`);
+ 
+ const apiList = {
+   login: `${server}/auth/login`,
+@@ -12,4 +15,6 @@ const apiList = {
+   applicants: `${server}/api/applicants`,
+ };
+ 
++diag.debug(`API List: ${JSON.stringify(apiList)}`);
++
+ export default apiList;
+diff --git a/frontend/src/lib/isAuth.js b/frontend/src/lib/isAuth.js
+index 1684d2f..630da5b 100644
+--- a/frontend/src/lib/isAuth.js
++++ b/frontend/src/lib/isAuth.js
+@@ -1,9 +1,17 @@
++import { trace } from '@opentelemetry/api';
++
++const tracer = trace.getTracer('default');
++
+ const isAuth = () => {
+-  return localStorage.getItem("token");
++  const token = localStorage.getItem("token");
++  tracer.startSpan('isAuth').addEvent('Retrieved token from localStorage', { token });
++  return token;
+ };
+ 
+ export const userType = () => {
+-  return localStorage.getItem("type");
++  const type = localStorage.getItem("type");
++  tracer.startSpan('userType').addEvent('Retrieved user type from localStorage', { type });
++  return type;
+ };
+ 
+ export default isAuth;
+diff --git a/frontend/src/reportWebVitals.js b/frontend/src/reportWebVitals.js
+index 5253d3a..68f5f2e 100644
+--- a/frontend/src/reportWebVitals.js
++++ b/frontend/src/reportWebVitals.js
+@@ -1,12 +1,33 @@
++import { diag } from '@opentelemetry/api';
++
+ const reportWebVitals = onPerfEntry => {
++  diag.debug('reportWebVitals function called with onPerfEntry:', onPerfEntry);
++
+   if (onPerfEntry && onPerfEntry instanceof Function) {
++    diag.debug('onPerfEntry is a function, proceeding to import web-vitals.');
++
+     import('web-vitals').then(({ getCLS, getFID, getFCP, getLCP, getTTFB }) => {
++      diag.debug('web-vitals module imported successfully.');
++
++      diag.debug('Calling getCLS with onPerfEntry.');
+       getCLS(onPerfEntry);
++
++      diag.debug('Calling getFID with onPerfEntry.');
+       getFID(onPerfEntry);
++
++      diag.debug('Calling getFCP with onPerfEntry.');
+       getFCP(onPerfEntry);
++
++      diag.debug('Calling getLCP with onPerfEntry.');
+       getLCP(onPerfEntry);
++
++      diag.debug('Calling getTTFB with onPerfEntry.');
+       getTTFB(onPerfEntry);
++    }).catch(error => {
++      diag.error('Error importing web-vitals module:', error);
+     });
++  } else {
++    diag.debug('onPerfEntry is not a function or is undefined.');
+   }
+ };
+ 
+diff --git a/frontend/src/setupTests.js b/frontend/src/setupTests.js
+index 8f2609b..48d95c5 100644
+--- a/frontend/src/setupTests.js
++++ b/frontend/src/setupTests.js
+@@ -1,5 +1,19 @@
+-// jest-dom adds custom jest matchers for asserting on DOM nodes.
+-// allows you to do things like:
+-// expect(element).toHaveTextContent(/react/i)
+-// learn more: https://github.com/testing-library/jest-dom
+ import '@testing-library/jest-dom';
++import { trace } from '@opentelemetry/api';
++
++const tracer = trace.getTracer('default');
++
++tracer.startActiveSpan('import-jest-dom', span => {
++  try {
++    // jest-dom adds custom jest matchers for asserting on DOM nodes.
++    // allows you to do things like:
++    // expect(element).toHaveTextContent(/react/i)
++    // learn more: https://github.com/testing-library/jest-dom
++    span.addEvent('jest-dom imported successfully');
++  } catch (error) {
++    span.recordException(error);
++    span.setStatus({ code: trace.SpanStatusCode.ERROR, message: error.message });
++  } finally {
++    span.end();
++  }
++});
+diff --git a/infino-demo/generate_data.py b/infino-demo/generate_data.py
+index 8d5ca3e..b2f8793 100644
+--- a/infino-demo/generate_data.py
++++ b/infino-demo/generate_data.py
+@@ -3,6 +3,10 @@ import requests
+ import openai
+ import random
+ import argparse
++from opentelemetry import trace
++
++# Initialize tracer
++tracer = trace.get_tracer(__name__)
+ 
+ # Load environment variables
+ OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
+@@ -13,126 +17,147 @@ openai.api_key = OPENAI_API_KEY
+ 
+ # Function to generate synthetic data using OpenAI API
+ def generate_data(prompt):
+-    print(f"Generating data with prompt: {prompt}")
+-    response = openai.chat.completions.create(
+-        model="gpt-3.5-turbo",
+-        messages=[{"role": "user", "content": prompt}]
+-    )
+-    generated_text = response.choices[0].message.content.strip()
+-    print(f"Generated text: {generated_text}")
+-    return generated_text
++    with tracer.start_as_current_span("generate_data"):
++        trace.get_current_span().set_attribute("prompt", prompt)
++        print(f"Generating data with prompt: {prompt}")
++        response = openai.chat.completions.create(
++            model="gpt-3.5-turbo",
++            messages=[{"role": "user", "content": prompt}]
++        )
++        generated_text = response.choices[0].message.content.strip()
++        trace.get_current_span().set_attribute("generated_text", generated_text)
++        print(f"Generated text: {generated_text}")
++        return generated_text
+ 
+ # Sign up recruiter
+ def sign_up_recruiter(email, password, name, contact_number, bio):
+-    payload = {
+-        "email": email,
+-        "password": password,
+-        "type": "recruiter",
+-        "name": name,
+-        "contactNumber": contact_number,
+-        "bio": bio
+-    }
+-    print(f"Signing up recruiter with payload: {payload}")
+-    response = requests.post(f'{BASE_URL}/auth/signup', json=payload)
+-    print(f"Response from recruiter signup: {response.status_code} - {response.text}")
+-    return response.status_code, response.json()
++    with tracer.start_as_current_span("sign_up_recruiter"):
++        payload = {
++            "email": email,
++            "password": password,
++            "type": "recruiter",
++            "name": name,
++            "contactNumber": contact_number,
++            "bio": bio
++        }
++        trace.get_current_span().set_attribute("recruiter_payload", str(payload))
++        print(f"Signing up recruiter with payload: {payload}")
++        response = requests.post(f'{BASE_URL}/auth/signup', json=payload)
++        trace.get_current_span().set_attribute("recruiter_signup_response", f"{response.status_code} - {response.text}")
++        print(f"Response from recruiter signup: {response.status_code} - {response.text}")
++        return response.status_code, response.json()
+ 
+ # Post job
+ def post_job(recruiter_token, title, skillsets, salary):
+-    headers = {"Authorization": f"Bearer {recruiter_token}"}
+-    payload = {
+-        "title": title,
+-        "maxApplicants": 5000,
+-        "maxPositions": 10000,
+-        "deadline": "2026-02-22T18:17:24.519Z",
+-        "skillsets": [skillsets, "C++", "Javascript"],
+-        "jobType": "Full Time",
+-        "duration":2,
+-        "salary":salary
+-    }
+-    print(f"Posting job with payload: {payload}")
+-    response = requests.post(f'{BASE_URL}/api/jobs', headers=headers, json=payload)
+-    print(f"Response from job posting: {response.status_code} - {response.text}")
+-    return response.status_code, response.json()
++    with tracer.start_as_current_span("post_job"):
++        headers = {"Authorization": f"Bearer {recruiter_token}"}
++        payload = {
++            "title": title,
++            "maxApplicants": 5000,
++            "maxPositions": 10000,
++            "deadline": "2026-02-22T18:17:24.519Z",
++            "skillsets": [skillsets, "C++", "Javascript"],
++            "jobType": "Full Time",
++            "duration":2,
++            "salary":salary
++        }
++        trace.get_current_span().set_attribute("job_payload", str(payload))
++        print(f"Posting job with payload: {payload}")
++        response = requests.post(f'{BASE_URL}/api/jobs', headers=headers, json=payload)
++        trace.get_current_span().set_attribute("job_posting_response", f"{response.status_code} - {response.text}")
++        print(f"Response from job posting: {response.status_code} - {response.text}")
++        return response.status_code, response.json()
+ 
+ # Sign up applicant
+ def sign_up_applicant(email, password, name, contact_number):
+-    payload = {
+-        "email": email,
+-        "password": password,
+-        "type": "applicant",
+-        "name": name,
+-        "contactNumber": contact_number
+-    }
+-    print(f"Signing up applicant with payload: {payload}")
+-    response = requests.post(f'{BASE_URL}/auth/signup', json=payload)
+-    print(f"Response from applicant signup: {response.status_code} - {response.text}")
+-    return response.status_code, response.json()
++    with tracer.start_as_current_span("sign_up_applicant"):
++        payload = {
++            "email": email,
++            "password": password,
++            "type": "applicant",
++            "name": name,
++            "contactNumber": contact_number
++        }
++        trace.get_current_span().set_attribute("applicant_payload", str(payload))
++        print(f"Signing up applicant with payload: {payload}")
++        response = requests.post(f'{BASE_URL}/auth/signup', json=payload)
++        trace.get_current_span().set_attribute("applicant_signup_response", f"{response.status_code} - {response.text}")
++        print(f"Response from applicant signup: {response.status_code} - {response.text}")
++        return response.status_code, response.json()
+ 
+ # Option to clear database
+ def clear_database():
+-    response = requests.post(f'{BASE_URL}/admin/clear-database')
+-    if response.status_code == 200:
+-        try:
+-            return response.status_code, response.json()
+-        except ValueError:
+-            return response.status_code, "No JSON response"
+-    else:
+-        return response.status_code, response.text
++    with tracer.start_as_current_span("clear_database"):
++        response = requests.post(f'{BASE_URL}/admin/clear-database')
++        trace.get_current_span().set_attribute("clear_database_response", f"{response.status_code} - {response.text}")
++        if response.status_code == 200:
++            try:
++                return response.status_code, response.json()
++            except ValueError:
++                return response.status_code, "No JSON response"
++        else:
++            return response.status_code, response.text
+ 
+ # Write applicant credentials to a file
+ def write_applicant_to_file(email, password):
+-    with open("applicant_users.txt", "a") as file:
+-        file.write(f"{email},{password}\n")
+-
++    with tracer.start_as_current_span("write_applicant_to_file"):
++        trace.get_current_span().set_attribute("applicant_email", email)
++        with open("applicant_users.txt", "a") as file:
++            file.write(f"{email},{password}\n")
+ 
+ # Main script
+ def create_synthetic_data(num_recruiters, num_jobs, num_applicants, clear_db=False):
+-    if clear_db:
+-        print("Clearing database...")
+-        clear_database()
+-
+-    # Create recruiters and jobs
+-    recruiter_tokens = []
+-    for i in range(num_recruiters):
+-        email = f"recruiter{i}@example.com"
+-        password = "password123"
+-        name = generate_data(f"Just return a first and last name")
+-        contact_number = f"+91{random.randint(1000000000, 9999999999)}"
+-        bio = generate_data(f"Write a short bio for recruiter {name}")
+-
+-        # Sign up recruiter
+-        status_code, response = sign_up_recruiter(email, password, name, contact_number, bio)
+-        if status_code == 200:
+-            recruiter_tokens.append(response['token'])
+-        else:
+-            print(f"Failed to sign up recruiter {name}: {response}")
+-
+-    # Post jobs for each recruiter
+-    for token in recruiter_tokens:
+-        for _ in range(num_jobs // num_recruiters):
+-            title = generate_data("Give me a title for a job posting.")
+-            skillsets = generate_data("List one unique skill for a job in 3 or less words")
+-            salary = random.randint(1,100000)
++    with tracer.start_as_current_span("create_synthetic_data"):
++        trace.get_current_span().set_attribute("num_recruiters", num_recruiters)
++        trace.get_current_span().set_attribute("num_jobs", num_jobs)
++        trace.get_current_span().set_attribute("num_applicants", num_applicants)
++        trace.get_current_span().set_attribute("clear_db", clear_db)
++        
++        if clear_db:
++            print("Clearing database...")
++            clear_database()
++
++        # Create recruiters and jobs
++        recruiter_tokens = []
++        for i in range(num_recruiters):
++            email = f"recruiter{i}@example.com"
++            password = "password123"
++            name = generate_data(f"Just return a first and last name")
++            contact_number = f"+91{random.randint(1000000000, 9999999999)}"
++            bio = generate_data(f"Write a short bio for recruiter {name}")
++
++            # Sign up recruiter
++            status_code, response = sign_up_recruiter(email, password, name, contact_number, bio)
++            if status_code == 200:
++                recruiter_tokens.append(response['token'])
++            else:
++                print(f"Failed to sign up recruiter {name}: {response}")
++
++        # Post jobs for each recruiter
++        for token in recruiter_tokens:
++            for _ in range(num_jobs // num_recruiters):
++                title = generate_data("Give me a title for a job posting.")
++                skillsets = generate_data("List one unique skill for a job in 3 or less words")
++                salary = random.randint(1,100000)
++                
++                # Post job
++                status_code, response = post_job(token, title, skillsets, salary)
++                if status_code != 200:
++                    print(f"Failed to post job: {response}")
++
++        # Create applicants
++        for i in range(num_applicants):
++            email = f"applicant{i}@example.com"
++            password = "password123"
++            name = generate_data(f"Just return a first and last name")
++            contact_number = f"+91{random.randint(1000000000, 9999999999)}"
+             
+-            # Post job
+-            status_code, response = post_job(token, title, skillsets, salary)
++            # Sign up applicant
++            status_code, response = sign_up_applicant(email, password, name, contact_number)
+             if status_code != 200:
+-                print(f"Failed to post job: {response}")
+-
+-    # Create applicants
+-    for i in range(num_applicants):
+-        email = f"applicant{i}@example.com"
+-        password = "password123"
+-        name = generate_data(f"Just return a first and last name")
+-        contact_number = f"+91{random.randint(1000000000, 9999999999)}"
+-        
+-        # Sign up applicant
+-        status_code, response = sign_up_applicant(email, password, name, contact_number)
+-        if status_code != 200:
+-            print(f"Failed to sign up applicant {name}: {response}")
+-        else:
+-            write_applicant_to_file(email, password) # Save to file
++                print(f"Failed to sign up applicant {name}: {response}")
++            else:
++                write_applicant_to_file(email, password) # Save to file
+ 
+ # Command-line argument parser
+ if __name__ == "__main__":
+@@ -151,4 +176,3 @@ if __name__ == "__main__":
+         num_jobs=args.num_jobs,
+         num_applicants=args.num_applicants
+     )
+-
+diff --git a/infino-demo/simulate_traffic.py b/infino-demo/simulate_traffic.py
+index f5bd98d..1cdefb6 100644
+--- a/infino-demo/simulate_traffic.py
++++ b/infino-demo/simulate_traffic.py
+@@ -1,3 +1,7 @@
++from opentelemetry import trace
++
++tracer = trace.get_tracer(__name__)
++
+ import requests
+ import random
+ import argparse
+@@ -22,46 +26,70 @@ def search_jobs(token, num_searches, search_options):
+         query_string = "&".join(query_params)
+         url = f"{BASE_URL}/api/jobs?{query_string}"
+         
+-        print(f"Performing job search: {url}")
+-        print(f"Token: {token}")
++        with tracer.start_as_current_span("job_search"):
++            trace.get_current_span().set_attribute("url", url)
++            trace.get_current_span().set_attribute("token", token)
++        
+         response = requests.get(url, headers={"Authorization": f"Bearer {token}"})
+         
+         if response.status_code == 200:
+             jobs = response.json()
+             job_ids_batch = [job["_id"] for job in jobs]
+             job_ids.extend(job_ids_batch)
+-            print(f"Search successful. Found {len(job_ids_batch)} jobs: {job_ids_batch}")
++            with tracer.start_as_current_span("search_success"):
++                trace.get_current_span().set_attribute("found_jobs_count", len(job_ids_batch))
++                trace.get_current_span().set_attribute("job_ids_batch", job_ids_batch)
+         else:
+-            print(f"Error during job search (status: {response.status_code}): {response.text}")
++            with tracer.start_as_current_span("search_error"):
++                trace.get_current_span().set_attribute("status_code", response.status_code)
++                trace.get_current_span().set_attribute("response_text", response.text)
+ 
+     return job_ids
+ 
+ # Function to simulate job views
+ def view_jobs(token, job_ids, num_views):
+-    print(f"Viewing {num_views} jobs.")
++    with tracer.start_as_current_span("view_jobs"):
++        trace.get_current_span().set_attribute("num_views", num_views)
++        trace.get_current_span().set_attribute("job_ids", job_ids)
++    
+     for _ in range(min(num_views, len(job_ids))):
+         job_id = random.choice(job_ids)
+-        print(f"Viewing job with ID: {job_id}")
++        with tracer.start_as_current_span("view_job"):
++            trace.get_current_span().set_attribute("job_id", job_id)
++        
+         response = requests.get(f"{BASE_URL}/api/jobs/{job_id}", headers={"Authorization": f"Bearer {token}"})
+         
+         if response.status_code == 200:
+-            print(f"Successfully viewed job: {job_id}")
++            with tracer.start_as_current_span("view_success"):
++                trace.get_current_span().set_attribute("job_id", job_id)
+         else:
+-            print(f"Failed to view job {job_id} (status: {response.status_code}): {response.text}")
++            with tracer.start_as_current_span("view_error"):
++                trace.get_current_span().set_attribute("job_id", job_id)
++                trace.get_current_span().set_attribute("status_code", response.status_code)
++                trace.get_current_span().set_attribute("response_text", response.text)
+ 
+ # Function to simulate job applications
+ def apply_to_jobs(token, job_ids, num_applies):
+-    print(f"Applying to {num_applies} jobs.")
++    with tracer.start_as_current_span("apply_jobs"):
++        trace.get_current_span().set_attribute("num_applies", num_applies)
++        trace.get_current_span().set_attribute("job_ids", job_ids)
++    
+     for _ in range(min(num_applies, len(job_ids))):
+         job_id = random.choice(job_ids)
+         payload = {"sop": "This is a sample SOP."}
+-        print(f"Applying to job with ID: {job_id}")
++        with tracer.start_as_current_span("apply_job"):
++            trace.get_current_span().set_attribute("job_id", job_id)
++        
+         response = requests.post(f"{BASE_URL}/api/jobs/{job_id}/applications", json=payload, headers={"Authorization": f"Bearer {token}"})
+         
+         if response.status_code == 200:
+-            print(f"Successfully applied to job: {job_id}")
++            with tracer.start_as_current_span("apply_success"):
++                trace.get_current_span().set_attribute("job_id", job_id)
+         else:
+-            print(f"Failed to apply to job {job_id} (status: {response.status_code}): {response.text}")
++            with tracer.start_as_current_span("apply_error"):
++                trace.get_current_span().set_attribute("job_id", job_id)
++                trace.get_current_span().set_attribute("status_code", response.status_code)
++                trace.get_current_span().set_attribute("response_text", response.text)
+ 
+ # Function to load applicant users from file
+ def load_applicants(file):
+@@ -70,26 +98,40 @@ def load_applicants(file):
+         for line in f:
+             email, password = line.strip().split(",")
+             applicants.append({"email": email, "password": password})
+-    print(f"Loaded {len(applicants)} applicants from {file}")
++    with tracer.start_as_current_span("load_applicants"):
++        trace.get_current_span().set_attribute("applicant_count", len(applicants))
++        trace.get_current_span().set_attribute("file", file)
+     return applicants
+ 
+ # Function to log in applicant users and return tokens
+ def login_applicant(email, password):
+     payload = {"email": email, "password": password}
+-    print(f"Logging in user: {email}")
++    with tracer.start_as_current_span("login_applicant"):
++        trace.get_current_span().set_attribute("email", email)
++    
+     response = requests.post(f"{BASE_URL}/auth/login", json=payload)
+     
+     if response.status_code == 200:
+         token = response.json()["token"]
+-        print(f"Login successful for {email}")
++        with tracer.start_as_current_span("login_success"):
++            trace.get_current_span().set_attribute("email", email)
+         return token
+     else:
+-        print(f"Failed to log in {email} (status: {response.status_code}): {response.text}")
++        with tracer.start_as_current_span("login_error"):
++            trace.get_current_span().set_attribute("email", email)
++            trace.get_current_span().set_attribute("status_code", response.status_code)
++            trace.get_current_span().set_attribute("response_text", response.text)
+         return None
+ 
+ # Main function to simulate traffic
+ def simulate_traffic(num_searches, num_views, num_applies, applicant_file, search_options):
+-    print(f"Starting traffic simulation with {num_searches} searches, {num_views} views, {num_applies} applications per applicant.")
++    with tracer.start_as_current_span("simulate_traffic"):
++        trace.get_current_span().set_attribute("num_searches", num_searches)
++        trace.get_current_span().set_attribute("num_views", num_views)
++        trace.get_current_span().set_attribute("num_applies", num_applies)
++        trace.get_current_span().set_attribute("applicant_file", applicant_file)
++        trace.get_current_span().set_attribute("search_options", search_options)
++    
+     applicants = load_applicants(applicant_file)
+     
+     for applicant in applicants:
+@@ -97,12 +139,15 @@ def simulate_traffic(num_searches, num_views, num_applies, applicant_file, searc
+         if token:
+             job_ids = search_jobs(token, num_searches, search_options)
+             if job_ids:
+-                print(f"Proceeding to view and apply to jobs. {len(job_ids)} jobs available.")
++                with tracer.start_as_current_span("proceed_to_view_apply"):
++                    trace.get_current_span().set_attribute("job_ids_count", len(job_ids))
+                 view_jobs(token, job_ids, num_views)
+                 apply_to_jobs(token, job_ids, num_applies)
+             else:
+-                print("No jobs found in the search.")
+-        print("=" * 40)  # Separator between applicants for clarity
++                with tracer.start_as_current_span("no_jobs_found"):
++                    trace.get_current_span().set_attribute("message", "No jobs found in the search.")
++        with tracer.start_as_current_span("applicant_separator"):
++            trace.get_current_span().set_attribute("separator", "=" * 40)
+ 
+ # Command-line argument parser
+ if __name__ == "__main__":
+@@ -124,4 +169,3 @@ if __name__ == "__main__":
+     }
+ 
+     simulate_traffic(args.num_searches, args.num_views, args.num_applies, args.applicant_file, search_options)
+-

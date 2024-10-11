@@ -8,6 +8,7 @@ test('renders learn react link', () => {
   
   diag.debug('Searching for the "learn react" link element');
   const linkElement = screen.getByText(/learn react/i);
+  diag.debug('Found link element:', linkElement);
   
   diag.debug('Checking if the link element is in the document');
   expect(linkElement).toBeInTheDocument();

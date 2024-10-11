@@ -16,7 +16,7 @@ const filterJson = (obj, unwantedKeys) => {
       filteredObj[key] = obj[key];
     }
   });
-  diag.debug(`Filtered object: ${filteredObj}`);
+  diag.debug(`Filtered object: ${JSON.stringify(filteredObj)}`);
   return filteredObj;
 };
 
@@ -65,7 +65,7 @@ passport.use(
       secretOrKey: authKeys.jwtSecretKey,
     },
     (jwt_payload, done) => {
-      diag.debug(`Authenticating JWT payload: ${jwt_payload}`, {method: "GET", route: "/jobs/id"});
+      diag.debug(`Authenticating JWT payload: ${JSON.stringify(jwt_payload)}`, {method: "GET", route: "/jobs/id"});
       User.findById(jwt_payload._id)
         .then((user) => {
           diag.debug(`User found for JWT payload: ${jwt_payload._id}`, {method: "GET", route: "/jobs/id", status: 200});
@@ -79,7 +79,7 @@ passport.use(
           return done(null, user);
         })
         .catch((err) => {
-          diag.error(`Error processing JWT payload: ${jwt_payload}`, {method: "GET", route: "/jobs/id", status: 400});
+          diag.error(`Error processing JWT payload: ${JSON.stringify(jwt_payload)}`, {method: "GET", route: "/jobs/id", status: 400});
           return done(err, false, {
             message: "Incorrect Token",
           });

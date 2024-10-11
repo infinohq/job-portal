@@ -23,6 +23,7 @@ const EmailInput = (props) => {
       helperText={inputErrorHandler.email.message}
       onBlur={(event) => {
         tracer.startActiveSpan('onBlur', span => {
+          span.addEvent('onBlur event triggered', { value: event.target.value });
           if (event.target.value === "") {
             if (required) {
               span.addEvent('Email is required');
@@ -33,6 +34,7 @@ const EmailInput = (props) => {
             }
           } else {
             const re = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+            span.addEvent('Email regex pattern created');
             if (re.test(String(event.target.value).toLowerCase())) {
               span.addEvent('Email format is correct');
               handleInputError("email", false, "");
