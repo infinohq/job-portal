@@ -1,16 +1,17 @@
-const express = require("express");
-const passport = require("passport");
-const jwt = require("jsonwebtoken");
-const authKeys = require("../lib/authKeys");
+const { MeterProvider } = require('@opentelemetry/metrics');
+const { PrometheusExporter } = require('@opentelemetry/exporter-prometheus');
 
-const User = require("../db/User");
-const JobApplicant = require("../db/JobApplicant");
-const Recruiter = require("../db/Recruiter");
-
-const router = express.Router();
+const meter = new MeterProvider({
+  exporter: new PrometheusExporter({
+    startServer: true,
+  }),
+  interval: 1000,
+}).getMeter('business_metrics');
 
 router.post("/signup", (req, res) => {
   const data = req.body;
+  meter.createCounter("signup_requests_total").add(1);
+  
   let user = new User({
     email: data.email,
     password: data.password,
@@ -20,6 +21,8 @@ router.post("/signup", (req, res) => {
   user
     .save()
     .then(() => {
+      meter.createCounter("users_saved_total").add(1);
+      
       const userDetails =
         user.type == "recruiter"
           ? new Recruiter({
@@ -41,7 +44,8 @@ router.post("/signup", (req, res) => {
       userDetails
         .save()
         .then(() => {
-          // Token
+          meter.createCounter("user_details_saved_total").add(1);
+          
           const token = jwt.sign({ _id: user._id }, authKeys.jwtSecretKey);
           res.json({
             token: token,
@@ -49,6 +53,8 @@ router.post("/signup", (req, res) => {
           });
         })
         .catch((err) => {
+          meter.createCounter("user_details_save_errors_total").add(1);
+          
           user
             .delete()
             .then(() => {
@@ -61,11 +67,16 @@ router.post("/signup", (req, res) => {
         });
     })
     .catch((err) => {
+      meter.createCounter("user_save_errors_total").add(1);
+      
+      console.log("Error saving user:", err);
       res.status(400).json(err);
     });
 });
 
 router.post("/login", (req, res, next) => {
+  meter.createCounter("login_requests_total").add(1);
+  
   passport.authenticate(
     "local",
     { session: false },
@@ -77,7 +88,9 @@ router.post("/login", (req, res, next) => {
         res.status(401).json(info);
         return;
       }
-      // Token
+      meter.createCounter("successful_logins_total").add(1);
+      
+      console.log("User logged in successfully.");
       const token = jwt.sign({ _id: user._id }, authKeys.jwtSecretKey);
       res.json({
         token: token,
@@ -86,5 +99,3 @@ router.post("/login", (req, res, next) => {
     }
   )(req, res, next);
 });
-
-module.exports = router;
