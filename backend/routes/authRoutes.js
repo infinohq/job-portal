@@ -2,12 +2,20 @@ const express = require("express");
 const passport = require("passport");
 const jwt = require("jsonwebtoken");
 const authKeys = require("../lib/authKeys");
+const { trace, metrics } = require('@opentelemetry/api');
 
 const User = require("../db/User");
 const JobApplicant = require("../db/JobApplicant");
 const Recruiter = require("../db/Recruiter");
 
 const router = express.Router();
+
+const meter = metrics.getMeter('default');
+
+const signupCounter = meter.createCounter('signup');
+const loginCounter = meter.createCounter('login');
+const signupErrorCounter = meter.createCounter('signupError');
+const loginErrorCounter = meter.createCounter('loginError');
 
 router.post("/signup", (req, res) => {
   const data = req.body;
@@ -17,9 +25,15 @@ router.post("/signup", (req, res) => {
     type: data.type,
   });
 
+  trace.getTracer('default').startSpan('signup: create user', {
+    attributes: { email: data.email, type: data.type },
+  });
+
   user
     .save()
     .then(() => {
+      signupCounter.add(1);
+
       const userDetails =
         user.type == "recruiter"
           ? new Recruiter({
@@ -38,6 +52,10 @@ router.post("/signup", (req, res) => {
               profile: data.profile,
             });
 
+      trace.getTracer('default').startSpan('signup: create user details', {
+        attributes: { userId: user._id, type: user.type },
+      });
+
       userDetails
         .save()
         .then(() => {
@@ -49,6 +67,12 @@ router.post("/signup", (req, res) => {
           });
         })
         .catch((err) => {
+          signupErrorCounter.add(1);
+
+          trace.getTracer('default').startSpan('signup: delete user on error', {
+            attributes: { userId: user._id, error: err },
+          });
+
           user
             .delete()
             .then(() => {
@@ -61,6 +85,7 @@ router.post("/signup", (req, res) => {
         });
     })
     .catch((err) => {
+      signupErrorCounter.add(1);
       res.status(400).json(err);
     });
 });
@@ -71,12 +96,18 @@ router.post("/login", (req, res, next) => {
     { session: false },
     function (err, user, info) {
       if (err) {
+        loginErrorCounter.add(1);
+
+        trace.getTracer('default').startSpan('login: error', {
+          attributes: { error: err },
+        });
         return next(err);
       }
       if (!user) {
         res.status(401).json(info);
         return;
       }
+      loginCounter.add(1);
       // Token
       const token = jwt.sign({ _id: user._id }, authKeys.jwtSecretKey);
       res.json({
