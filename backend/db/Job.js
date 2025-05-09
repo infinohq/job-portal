@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+console.log("Mongoose library required");
 
 let schema = new mongoose.Schema(
   {
@@ -131,5 +132,7 @@ let schema = new mongoose.Schema(
   },
   { collation: { locale: "en" } }
 );
+console.log("Schema created");
 
 module.exports = mongoose.model("jobs", schema);
+console.log("Model exported");

@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
+const log = require('log-library');
 require("mongoose-type-email");
 
 let schema = new mongoose.Schema(

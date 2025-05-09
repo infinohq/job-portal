@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+console.log("Mongoose library has been required.");
 
 let schema = new mongoose.Schema(
   {
@@ -25,5 +26,7 @@ let schema = new mongoose.Schema(
   },
   { collation: { locale: "en" } }
 );
+console.log("Schema for RecruiterInfo has been defined.");
 
 module.exports = mongoose.model("RecruiterInfo", schema);
+console.log("RecruiterInfo model has been exported.");

@@ -4,6 +4,7 @@ const mongoose = require("mongoose");
 const passportConfig = require("./lib/passportConfig");
 const cors = require("cors");
 const fs = require("fs");
+const logger = require('logger').createLogger('logs.log');
 
 // MongoDB
 mongoose
@@ -13,8 +14,12 @@ mongoose
     useCreateIndex: true,
     useFindAndModify: false,
   })
-  .then((res) => console.log("Connected to DB"))
-  .catch((err) => console.log(err));
+  .then((res) => {
+    logger.info("Connected to DB");
+  })
+  .catch((err) => {
+    logger.error(err);
+  });
 
 // initialising directories
 if (!fs.existsSync("./public")) {
@@ -45,5 +50,5 @@ app.use("/upload", require("./routes/uploadRoutes"));
 app.use("/host", require("./routes/downloadRoutes"));
 
 app.listen(port, () => {
-  console.log(`Server started on port ${port}!`);
+  logger.info(`Server started on port ${port}!`);
 });
