@@ -1,13 +1,7 @@
-import {
-  AppBar,
-  Toolbar,
-  Typography,
-  Button,
-  makeStyles,
-} from "@material-ui/core";
+import { AppBar, Toolbar, Typography, Button, makeStyles } from "@material-ui/core";
 import { useHistory } from "react-router-dom";
-
 import isAuth, { userType } from "../lib/isAuth";
+import { diag } from '@opentelemetry/api';
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -26,7 +20,7 @@ const Navbar = (props) => {
   let history = useHistory();
 
   const handleClick = (location) => {
-    console.log(location);
+    diag.debug(`Navigating to location: ${location}`);
     history.push(location);
   };
 

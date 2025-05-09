@@ -3,6 +3,7 @@ const multer = require("multer");
 const fs = require("fs");
 const { v4: uuidv4 } = require("uuid");
 const { promisify } = require("util");
+const { diag } = require("@opentelemetry/api");
 
 const pipeline = promisify(require("stream").pipeline);
 
@@ -12,24 +13,30 @@ const upload = multer();
 
 router.post("/resume", upload.single("file"), (req, res) => {
   const { file } = req;
+  diag.debug("Received file for resume upload", { fileExtension: file.detectedFileExtension });
+
   if (file.detectedFileExtension != ".pdf") {
+    diag.warn("Invalid file format for resume upload", { fileExtension: file.detectedFileExtension });
     res.status(400).json({
       message: "Invalid format",
     });
   } else {
     const filename = `${uuidv4()}${file.detectedFileExtension}`;
+    diag.debug("Generated filename for resume", { filename });
 
     pipeline(
       file.stream,
       fs.createWriteStream(`${__dirname}/../public/resume/${filename}`)
     )
       .then(() => {
+        diag.info("Resume file uploaded successfully", { filename });
         res.send({
           message: "File uploaded successfully",
           url: `/host/resume/${filename}`,
         });
       })
       .catch((err) => {
+        diag.error("Error while uploading resume file", { error: err });
         res.status(400).json({
           message: "Error while uploading",
         });
@@ -39,27 +46,33 @@ router.post("/resume", upload.single("file"), (req, res) => {
 
 router.post("/profile", upload.single("file"), (req, res) => {
   const { file } = req;
+  diag.debug("Received file for profile upload", { fileExtension: file.detectedFileExtension });
+
   if (
     file.detectedFileExtension != ".jpg" &&
     file.detectedFileExtension != ".png"
   ) {
+    diag.warn("Invalid file format for profile upload", { fileExtension: file.detectedFileExtension });
     res.status(400).json({
       message: "Invalid format",
     });
   } else {
     const filename = `${uuidv4()}${file.detectedFileExtension}`;
+    diag.debug("Generated filename for profile image", { filename });
 
     pipeline(
       file.stream,
       fs.createWriteStream(`${__dirname}/../public/profile/${filename}`)
     )
       .then(() => {
+        diag.info("Profile image uploaded successfully", { filename });
         res.send({
           message: "Profile image uploaded successfully",
           url: `/host/profile/${filename}`,
         });
       })
       .catch((err) => {
+        diag.error("Error while uploading profile image", { error: err });
         res.status(400).json({
           message: "Error while uploading",
         });

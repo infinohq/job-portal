@@ -9,6 +9,7 @@ import {
 } from "@material-ui/core";
 import axios from "axios";
 import { Redirect } from "react-router-dom";
+import { diag } from '@opentelemetry/api';
 
 import PasswordInput from "../lib/PasswordInput";
 import EmailInput from "../lib/EmailInput";
@@ -34,11 +35,13 @@ const Login = (props) => {
   const setPopup = useContext(SetPopupContext);
 
   const [loggedin, setLoggedin] = useState(isAuth());
+  diag.debug('Initial loggedin state:', loggedin);
 
   const [loginDetails, setLoginDetails] = useState({
     email: "",
     password: "",
   });
+  diag.debug('Initial loginDetails state:', loginDetails);
 
   const [inputErrorHandler, setInputErrorHandler] = useState({
     email: {
@@ -50,15 +53,19 @@ const Login = (props) => {
       message: "",
     },
   });
+  diag.debug('Initial inputErrorHandler state:', inputErrorHandler);
 
   const handleInput = (key, value) => {
+    diag.debug('handleInput called with:', key, value);
     setLoginDetails({
       ...loginDetails,
       [key]: value,
     });
+    diag.debug('Updated loginDetails state:', loginDetails);
   };
 
   const handleInputError = (key, status, message) => {
+    diag.debug('handleInputError called with:', key, status, message);
     setInputErrorHandler({
       ...inputErrorHandler,
       [key]: {
@@ -66,35 +73,40 @@ const Login = (props) => {
         message: message,
       },
     });
+    diag.debug('Updated inputErrorHandler state:', inputErrorHandler);
   };
 
   const handleLogin = () => {
+    diag.debug('handleLogin called');
     const verified = !Object.keys(inputErrorHandler).some((obj) => {
       return inputErrorHandler[obj].error;
     });
+    diag.debug('Verification result:', verified);
     if (verified) {
       axios
         .post(apiList.login, loginDetails)
         .then((response) => {
+          diag.debug('Login successful, response:', response);
           localStorage.setItem("token", response.data.token);
           localStorage.setItem("type", response.data.type);
           setLoggedin(isAuth());
+          diag.debug('Updated loggedin state:', loggedin);
           setPopup({
             open: true,
             severity: "success",
             message: "Logged in successfully",
           });
-          console.log(response);
         })
         .catch((err) => {
+          diag.debug('Login failed, error:', err.response);
           setPopup({
             open: true,
             severity: "error",
             message: err.response.data.message,
           });
-          console.log(err.response);
         });
     } else {
+      diag.debug('Input verification failed');
       setPopup({
         open: true,
         severity: "error",
