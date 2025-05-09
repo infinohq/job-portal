@@ -1,9 +1,21 @@
+import { trace } from '@opentelemetry/api';
+
+const tracer = trace.getTracer('default');
+
 const isAuth = () => {
-  return localStorage.getItem("token");
+  const span = tracer.startSpan('isAuth');
+  const token = localStorage.getItem("token");
+  span.addEvent('Retrieved token from localStorage', { token });
+  span.end();
+  return token;
 };
 
 export const userType = () => {
-  return localStorage.getItem("type");
+  const span = tracer.startSpan('userType');
+  const type = localStorage.getItem("type");
+  span.addEvent('Retrieved type from localStorage', { type });
+  span.end();
+  return type;
 };
 
 export default isAuth;
