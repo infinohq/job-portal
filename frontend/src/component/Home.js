@@ -19,6 +19,7 @@ import {
 import Rating from "@material-ui/lab/Rating";
 import Pagination from "@material-ui/lab/Pagination";
 import axios from "axios";
+import { OpenTelemetry } from "@opentelemetry/api";
 import SearchIcon from "@material-ui/icons/Search";
 import FilterListIcon from "@material-ui/icons/FilterList";
 import ArrowUpwardIcon from "@material-ui/icons/ArrowUpward";
@@ -86,6 +87,7 @@ const JobTile = (props) => {
           message: response.data.message,
         });
         handleClose();
+        OpenTelemetry.getTracer().startSpan('handleApply', { attributes: { jobId: job._id, sop: sop } });
       })
       .catch((err) => {
         console.log(err.response);
@@ -95,6 +97,7 @@ const JobTile = (props) => {
           message: err.response.data.message,
         });
         handleClose();
+        OpenTelemetry.getTracer().startSpan('handleApply', { attributes: { jobId: job._id, sop: sop, error: err.response } });
       });
   };
 
@@ -544,6 +547,7 @@ const Home = (props) => {
   const setPopup = useContext(SetPopupContext);
   useEffect(() => {
     getData();
+    OpenTelemetry.getTracer().startSpan('useEffect', { attributes: { jobs: jobs, filterOpen: filterOpen, searchOptions: searchOptions } });
   }, []);
 
   const getData = () => {
@@ -612,6 +616,7 @@ const Home = (props) => {
             return deadline > today;
           })
         );
+        OpenTelemetry.getTracer().startSpan('getData', { attributes: { response: response.data, jobs: jobs } });
       })
       .catch((err) => {
         console.log(err.response.data);
@@ -620,6 +625,7 @@ const Home = (props) => {
           severity: "error",
           message: "Error",
         });
+        OpenTelemetry.getTracer().startSpan('getData', { attributes: { error: err.response.data } });
       });
   };
 

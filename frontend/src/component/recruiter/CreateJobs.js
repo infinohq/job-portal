@@ -11,6 +11,7 @@ import {
 } from "@material-ui/core";
 import axios from "axios";
 import ChipInput from "material-ui-chip-input";
+import { trace } from '@opentelemetry/api';
 
 import { SetPopupContext } from "../../App";
 
@@ -47,14 +48,19 @@ const CreateJobs = (props) => {
   });
 
   const handleInput = (key, value) => {
+    const span = trace.getTracer('default').startSpan('handleInput');
+    span.setAttribute('key', key);
+    span.setAttribute('value', value);
     setJobDetails({
       ...jobDetails,
       [key]: value,
     });
+    span.end();
   };
 
   const handleUpdate = () => {
-    console.log(jobDetails);
+    const span = trace.getTracer('default').startSpan('handleUpdate');
+    span.setAttribute('jobDetails', JSON.stringify(jobDetails));
     axios
       .post(apiList.jobs, jobDetails, {
         headers: {
@@ -62,6 +68,8 @@ const CreateJobs = (props) => {
         },
       })
       .then((response) => {
+        span.addEvent('Job created successfully');
+        span.setAttribute('responseMessage', response.data.message);
         setPopup({
           open: true,
           severity: "success",
@@ -81,12 +89,16 @@ const CreateJobs = (props) => {
         });
       })
       .catch((err) => {
+        span.addEvent('Error creating job');
+        span.setAttribute('errorMessage', err.response.data.message);
         setPopup({
           open: true,
           severity: "error",
           message: err.response.data.message,
         });
-        console.log(err.response);
+      })
+      .finally(() => {
+        span.end();
       });
   };
 
