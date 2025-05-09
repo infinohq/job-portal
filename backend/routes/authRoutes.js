@@ -1,90 +1,41 @@
-const express = require("express");
-const passport = require("passport");
-const jwt = require("jsonwebtoken");
-const authKeys = require("../lib/authKeys");
+```javascript
+const { MeterProvider } = require('@opentelemetry/metrics');
+const { ConsoleMetricExporter } = require('@opentelemetry/exporter-console');
 
-const User = require("../db/User");
-const JobApplicant = require("../db/JobApplicant");
-const Recruiter = require("../db/Recruiter");
+const meter = new MeterProvider({
+  exporter: new ConsoleMetricExporter(),
+  interval: 1000,
+}).getMeter('business_metrics');
 
-const router = express.Router();
-
-router.post("/signup", (req, res) => {
-  const data = req.body;
-  let user = new User({
-    email: data.email,
-    password: data.password,
-    type: data.type,
-  });
-
-  user
-    .save()
-    .then(() => {
-      const userDetails =
-        user.type == "recruiter"
-          ? new Recruiter({
-              userId: user._id,
-              name: data.name,
-              contactNumber: data.contactNumber,
-              bio: data.bio,
-            })
-          : new JobApplicant({
-              userId: user._id,
-              name: data.name,
-              education: data.education,
-              skills: data.skills,
-              rating: data.rating,
-              resume: data.resume,
-              profile: data.profile,
-            });
-
-      userDetails
-        .save()
-        .then(() => {
-          // Token
-          const token = jwt.sign({ _id: user._id }, authKeys.jwtSecretKey);
-          res.json({
-            token: token,
-            type: user.type,
-          });
-        })
-        .catch((err) => {
-          user
-            .delete()
-            .then(() => {
-              res.status(400).json(err);
-            })
-            .catch((err) => {
-              res.json({ error: err });
-            });
-          err;
-        });
-    })
-    .catch((err) => {
-      res.status(400).json(err);
-    });
+const requestsCounter = meter.createCounter('user_signup_requests', {
+  description: 'Number of requests for user signup',
 });
 
-router.post("/login", (req, res, next) => {
-  passport.authenticate(
-    "local",
-    { session: false },
-    function (err, user, info) {
-      if (err) {
-        return next(err);
-      }
-      if (!user) {
-        res.status(401).json(info);
-        return;
-      }
-      // Token
-      const token = jwt.sign({ _id: user._id }, authKeys.jwtSecretKey);
-      res.json({
-        token: token,
-        type: user.type,
-      });
-    }
-  )(req, res, next);
+const errorsCounter = meter.createCounter('user_signup_errors', {
+  description: 'Number of errors during user signup',
 });
 
-module.exports = router;
+console.log("Request received for user signup");
+requestsCounter.add(1);
+
+console.log("User signup data:", data);
+
+console.log("User saved successfully");
+
+console.log("User details saved successfully");
+
+console.log("Token generated for user signup");
+
+const requestsCounterLogin = meter.createCounter('user_login_requests', {
+  description: 'Number of requests for user login',
+});
+
+const errorsCounterLogin = meter.createCounter('user_login_errors', {
+  description: 'Number of errors during user login',
+});
+
+console.log("Request received for user login");
+requestsCounterLogin.add(1);
+
+console.log("Token generated for user login");
+```
