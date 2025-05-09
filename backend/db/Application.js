@@ -1,3 +1,5 @@
+```javascript
+console.log("Adding log messages for better traceability");
 const mongoose = require("mongoose");
 
 let schema = new mongoose.Schema(
@@ -78,3 +80,4 @@ let schema = new mongoose.Schema(
 // });
 
 module.exports = mongoose.model("applications", schema);
+```

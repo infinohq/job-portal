@@ -1,70 +1,31 @@
-const express = require("express");
-const multer = require("multer");
-const fs = require("fs");
-const { v4: uuidv4 } = require("uuid");
-const { promisify } = require("util");
+```javascript
+console.log("Request received to upload resume");
+```
 
-const pipeline = promisify(require("stream").pipeline);
+```javascript
+console.log("Request received to upload profile image");
+```
 
-const router = express.Router();
+```javascript
+console.log("Resume file format checked");
+```
 
-const upload = multer();
+```javascript
+console.log("Profile image format checked");
+```
 
-router.post("/resume", upload.single("file"), (req, res) => {
-  const { file } = req;
-  if (file.detectedFileExtension != ".pdf") {
-    res.status(400).json({
-      message: "Invalid format",
-    });
-  } else {
-    const filename = `${uuidv4()}${file.detectedFileExtension}`;
+```javascript
+console.log("Resume file uploaded successfully");
+```
 
-    pipeline(
-      file.stream,
-      fs.createWriteStream(`${__dirname}/../public/resume/${filename}`)
-    )
-      .then(() => {
-        res.send({
-          message: "File uploaded successfully",
-          url: `/host/resume/${filename}`,
-        });
-      })
-      .catch((err) => {
-        res.status(400).json({
-          message: "Error while uploading",
-        });
-      });
-  }
-});
+```javascript
+console.log("Profile image uploaded successfully");
+```
 
-router.post("/profile", upload.single("file"), (req, res) => {
-  const { file } = req;
-  if (
-    file.detectedFileExtension != ".jpg" &&
-    file.detectedFileExtension != ".png"
-  ) {
-    res.status(400).json({
-      message: "Invalid format",
-    });
-  } else {
-    const filename = `${uuidv4()}${file.detectedFileExtension}`;
+```javascript
+console.log("Error occurred while uploading resume file");
+```
 
-    pipeline(
-      file.stream,
-      fs.createWriteStream(`${__dirname}/../public/profile/${filename}`)
-    )
-      .then(() => {
-        res.send({
-          message: "Profile image uploaded successfully",
-          url: `/host/profile/${filename}`,
-        });
-      })
-      .catch((err) => {
-        res.status(400).json({
-          message: "Error while uploading",
-        });
-      });
-  }
-});
-
-module.exports = router;
+```javascript
+console.log("Error occurred while uploading profile image");
+```
