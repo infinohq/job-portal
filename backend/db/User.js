@@ -1,5 +1,10 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
+const { diag, DiagConsoleLogger, DiagLogLevel } = require('@opentelemetry/api');
+
+// Set up OpenTelemetry diagnostics
+diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.ALL);
+
 require("mongoose-type-email");
 
 let schema = new mongoose.Schema(
@@ -27,15 +32,20 @@ let schema = new mongoose.Schema(
 schema.pre("save", function (next) {
   let user = this;
 
+  diag.debug('Pre-save hook triggered for user:', user.email);
+
   // if the data is not modified
   if (!user.isModified("password")) {
+    diag.debug('Password not modified for user:', user.email);
     return next();
   }
 
   bcrypt.hash(user.password, 10, (err, hash) => {
     if (err) {
+      diag.error('Error hashing password for user:', user.email, err);
       return next(err);
     }
+    diag.debug('Password hashed successfully for user:', user.email);
     user.password = hash;
     next();
   });
@@ -45,14 +55,19 @@ schema.pre("save", function (next) {
 schema.methods.login = function (password) {
   let user = this;
 
+  diag.debug('Login method called for user:', user.email);
+
   return new Promise((resolve, reject) => {
     bcrypt.compare(password, user.password, (err, result) => {
       if (err) {
+        diag.error('Error comparing password for user:', user.email, err);
         reject(err);
       }
       if (result) {
+        diag.debug('Password match successful for user:', user.email);
         resolve();
       } else {
+        diag.debug('Password match failed for user:', user.email);
         reject();
       }
     });
