@@ -1,3 +1,8 @@
+const { diag, DiagConsoleLogger, DiagLogLevel } = require('@opentelemetry/api');
+
+// Set up a logger
+diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.ALL);
+
 const passport = require("passport");
 const Strategy = require("passport-local").Strategy;
 
@@ -15,6 +20,7 @@ const filterJson = (obj, unwantedKeys) => {
       filteredObj[key] = obj[key];
     }
   });
+  diag.debug('Filtered JSON object', { filteredObj });
   return filteredObj;
 };
 
@@ -25,12 +31,14 @@ passport.use(
       passReqToCallback: true,
     },
     (req, email, password, done, res) => {
-      // console.log(email, password);
+      diag.debug('Authenticating user', { email, password });
       User.findOne({ email: email }, (err, user) => {
         if (err) {
+          diag.error('Error finding user', { err });
           return done(err);
         }
         if (!user) {
+          diag.warn('User does not exist', { email });
           return done(null, false, {
             message: "User does not exist",
           });
@@ -39,17 +47,12 @@ passport.use(
         user
           .login(password)
           .then(() => {
-            // let userSecure = {};
-            // const unwantedKeys = ["password", "__v"];
-            // Object.keys(user["_doc"]).forEach((key) => {
-            //   if (unwantedKeys.indexOf(key) === -1) {
-            //     userSecure[key] = user[key];
-            //   }
-            // });
+            diag.debug('User logged in successfully', { email });
             user["_doc"] = filterJson(user["_doc"], ["password", "__v"]);
             return done(null, user);
           })
           .catch((err) => {
+            diag.error('Password is incorrect', { err });
             return done(err, false, {
               message: "Password is incorrect.",
             });
@@ -66,10 +69,13 @@ passport.use(
       secretOrKey: authKeys.jwtSecretKey,
     },
     (jwt_payload, done) => {
+      diag.debug('Authenticating JWT', { jwt_payload });
       User.findById(jwt_payload._id)
         .then((user) => {
+          diag.debug('User found by JWT', { user });
           console.log(Object.keys(jwt_payload));
           if (!user) {
+            diag.warn('JWT Token does not exist', { jwt_payload });
             return done(null, false, {
               message: "JWT Token does not exist",
             });
@@ -78,6 +84,7 @@ passport.use(
           return done(null, user);
         })
         .catch((err) => {
+          diag.error('Incorrect Token', { err });
           return done(err, false, {
             message: "Incorrect Token",
           });
