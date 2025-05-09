@@ -1,4 +1,7 @@
 const mongoose = require("mongoose");
+const { diag, DiagConsoleLogger, DiagLogLevel } = require('@opentelemetry/api');
+
+diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.ALL);
 
 let schema = new mongoose.Schema(
   {

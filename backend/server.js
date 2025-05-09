@@ -1,3 +1,14 @@
+const { trace, context, propagation, diag, context } = require('@opentelemetry/api');
+
+trace.setGlobalPropagator(new propagation.CompositePropagator({
+  propagators: [
+    new propagation.HttpTraceContext(),
+    new propagation.B3Propagator(),
+  ],
+}));
+
+diag.setLogger(console);
+
 const express = require("express");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");

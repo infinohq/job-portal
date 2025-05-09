@@ -1,22 +1,6 @@
-const passport = require("passport");
-const Strategy = require("passport-local").Strategy;
+const { trace } = require("@opentelemetry/api");
 
-const passportJWT = require("passport-jwt");
-const JWTStrategy = passportJWT.Strategy;
-const ExtractJWT = passportJWT.ExtractJwt;
-
-const User = require("../db/User");
-const authKeys = require("./authKeys");
-
-const filterJson = (obj, unwantedKeys) => {
-  const filteredObj = {};
-  Object.keys(obj).forEach((key) => {
-    if (unwantedKeys.indexOf(key) === -1) {
-      filteredObj[key] = obj[key];
-    }
-  });
-  return filteredObj;
-};
+trace.addEvent('User logs in');
 
 passport.use(
   new Strategy(
@@ -25,12 +9,14 @@ passport.use(
       passReqToCallback: true,
     },
     (req, email, password, done, res) => {
-      // console.log(email, password);
+      trace.addEvent('Passport local strategy initiated');
       User.findOne({ email: email }, (err, user) => {
         if (err) {
+          trace.addEvent('Error finding user in local strategy');
           return done(err);
         }
         if (!user) {
+          trace.addEvent('User does not exist in local strategy');
           return done(null, false, {
             message: "User does not exist",
           });
@@ -39,17 +25,12 @@ passport.use(
         user
           .login(password)
           .then(() => {
-            // let userSecure = {};
-            // const unwantedKeys = ["password", "__v"];
-            // Object.keys(user["_doc"]).forEach((key) => {
-            //   if (unwantedKeys.indexOf(key) === -1) {
-            //     userSecure[key] = user[key];
-            //   }
-            // });
+            trace.addEvent('User login successful in local strategy');
             user["_doc"] = filterJson(user["_doc"], ["password", "__v"]);
             return done(null, user);
           })
           .catch((err) => {
+            trace.addEvent('Incorrect password in local strategy');
             return done(err, false, {
               message: "Password is incorrect.",
             });
@@ -66,9 +47,10 @@ passport.use(
       secretOrKey: authKeys.jwtSecretKey,
     },
     (jwt_payload, done) => {
+      trace.addEvent('Passport JWT strategy initiated');
       User.findById(jwt_payload._id)
         .then((user) => {
-          console.log(Object.keys(jwt_payload));
+          trace.addEvent('User found in JWT strategy');
           if (!user) {
             return done(null, false, {
               message: "JWT Token does not exist",
@@ -78,6 +60,7 @@ passport.use(
           return done(null, user);
         })
         .catch((err) => {
+          trace.addEvent('Incorrect token in JWT strategy');
           return done(err, false, {
             message: "Incorrect Token",
           });
