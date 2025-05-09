@@ -27,6 +27,9 @@ import ArrowDownwardIcon from "@material-ui/icons/ArrowDownward";
 import { SetPopupContext } from "../../App";
 
 import apiList, { server } from "../../lib/apiList";
+import { trace } from '@opentelemetry/api';
+
+const tracer = trace.getTracer('default');
 
 const useStyles = makeStyles((theme) => ({
   body: {
@@ -404,6 +407,7 @@ const ApplicationTile = (props) => {
   const appliedOn = new Date(application.dateOfApplication);
 
   const changeRating = () => {
+    const span = tracer.startSpan('changeRating');
     axios
       .put(
         apiList.rating,
@@ -436,6 +440,9 @@ const ApplicationTile = (props) => {
         // fetchRating();
         getData();
         setOpen(false);
+      })
+      .finally(() => {
+        span.end();
       });
   };
 
@@ -458,6 +465,7 @@ const ApplicationTile = (props) => {
   };
 
   const getResume = () => {
+    const span = tracer.startSpan('getResume');
     if (
       application.jobApplicant.resume &&
       application.jobApplicant.resume !== ""
@@ -480,6 +488,9 @@ const ApplicationTile = (props) => {
             severity: "error",
             message: "Error",
           });
+        })
+        .finally(() => {
+          span.end();
         });
     } else {
       setPopup({
@@ -491,6 +502,7 @@ const ApplicationTile = (props) => {
   };
 
   const updateStatus = (status) => {
+    const span = tracer.startSpan('updateStatus');
     const address = `${apiList.applications}/${application._id}`;
     const statusData = {
       status: status,
@@ -519,6 +531,9 @@ const ApplicationTile = (props) => {
         });
         console.log(err.response);
         handleCloseEndJob();
+      })
+      .finally(() => {
+        span.end();
       });
   };
 
@@ -717,107 +732,4 @@ const AcceptedApplicants = (props) => {
   }, []);
 
   const getData = () => {
-    let searchParams = [];
-    searchParams = [...searchParams, `status=accepted`];
-
-    let asc = [],
-      desc = [];
-
-    Object.keys(searchOptions.sort).forEach((obj) => {
-      const item = searchOptions.sort[obj];
-      if (item.status) {
-        if (item.desc) {
-          desc = [...desc, `desc=${obj}`];
-        } else {
-          asc = [...asc, `asc=${obj}`];
-        }
-      }
-    });
-
-    searchParams = [...searchParams, ...asc, ...desc];
-    const queryString = searchParams.join("&");
-    console.log(queryString);
-    let address = `${apiList.applicants}`;
-    if (queryString !== "") {
-      address = `${address}?${queryString}`;
-    }
-
-    console.log(address);
-
-    axios
-      .get(address, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      })
-      .then((response) => {
-        console.log(response.data);
-        setApplications(response.data);
-      })
-      .catch((err) => {
-        console.log(err.response);
-        // console.log(err.response.data);
-        setApplications([]);
-        setPopup({
-          open: true,
-          severity: "error",
-          message: err.response.data.message,
-        });
-      });
-  };
-
-  return (
-    <>
-      <Grid
-        container
-        item
-        direction="column"
-        alignItems="center"
-        style={{ padding: "30px", minHeight: "93vh" }}
-      >
-        <Grid item>
-          <Typography variant="h2">Employees</Typography>
-        </Grid>
-        <Grid item>
-          <IconButton onClick={() => setFilterOpen(true)}>
-            <FilterListIcon />
-          </IconButton>
-        </Grid>
-        <Grid
-          container
-          item
-          xs
-          direction="column"
-          style={{ width: "100%" }}
-          alignItems="stretch"
-          justify="center"
-        >
-          {applications.length > 0 ? (
-            applications.map((obj) => (
-              <Grid item>
-                {/* {console.log(obj)} */}
-                <ApplicationTile application={obj} getData={getData} />
-              </Grid>
-            ))
-          ) : (
-            <Typography variant="h5" style={{ textAlign: "center" }}>
-              No Applications Found
-            </Typography>
-          )}
-        </Grid>
-      </Grid>
-      <FilterPopup
-        open={filterOpen}
-        searchOptions={searchOptions}
-        setSearchOptions={setSearchOptions}
-        handleClose={() => setFilterOpen(false)}
-        getData={() => {
-          getData();
-          setFilterOpen(false);
-        }}
-      />
-    </>
-  );
-};
-
-export default AcceptedApplicants;
+    const span =

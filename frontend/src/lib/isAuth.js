@@ -1,9 +1,15 @@
+import { diag } from '@opentelemetry/api';
+
 const isAuth = () => {
-  return localStorage.getItem("token");
+  const token = localStorage.getItem("token");
+  diag.debug('Token retrieved', { token });
+  return token;
 };
 
 export const userType = () => {
-  return localStorage.getItem("type");
+  const type = localStorage.getItem("type");
+  diag.debug('User type retrieved', { type });
+  return type;
 };
 
 export default isAuth;

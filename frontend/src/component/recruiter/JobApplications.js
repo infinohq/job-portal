@@ -27,6 +27,9 @@ import ArrowDownwardIcon from "@material-ui/icons/ArrowDownward";
 import { SetPopupContext } from "../../App";
 
 import apiList, { server } from "../../lib/apiList";
+import { trace } from '@opentelemetry/api';
+
+const tracer = trace.getTracer('default');
 
 const useStyles = makeStyles((theme) => ({
   body: {
@@ -89,6 +92,7 @@ const FilterPopup = (props) => {
                       name="rejected"
                       checked={searchOptions.status.rejected}
                       onChange={(event) => {
+                        const span = tracer.startSpan('Checkbox Change - Rejected');
                         setSearchOptions({
                           ...searchOptions,
                           status: {
@@ -96,6 +100,7 @@ const FilterPopup = (props) => {
                             [event.target.name]: event.target.checked,
                           },
                         });
+                        span.end();
                       }}
                     />
                   }
@@ -109,6 +114,7 @@ const FilterPopup = (props) => {
                       name="applied"
                       checked={searchOptions.status.applied}
                       onChange={(event) => {
+                        const span = tracer.startSpan('Checkbox Change - Applied');
                         setSearchOptions({
                           ...searchOptions,
                           status: {
@@ -116,6 +122,7 @@ const FilterPopup = (props) => {
                             [event.target.name]: event.target.checked,
                           },
                         });
+                        span.end();
                       }}
                     />
                   }
@@ -129,6 +136,7 @@ const FilterPopup = (props) => {
                       name="shortlisted"
                       checked={searchOptions.status.shortlisted}
                       onChange={(event) => {
+                        const span = tracer.startSpan('Checkbox Change - Shortlisted');
                         setSearchOptions({
                           ...searchOptions,
                           status: {
@@ -136,6 +144,7 @@ const FilterPopup = (props) => {
                             [event.target.name]: event.target.checked,
                           },
                         });
+                        span.end();
                       }}
                     />
                   }
@@ -161,7 +170,8 @@ const FilterPopup = (props) => {
                   <Checkbox
                     name="name"
                     checked={searchOptions.sort["jobApplicant.name"].status}
-                    onChange={(event) =>
+                    onChange={(event) => {
+                      const span = tracer.startSpan('Checkbox Change - Name Sort');
                       setSearchOptions({
                         ...searchOptions,
                         sort: {
@@ -171,8 +181,9 @@ const FilterPopup = (props) => {
                             status: event.target.checked,
                           },
                         },
-                      })
-                    }
+                      });
+                      span.end();
+                    }}
                     id="name"
                   />
                 </Grid>
@@ -185,6 +196,7 @@ const FilterPopup = (props) => {
                   <IconButton
                     disabled={!searchOptions.sort["jobApplicant.name"].status}
                     onClick={() => {
+                      const span = tracer.startSpan('IconButton Click - Name Sort');
                       setSearchOptions({
                         ...searchOptions,
                         sort: {
@@ -195,6 +207,7 @@ const FilterPopup = (props) => {
                           },
                         },
                       });
+                      span.end();
                     }}
                   >
                     {searchOptions.sort["jobApplicant.name"].desc ? (
@@ -217,7 +230,8 @@ const FilterPopup = (props) => {
                   <Checkbox
                     name="dateOfApplication"
                     checked={searchOptions.sort.dateOfApplication.status}
-                    onChange={(event) =>
+                    onChange={(event) => {
+                      const span = tracer.startSpan('Checkbox Change - Date of Application Sort');
                       setSearchOptions({
                         ...searchOptions,
                         sort: {
@@ -227,8 +241,9 @@ const FilterPopup = (props) => {
                             status: event.target.checked,
                           },
                         },
-                      })
-                    }
+                      });
+                      span.end();
+                    }}
                     id="dateOfApplication"
                   />
                 </Grid>
@@ -241,6 +256,7 @@ const FilterPopup = (props) => {
                   <IconButton
                     disabled={!searchOptions.sort.dateOfApplication.status}
                     onClick={() => {
+                      const span = tracer.startSpan('IconButton Click - Date of Application Sort');
                       setSearchOptions({
                         ...searchOptions,
                         sort: {
@@ -251,6 +267,7 @@ const FilterPopup = (props) => {
                           },
                         },
                       });
+                      span.end();
                     }}
                   >
                     {searchOptions.sort.dateOfApplication.desc ? (
@@ -273,7 +290,8 @@ const FilterPopup = (props) => {
                   <Checkbox
                     name="rating"
                     checked={searchOptions.sort["jobApplicant.rating"].status}
-                    onChange={(event) =>
+                    onChange={(event) => {
+                      const span = tracer.startSpan('Checkbox Change - Rating Sort');
                       setSearchOptions({
                         ...searchOptions,
                         sort: {
@@ -283,8 +301,9 @@ const FilterPopup = (props) => {
                             status: event.target.checked,
                           },
                         },
-                      })
-                    }
+                      });
+                      span.end();
+                    }}
                     id="rating"
                   />
                 </Grid>
@@ -297,6 +316,7 @@ const FilterPopup = (props) => {
                   <IconButton
                     disabled={!searchOptions.sort["jobApplicant.rating"].status}
                     onClick={() => {
+                      const span = tracer.startSpan('IconButton Click - Rating Sort');
                       setSearchOptions({
                         ...searchOptions,
                         sort: {
@@ -308,6 +328,7 @@ const FilterPopup = (props) => {
                           },
                         },
                       });
+                      span.end();
                     }}
                   >
                     {searchOptions.sort["jobApplicant.rating"].desc ? (
@@ -326,7 +347,11 @@ const FilterPopup = (props) => {
               variant="contained"
               color="primary"
               style={{ padding: "10px 50px" }}
-              onClick={() => getData()}
+              onClick={() => {
+                const span = tracer.startSpan('Button Click - Apply Filter');
+                getData();
+                span.end();
+              }}
             >
               Apply
             </Button>
@@ -360,6 +385,7 @@ const ApplicationTile = (props) => {
   };
 
   const getResume = () => {
+    const span = tracer.startSpan('Get Resume');
     if (
       application.jobApplicant.resume &&
       application.jobApplicant.resume !== ""
@@ -374,6 +400,7 @@ const ApplicationTile = (props) => {
           const file = new Blob([response.data], { type: "application/pdf" });
           const fileURL = URL.createObjectURL(file);
           window.open(fileURL);
+          span.end();
         })
         .catch((error) => {
           console.log(error);
@@ -382,6 +409,7 @@ const ApplicationTile = (props) => {
             severity: "error",
             message: "Error",
           });
+          span.end();
         });
     } else {
       setPopup({
@@ -389,10 +417,12 @@ const ApplicationTile = (props) => {
         severity: "error",
         message: "No resume found",
       });
+      span.end();
     }
   };
 
   const updateStatus = (status) => {
+    const span = tracer.startSpan('Update Status');
     const address = `${apiList.applications}/${application._id}`;
     const statusData = {
       status: status,
@@ -411,6 +441,7 @@ const ApplicationTile = (props) => {
           message: response.data.message,
         });
         getData();
+        span.end();
       })
       .catch((err) => {
         setPopup({
@@ -419,6 +450,7 @@ const ApplicationTile = (props) => {
           message: err.response.data.message,
         });
         console.log(err.response);
+        span.end();
       });
   };
 
@@ -668,6 +700,7 @@ const JobApplications = (props) => {
   }, []);
 
   const getData = () => {
+    const span = tracer.startSpan('Get Data');
     let searchParams = [];
 
     if (searchOptions.status.rejected) {
@@ -701,82 +734,4 @@ const JobApplications = (props) => {
       address = `${address}&${queryString}`;
     }
 
-    console.log(address);
-
-    axios
-      .get(address, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      })
-      .then((response) => {
-        console.log(response.data);
-        setApplications(response.data);
-      })
-      .catch((err) => {
-        console.log(err.response);
-        // console.log(err.response.data);
-        setApplications([]);
-        setPopup({
-          open: true,
-          severity: "error",
-          message: err.response.data.message,
-        });
-      });
-  };
-
-  return (
-    <>
-      <Grid
-        container
-        item
-        direction="column"
-        alignItems="center"
-        style={{ padding: "30px", minHeight: "93vh" }}
-      >
-        <Grid item>
-          <Typography variant="h2">Applications</Typography>
-        </Grid>
-        <Grid item>
-          <IconButton onClick={() => setFilterOpen(true)}>
-            <FilterListIcon />
-          </IconButton>
-        </Grid>
-        <Grid
-          container
-          item
-          xs
-          direction="column"
-          style={{ width: "100%" }}
-          alignItems="stretch"
-          justify="center"
-        >
-          {applications.length > 0 ? (
-            applications.map((obj) => (
-              <Grid item>
-                {/* {console.log(obj)} */}
-                <ApplicationTile application={obj} getData={getData} />
-              </Grid>
-            ))
-          ) : (
-            <Typography variant="h5" style={{ textAlign: "center" }}>
-              No Applications Found
-            </Typography>
-          )}
-        </Grid>
-      </Grid>
-      <FilterPopup
-        open={filterOpen}
-        searchOptions={searchOptions}
-        setSearchOptions={setSearchOptions}
-        handleClose={() => setFilterOpen(false)}
-        getData={() => {
-          getData();
-          setFilterOpen(false);
-        }}
-      />
-    </>
-  );
-};
-
-export default JobApplications;
+    console

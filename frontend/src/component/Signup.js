@@ -24,6 +24,9 @@ import { SetPopupContext } from "../App";
 
 import apiList from "../lib/apiList";
 import isAuth from "../lib/isAuth";
+import { trace } from '@opentelemetry/api';
+
+const tracer = trace.getTracer('default');
 
 const useStyles = makeStyles((theme) => ({
   body: {
@@ -59,6 +62,7 @@ const MultifieldInput = (props) => {
                 const newEdu = [...education];
                 newEdu[key].institutionName = event.target.value;
                 setEducation(newEdu);
+                tracer.startSpan('Institution Name Changed').end();
               }}
               variant="outlined"
             />
@@ -73,6 +77,7 @@ const MultifieldInput = (props) => {
                 const newEdu = [...education];
                 newEdu[key].startYear = event.target.value;
                 setEducation(newEdu);
+                tracer.startSpan('Start Year Changed').end();
               }}
             />
           </Grid>
@@ -86,6 +91,7 @@ const MultifieldInput = (props) => {
                 const newEdu = [...education];
                 newEdu[key].endYear = event.target.value;
                 setEducation(newEdu);
+                tracer.startSpan('End Year Changed').end();
               }}
             />
           </Grid>
@@ -95,7 +101,7 @@ const MultifieldInput = (props) => {
         <Button
           variant="contained"
           color="secondary"
-          onClick={() =>
+          onClick={() => {
             setEducation([
               ...education,
               {
@@ -103,8 +109,9 @@ const MultifieldInput = (props) => {
                 startYear: "",
                 endYear: "",
               },
-            ])
-          }
+            ]);
+            tracer.startSpan('Add another institution details').end();
+          }}
           className={classes.inputBox}
         >
           Add another institution details
@@ -169,6 +176,7 @@ const Login = (props) => {
       ...signupDetails,
       [key]: value,
     });
+    tracer.startSpan(`Input Changed: ${key}`).end();
   };
 
   const handleInputError = (key, status, message) => {
@@ -181,6 +189,7 @@ const Login = (props) => {
         message: message,
       },
     });
+    tracer.startSpan(`Input Error: ${key}`).end();
   };
 
   const handleLogin = () => {
@@ -198,7 +207,7 @@ const Login = (props) => {
       }
     });
 
-    console.log(education);
+    tracer.startSpan('Education Details').end();
 
     let updatedDetails = {
       ...signupDetails,
@@ -230,7 +239,7 @@ const Login = (props) => {
             severity: "success",
             message: "Logged in successfully",
           });
-          console.log(response);
+          tracer.startSpan('Login Success').end();
         })
         .catch((err) => {
           setPopup({
@@ -238,7 +247,7 @@ const Login = (props) => {
             severity: "error",
             message: err.response.data.message,
           });
-          console.log(err.response);
+          tracer.startSpan('Login Error').end();
         });
     } else {
       setInputErrorHandler(tmpErrorHandler);
@@ -247,6 +256,7 @@ const Login = (props) => {
         severity: "error",
         message: "Incorrect Input",
       });
+      tracer.startSpan('Input Verification Failed').end();
     }
   };
 
@@ -286,7 +296,7 @@ const Login = (props) => {
       return tmpErrorHandler[obj].error;
     });
 
-    console.log(updatedDetails);
+    tracer.startSpan('Recruiter Details').end();
 
     if (verified) {
       axios
@@ -300,7 +310,7 @@ const Login = (props) => {
             severity: "success",
             message: "Logged in successfully",
           });
-          console.log(response);
+          tracer.startSpan('Recruiter Login Success').end();
         })
         .catch((err) => {
           setPopup({
@@ -308,7 +318,7 @@ const Login = (props) => {
             severity: "error",
             message: err.response.data.message,
           });
-          console.log(err.response);
+          tracer.startSpan('Recruiter Login Error').end();
         });
     } else {
       setInputErrorHandler(tmpErrorHandler);
@@ -317,6 +327,7 @@ const Login = (props) => {
         severity: "error",
         message: "Incorrect Input",
       });
+      tracer.startSpan('Recruiter Input Verification Failed').end();
     }
   };
 
@@ -468,7 +479,10 @@ const Login = (props) => {
               <PhoneInput
                 country={"in"}
                 value={phone}
-                onChange={(phone) => setPhone(phone)}
+                onChange={(phone) => {
+                  setPhone(phone);
+                  tracer.startSpan('Phone Number Changed').end();
+                }}
               />
             </Grid>
           </>

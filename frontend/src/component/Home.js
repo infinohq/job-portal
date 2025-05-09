@@ -28,6 +28,7 @@ import { SetPopupContext } from "../App";
 
 import apiList from "../lib/apiList";
 import { userType } from "../lib/isAuth";
+import { trace } from '@opentelemetry/api';
 
 const useStyles = makeStyles((theme) => ({
   body: {
@@ -65,8 +66,10 @@ const JobTile = (props) => {
   };
 
   const handleApply = () => {
-    console.log(job._id);
-    console.log(sop);
+    const tracer = trace.getTracer('default');
+    const span = tracer.startSpan('handleApply');
+    span.setAttribute('job_id', job._id);
+    span.setAttribute('sop', sop);
     axios
       .post(
         `${apiList.jobs}/${job._id}/applications`,
@@ -86,15 +89,17 @@ const JobTile = (props) => {
           message: response.data.message,
         });
         handleClose();
+        span.end();
       })
       .catch((err) => {
-        console.log(err.response);
+        span.setAttribute('error', err.response);
         setPopup({
           open: true,
           severity: "error",
           message: err.response.data.message,
         });
         handleClose();
+        span.end();
       });
   };
 
@@ -547,6 +552,8 @@ const Home = (props) => {
   }, []);
 
   const getData = () => {
+    const tracer = trace.getTracer('default');
+    const span = tracer.startSpan('getData');
     let searchParams = [];
     if (searchOptions.query !== "") {
       searchParams = [...searchParams, `q=${searchOptions.query}`];
@@ -591,7 +598,7 @@ const Home = (props) => {
     });
     searchParams = [...searchParams, ...asc, ...desc];
     const queryString = searchParams.join("&");
-    console.log(queryString);
+    span.setAttribute('queryString', queryString);
     let address = apiList.jobs;
     if (queryString !== "") {
       address = `${address}?${queryString}`;
@@ -604,7 +611,7 @@ const Home = (props) => {
         },
       })
       .then((response) => {
-        console.log(response.data);
+        span.setAttribute('response_data', response.data);
         setJobs(
           response.data.filter((obj) => {
             const today = new Date();
@@ -612,14 +619,16 @@ const Home = (props) => {
             return deadline > today;
           })
         );
+        span.end();
       })
       .catch((err) => {
-        console.log(err.response.data);
+        span.setAttribute('error', err.response.data);
         setPopup({
           open: true,
           severity: "error",
           message: "Error",
         });
+        span.end();
       });
   };
 
@@ -701,16 +710,4 @@ const Home = (props) => {
       </Grid>
       <FilterPopup
         open={filterOpen}
-        searchOptions={searchOptions}
-        setSearchOptions={setSearchOptions}
-        handleClose={() => setFilterOpen(false)}
-        getData={() => {
-          getData();
-          setFilterOpen(false);
-        }}
-      />
-    </>
-  );
-};
-
-export default Home;
+        searchOptions={searchOptions
