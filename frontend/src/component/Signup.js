@@ -24,6 +24,7 @@ import { SetPopupContext } from "../App";
 
 import apiList from "../lib/apiList";
 import isAuth from "../lib/isAuth";
+import { trace } from '@opentelemetry/api';
 
 const useStyles = makeStyles((theme) => ({
   body: {
@@ -59,6 +60,7 @@ const MultifieldInput = (props) => {
                 const newEdu = [...education];
                 newEdu[key].institutionName = event.target.value;
                 setEducation(newEdu);
+                trace.getTracer('default').addEvent(`Institution Name changed: ${newEdu[key].institutionName}`);
               }}
               variant="outlined"
             />
@@ -73,6 +75,7 @@ const MultifieldInput = (props) => {
                 const newEdu = [...education];
                 newEdu[key].startYear = event.target.value;
                 setEducation(newEdu);
+                trace.getTracer('default').addEvent(`Start Year changed: ${newEdu[key].startYear}`);
               }}
             />
           </Grid>
@@ -86,6 +89,7 @@ const MultifieldInput = (props) => {
                 const newEdu = [...education];
                 newEdu[key].endYear = event.target.value;
                 setEducation(newEdu);
+                trace.getTracer('default').addEvent(`End Year changed: ${newEdu[key].endYear}`);
               }}
             />
           </Grid>
@@ -95,16 +99,18 @@ const MultifieldInput = (props) => {
         <Button
           variant="contained"
           color="secondary"
-          onClick={() =>
-            setEducation([
+          onClick={() => {
+            const newEducation = [
               ...education,
               {
                 institutionName: "",
                 startYear: "",
                 endYear: "",
               },
-            ])
-          }
+            ];
+            setEducation(newEducation);
+            trace.getTracer('default').addEvent('Added another institution details');
+          }}
           className={classes.inputBox}
         >
           Add another institution details
@@ -169,6 +175,7 @@ const Login = (props) => {
       ...signupDetails,
       [key]: value,
     });
+    trace.getTracer('default').addEvent(`Input changed: ${key} = ${value}`);
   };
 
   const handleInputError = (key, status, message) => {
@@ -181,6 +188,7 @@ const Login = (props) => {
         message: message,
       },
     });
+    trace.getTracer('default').addEvent(`Input error: ${key}, status: ${status}, message: ${message}`);
   };
 
   const handleLogin = () => {
@@ -198,7 +206,7 @@ const Login = (props) => {
       }
     });
 
-    console.log(education);
+    trace.getTracer('default').addEvent(`Education details: ${JSON.stringify(education)}`);
 
     let updatedDetails = {
       ...signupDetails,
@@ -213,6 +221,7 @@ const Login = (props) => {
     };
 
     setSignupDetails(updatedDetails);
+    trace.getTracer('default').addEvent(`Updated signup details: ${JSON.stringify(updatedDetails)}`);
 
     const verified = !Object.keys(tmpErrorHandler).some((obj) => {
       return tmpErrorHandler[obj].error;
@@ -230,7 +239,7 @@ const Login = (props) => {
             severity: "success",
             message: "Logged in successfully",
           });
-          console.log(response);
+          trace.getTracer('default').addEvent(`Login successful: ${response.data}`);
         })
         .catch((err) => {
           setPopup({
@@ -238,7 +247,7 @@ const Login = (props) => {
             severity: "error",
             message: err.response.data.message,
           });
-          console.log(err.response);
+          trace.getTracer('default').addEvent(`Login error: ${err.response.data.message}`);
         });
     } else {
       setInputErrorHandler(tmpErrorHandler);
@@ -247,6 +256,7 @@ const Login = (props) => {
         severity: "error",
         message: "Incorrect Input",
       });
+      trace.getTracer('default').addEvent('Login failed due to incorrect input');
     }
   };
 
@@ -281,12 +291,13 @@ const Login = (props) => {
     }
 
     setSignupDetails(updatedDetails);
+    trace.getTracer('default').addEvent(`Updated signup details for recruiter: ${JSON.stringify(updatedDetails)}`);
 
     const verified = !Object.keys(tmpErrorHandler).some((obj) => {
       return tmpErrorHandler[obj].error;
     });
 
-    console.log(updatedDetails);
+    trace.getTracer('default').addEvent(`Recruiter details: ${JSON.stringify(updatedDetails)}`);
 
     if (verified) {
       axios
@@ -300,7 +311,7 @@ const Login = (props) => {
             severity: "success",
             message: "Logged in successfully",
           });
-          console.log(response);
+          trace.getTracer('default').addEvent(`Recruiter login successful: ${response.data}`);
         })
         .catch((err) => {
           setPopup({
@@ -308,7 +319,7 @@ const Login = (props) => {
             severity: "error",
             message: err.response.data.message,
           });
-          console.log(err.response);
+          trace.getTracer('default').addEvent(`Recruiter login error: ${err.response.data.message}`);
         });
     } else {
       setInputErrorHandler(tmpErrorHandler);
@@ -317,6 +328,7 @@ const Login = (props) => {
         severity: "error",
         message: "Incorrect Input",
       });
+      trace.getTracer('default').addEvent('Recruiter login failed due to incorrect input');
     }
   };
 
@@ -403,9 +415,10 @@ const Login = (props) => {
                 label="Skills"
                 variant="outlined"
                 helperText="Press enter to add skills"
-                onChange={(chips) =>
-                  setSignupDetails({ ...signupDetails, skills: chips })
-                }
+                onChange={(chips) => {
+                  setSignupDetails({ ...signupDetails, skills: chips });
+                  trace.getTracer('default').addEvent(`Skills updated: ${chips}`);
+                }}
               />
             </Grid>
             <Grid item>
@@ -468,7 +481,10 @@ const Login = (props) => {
               <PhoneInput
                 country={"in"}
                 value={phone}
-                onChange={(phone) => setPhone(phone)}
+                onChange={(phone) => {
+                  setPhone(phone);
+                  trace.getTracer('default').addEvent(`Phone number updated: ${phone}`);
+                }}
               />
             </Grid>
           </>

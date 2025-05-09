@@ -29,6 +29,8 @@ import { SetPopupContext } from "../App";
 import apiList from "../lib/apiList";
 import { userType } from "../lib/isAuth";
 
+import { trace } from "@opentelemetry/api";
+
 const useStyles = makeStyles((theme) => ({
   body: {
     height: "inherit",
@@ -65,40 +67,48 @@ const JobTile = (props) => {
   };
 
   const handleApply = () => {
-    console.log(job._id);
-    console.log(sop);
-    axios
-      .post(
-        `${apiList.jobs}/${job._id}/applications`,
-        {
-          sop: sop,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
+    const tracer = trace.getTracer("default");
+    tracer.startActiveSpan("handleApply", (span) => {
+      console.log("Applying for job with ID:", job._id);
+      console.log("Statement of Purpose:", sop);
+      axios
+        .post(
+          `${apiList.jobs}/${job._id}/applications`,
+          {
+            sop: sop,
           },
-        }
-      )
-      .then((response) => {
-        setPopup({
-          open: true,
-          severity: "success",
-          message: response.data.message,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        )
+        .then((response) => {
+          console.log("Application response:", response.data);
+          setPopup({
+            open: true,
+            severity: "success",
+            message: response.data.message,
+          });
+          handleClose();
+        })
+        .catch((err) => {
+          console.log("Application error:", err.response);
+          setPopup({
+            open: true,
+            severity: "error",
+            message: err.response.data.message,
+          });
+          handleClose();
+        })
+        .finally(() => {
+          span.end();
         });
-        handleClose();
-      })
-      .catch((err) => {
-        console.log(err.response);
-        setPopup({
-          open: true,
-          severity: "error",
-          message: err.response.data.message,
-        });
-        handleClose();
-      });
+    });
   };
 
   const deadline = new Date(job.deadline).toLocaleDateString();
+  console.log("Job deadline:", deadline);
 
   return (
     <Paper className={classes.jobTileOuter} elevation={3}>
@@ -547,80 +557,86 @@ const Home = (props) => {
   }, []);
 
   const getData = () => {
-    let searchParams = [];
-    if (searchOptions.query !== "") {
-      searchParams = [...searchParams, `q=${searchOptions.query}`];
-    }
-    if (searchOptions.jobType.fullTime) {
-      searchParams = [...searchParams, `jobType=Full%20Time`];
-    }
-    if (searchOptions.jobType.partTime) {
-      searchParams = [...searchParams, `jobType=Part%20Time`];
-    }
-    if (searchOptions.jobType.wfh) {
-      searchParams = [...searchParams, `jobType=Work%20From%20Home`];
-    }
-    if (searchOptions.salary[0] != 0) {
-      searchParams = [
-        ...searchParams,
-        `salaryMin=${searchOptions.salary[0] * 1000}`,
-      ];
-    }
-    if (searchOptions.salary[1] != 100) {
-      searchParams = [
-        ...searchParams,
-        `salaryMax=${searchOptions.salary[1] * 1000}`,
-      ];
-    }
-    if (searchOptions.duration != "0") {
-      searchParams = [...searchParams, `duration=${searchOptions.duration}`];
-    }
-
-    let asc = [],
-      desc = [];
-
-    Object.keys(searchOptions.sort).forEach((obj) => {
-      const item = searchOptions.sort[obj];
-      if (item.status) {
-        if (item.desc) {
-          desc = [...desc, `desc=${obj}`];
-        } else {
-          asc = [...asc, `asc=${obj}`];
-        }
+    const tracer = trace.getTracer("default");
+    tracer.startActiveSpan("getData", (span) => {
+      let searchParams = [];
+      if (searchOptions.query !== "") {
+        searchParams = [...searchParams, `q=${searchOptions.query}`];
       }
-    });
-    searchParams = [...searchParams, ...asc, ...desc];
-    const queryString = searchParams.join("&");
-    console.log(queryString);
-    let address = apiList.jobs;
-    if (queryString !== "") {
-      address = `${address}?${queryString}`;
-    }
+      if (searchOptions.jobType.fullTime) {
+        searchParams = [...searchParams, `jobType=Full%20Time`];
+      }
+      if (searchOptions.jobType.partTime) {
+        searchParams = [...searchParams, `jobType=Part%20Time`];
+      }
+      if (searchOptions.jobType.wfh) {
+        searchParams = [...searchParams, `jobType=Work%20From%20Home`];
+      }
+      if (searchOptions.salary[0] != 0) {
+        searchParams = [
+          ...searchParams,
+          `salaryMin=${searchOptions.salary[0] * 1000}`,
+        ];
+      }
+      if (searchOptions.salary[1] != 100) {
+        searchParams = [
+          ...searchParams,
+          `salaryMax=${searchOptions.salary[1] * 1000}`,
+        ];
+      }
+      if (searchOptions.duration != "0") {
+        searchParams = [...searchParams, `duration=${searchOptions.duration}`];
+      }
 
-    axios
-      .get(address, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      })
-      .then((response) => {
-        console.log(response.data);
-        setJobs(
-          response.data.filter((obj) => {
-            const today = new Date();
-            const deadline = new Date(obj.deadline);
-            return deadline > today;
-          })
-        );
-      })
-      .catch((err) => {
-        console.log(err.response.data);
-        setPopup({
-          open: true,
-          severity: "error",
-          message: "Error",
-        });
+      let asc = [],
+        desc = [];
+
+      Object.keys(searchOptions.sort).forEach((obj) => {
+        const item = searchOptions.sort[obj];
+        if (item.status) {
+          if (item.desc) {
+            desc = [...desc, `desc=${obj}`];
+          } else {
+            asc = [...asc, `asc=${obj}`];
+          }
+        }
       });
+      searchParams = [...searchParams, ...asc, ...desc];
+      const queryString = searchParams.join("&");
+      console.log("Query string:", queryString);
+      let address = apiList.jobs;
+      if (queryString !== "") {
+        address = `${address}?${queryString}`;
+      }
+
+      axios
+        .get(address, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        })
+        .then((response) => {
+          console.log("Jobs data:", response.data);
+          setJobs(
+            response.data.filter((obj) => {
+              const today = new Date();
+              const deadline = new Date(obj.deadline);
+              return deadline > today;
+            })
+          );
+        })
+        .catch((err) => {
+          console.log("Error fetching jobs:", err.response.data);
+          setPopup({
+            open: true,
+            severity: "error",
+            message: "Error",
+          });
+        })
+        .finally(() => {
+          span.end();
+        });
+    });
   };
 
   return (
