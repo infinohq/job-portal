@@ -1,4 +1,10 @@
 const mongoose = require("mongoose");
+const { diag, DiagConsoleLogger, DiagLogLevel } = require('@opentelemetry/api');
+
+// Set up OpenTelemetry diagnostics
+diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.ALL);
+
+diag.info('Initializing Mongoose schema for applications');
 
 let schema = new mongoose.Schema(
   {
@@ -37,6 +43,7 @@ let schema = new mongoose.Schema(
       validate: [
         {
           validator: function (value) {
+            diag.debug('Validating dateOfJoining:', value);
             return this.dateOfApplication <= value;
           },
           msg: "dateOfJoining should be greater than dateOfApplication",
@@ -47,6 +54,7 @@ let schema = new mongoose.Schema(
       type: String,
       validate: {
         validator: function (v) {
+          diag.debug('Validating SOP length:', v);
           return v.split(" ").filter((ele) => ele != "").length <= 250;
         },
         msg: "Statement of purpose should not be greater than 250 words",
@@ -56,25 +64,7 @@ let schema = new mongoose.Schema(
   { collation: { locale: "en" } }
 );
 
-// schema.virtual("applicationUser", {
-//   ref: "JobApplicantInfo",
-//   localField: "userId",
-//   foreignField: "userId",
-//   justOne: true,
-// });
-
-// schema.virtual("applicationRecruiter", {
-//   ref: "RecruiterInfo",
-//   localField: "recruiterId",
-//   foreignField: "userId",
-//   justOne: true,
-// });
-
-// schema.virtual("applicationJob", {
-//   ref: "jobs",
-//   localField: "jobId",
-//   foreignField: "_id",
-//   justOne: true,
-// });
+diag.info('Mongoose schema for applications initialized successfully');
 
 module.exports = mongoose.model("applications", schema);
+diag.info('Mongoose model for applications exported successfully');
