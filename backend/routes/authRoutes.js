@@ -1,13 +1,4 @@
-const express = require("express");
-const passport = require("passport");
-const jwt = require("jsonwebtoken");
-const authKeys = require("../lib/authKeys");
-
-const User = require("../db/User");
-const JobApplicant = require("../db/JobApplicant");
-const Recruiter = require("../db/Recruiter");
-
-const router = express.Router();
+const { trace } = require("@opentelemetry/api");
 
 router.post("/signup", (req, res) => {
   const data = req.body;
@@ -41,12 +32,12 @@ router.post("/signup", (req, res) => {
       userDetails
         .save()
         .then(() => {
-          // Token
           const token = jwt.sign({ _id: user._id }, authKeys.jwtSecretKey);
           res.json({
             token: token,
             type: user.type,
           });
+          trace.log("User signed up successfully");
         })
         .catch((err) => {
           user
@@ -58,10 +49,12 @@ router.post("/signup", (req, res) => {
               res.json({ error: err });
             });
           err;
+          trace.log("Error occurred during signup process");
         });
     })
     .catch((err) => {
       res.status(400).json(err);
+      trace.log("Error occurred during signup process");
     });
 });
 
@@ -77,14 +70,12 @@ router.post("/login", (req, res, next) => {
         res.status(401).json(info);
         return;
       }
-      // Token
       const token = jwt.sign({ _id: user._id }, authKeys.jwtSecretKey);
       res.json({
         token: token,
         type: user.type,
       });
+      trace.log("User logged in successfully");
     }
   )(req, res, next);
 });
-
-module.exports = router;
