@@ -1,4 +1,8 @@
 const mongoose = require("mongoose");
+const { diag, DiagConsoleLogger, DiagLogLevel } = require('@opentelemetry/api');
+
+// Set up OpenTelemetry diagnostics logger
+diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.INFO);
 
 let schema = new mongoose.Schema(
   {
@@ -14,7 +18,9 @@ let schema = new mongoose.Schema(
       type: String,
       validate: {
         validator: function (v) {
-          return v !== "" ? /\+\d{1,3}\d{10}/.test(v) : true;
+          const isValid = v !== "" ? /\+\d{1,3}\d{10}/.test(v) : true;
+          diag.info(`Validating contact number: ${v}, isValid: ${isValid}`);
+          return isValid;
         },
         msg: "Phone number is invalid!",
       },
@@ -26,4 +32,8 @@ let schema = new mongoose.Schema(
   { collation: { locale: "en" } }
 );
 
+diag.info('Mongoose schema created with collation locale: en');
+
 module.exports = mongoose.model("RecruiterInfo", schema);
+
+diag.info('Mongoose model "RecruiterInfo" created and exported');
