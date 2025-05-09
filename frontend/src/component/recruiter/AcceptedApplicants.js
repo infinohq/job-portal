@@ -27,6 +27,7 @@ import ArrowDownwardIcon from "@material-ui/icons/ArrowDownward";
 import { SetPopupContext } from "../../App";
 
 import apiList, { server } from "../../lib/apiList";
+import { trace, metrics } from "@opentelemetry/api";
 
 const useStyles = makeStyles((theme) => ({
   body: {
@@ -404,6 +405,12 @@ const ApplicationTile = (props) => {
   const appliedOn = new Date(application.dateOfApplication);
 
   const changeRating = () => {
+    const tracer = trace.getTracer("default");
+    const span = tracer.startSpan("changeRating");
+    const meter = metrics.getMeter("default");
+    const ratingCounter = meter.createCounter("applicant_ratings", {
+      description: "Count of applicant ratings",
+    });
     axios
       .put(
         apiList.rating,
@@ -421,21 +428,22 @@ const ApplicationTile = (props) => {
           severity: "success",
           message: "Rating updated successfully",
         });
-        // fetchRating();
+        ratingCounter.add(1, { applicantId: application.jobApplicant.userId });
         getData();
         setOpen(false);
       })
       .catch((err) => {
-        // console.log(err.response);
         console.log(err);
         setPopup({
           open: true,
           severity: "error",
           message: err.response.data.message,
         });
-        // fetchRating();
         getData();
         setOpen(false);
+      })
+      .finally(() => {
+        span.end();
       });
   };
 
@@ -458,6 +466,12 @@ const ApplicationTile = (props) => {
   };
 
   const getResume = () => {
+    const tracer = trace.getTracer("default");
+    const span = tracer.startSpan("getResume");
+    const meter = metrics.getMeter("default");
+    const resumeCounter = meter.createCounter("resume_downloads", {
+      description: "Count of resume downloads",
+    });
     if (
       application.jobApplicant.resume &&
       application.jobApplicant.resume !== ""
@@ -472,6 +486,7 @@ const ApplicationTile = (props) => {
           const file = new Blob([response.data], { type: "application/pdf" });
           const fileURL = URL.createObjectURL(file);
           window.open(fileURL);
+          resumeCounter.add(1, { applicantId: application.jobApplicant.userId });
         })
         .catch((error) => {
           console.log(error);
@@ -480,6 +495,9 @@ const ApplicationTile = (props) => {
             severity: "error",
             message: "Error",
           });
+        })
+        .finally(() => {
+          span.end();
         });
     } else {
       setPopup({
@@ -487,10 +505,17 @@ const ApplicationTile = (props) => {
         severity: "error",
         message: "No resume found",
       });
+      span.end();
     }
   };
 
   const updateStatus = (status) => {
+    const tracer = trace.getTracer("default");
+    const span = tracer.startSpan("updateStatus");
+    const meter = metrics.getMeter("default");
+    const statusCounter = meter.createCounter("status_updates", {
+      description: "Count of status updates",
+    });
     const address = `${apiList.applications}/${application._id}`;
     const statusData = {
       status: status,
@@ -508,6 +533,7 @@ const ApplicationTile = (props) => {
           severity: "success",
           message: response.data.message,
         });
+        statusCounter.add(1, { applicationId: application._id, status: status });
         handleCloseEndJob();
         getData();
       })
@@ -519,6 +545,9 @@ const ApplicationTile = (props) => {
         });
         console.log(err.response);
         handleCloseEndJob();
+      })
+      .finally(() => {
+        span.end();
       });
   };
 
@@ -579,7 +608,6 @@ const ApplicationTile = (props) => {
             </Button>
           </Grid>
           <Grid item container xs>
-            {/* {buttonSet[application.status]} */}
             <Button
               variant="contained"
               color="primary"
@@ -688,136 +716,4 @@ const ApplicationTile = (props) => {
 };
 
 const AcceptedApplicants = (props) => {
-  const setPopup = useContext(SetPopupContext);
-  const [applications, setApplications] = useState([]);
-  const [filterOpen, setFilterOpen] = useState(false);
-  const [searchOptions, setSearchOptions] = useState({
-    sort: {
-      "jobApplicant.name": {
-        status: false,
-        desc: false,
-      },
-      "job.title": {
-        status: false,
-        desc: false,
-      },
-      dateOfJoining: {
-        status: true,
-        desc: true,
-      },
-      "jobApplicant.rating": {
-        status: false,
-        desc: false,
-      },
-    },
-  });
-
-  useEffect(() => {
-    getData();
-  }, []);
-
-  const getData = () => {
-    let searchParams = [];
-    searchParams = [...searchParams, `status=accepted`];
-
-    let asc = [],
-      desc = [];
-
-    Object.keys(searchOptions.sort).forEach((obj) => {
-      const item = searchOptions.sort[obj];
-      if (item.status) {
-        if (item.desc) {
-          desc = [...desc, `desc=${obj}`];
-        } else {
-          asc = [...asc, `asc=${obj}`];
-        }
-      }
-    });
-
-    searchParams = [...searchParams, ...asc, ...desc];
-    const queryString = searchParams.join("&");
-    console.log(queryString);
-    let address = `${apiList.applicants}`;
-    if (queryString !== "") {
-      address = `${address}?${queryString}`;
-    }
-
-    console.log(address);
-
-    axios
-      .get(address, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      })
-      .then((response) => {
-        console.log(response.data);
-        setApplications(response.data);
-      })
-      .catch((err) => {
-        console.log(err.response);
-        // console.log(err.response.data);
-        setApplications([]);
-        setPopup({
-          open: true,
-          severity: "error",
-          message: err.response.data.message,
-        });
-      });
-  };
-
-  return (
-    <>
-      <Grid
-        container
-        item
-        direction="column"
-        alignItems="center"
-        style={{ padding: "30px", minHeight: "93vh" }}
-      >
-        <Grid item>
-          <Typography variant="h2">Employees</Typography>
-        </Grid>
-        <Grid item>
-          <IconButton onClick={() => setFilterOpen(true)}>
-            <FilterListIcon />
-          </IconButton>
-        </Grid>
-        <Grid
-          container
-          item
-          xs
-          direction="column"
-          style={{ width: "100%" }}
-          alignItems="stretch"
-          justify="center"
-        >
-          {applications.length > 0 ? (
-            applications.map((obj) => (
-              <Grid item>
-                {/* {console.log(obj)} */}
-                <ApplicationTile application={obj} getData={getData} />
-              </Grid>
-            ))
-          ) : (
-            <Typography variant="h5" style={{ textAlign: "center" }}>
-              No Applications Found
-            </Typography>
-          )}
-        </Grid>
-      </Grid>
-      <FilterPopup
-        open={filterOpen}
-        searchOptions={searchOptions}
-        setSearchOptions={setSearchOptions}
-        handleClose={() => setFilterOpen(false)}
-        getData={() => {
-          getData();
-          setFilterOpen(false);
-        }}
-      />
-    </>
-  );
-};
-
-export default AcceptedApplicants;
+ 

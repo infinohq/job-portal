@@ -4,6 +4,32 @@ const mongoose = require("mongoose");
 const passportConfig = require("./lib/passportConfig");
 const cors = require("cors");
 const fs = require("fs");
+const { diag, DiagConsoleLogger, DiagLogLevel } = require('@opentelemetry/api');
+const { MeterProvider } = require('@opentelemetry/sdk-metrics-base');
+const { PrometheusExporter } = require('@opentelemetry/exporter-prometheus');
+
+// Set up OpenTelemetry diagnostics
+diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.ALL);
+
+// Set up OpenTelemetry metrics
+const meterProvider = new MeterProvider({
+  exporter: new PrometheusExporter({ startServer: true }),
+  interval: 1000,
+});
+const meter = meterProvider.getMeter('job-portal-meter');
+
+const authRequestCounter = meter.createCounter('auth_requests', {
+  description: 'Count of authentication requests',
+});
+const apiRequestCounter = meter.createCounter('api_requests', {
+  description: 'Count of API requests',
+});
+const uploadRequestCounter = meter.createCounter('upload_requests', {
+  description: 'Count of upload requests',
+});
+const downloadRequestCounter = meter.createCounter('download_requests', {
+  description: 'Count of download requests',
+});
 
 // MongoDB
 mongoose
@@ -13,17 +39,24 @@ mongoose
     useCreateIndex: true,
     useFindAndModify: false,
   })
-  .then((res) => console.log("Connected to DB"))
-  .catch((err) => console.log(err));
+  .then((res) => {
+    diag.info("Connected to DB", { res });
+  })
+  .catch((err) => {
+    diag.error("Error connecting to DB", { err });
+  });
 
 // initialising directories
 if (!fs.existsSync("./public")) {
+  diag.info("Creating directory: ./public");
   fs.mkdirSync("./public");
 }
 if (!fs.existsSync("./public/resume")) {
+  diag.info("Creating directory: ./public/resume");
   fs.mkdirSync("./public/resume");
 }
 if (!fs.existsSync("./public/profile")) {
+  diag.info("Creating directory: ./public/profile");
   fs.mkdirSync("./public/profile");
 }
 
@@ -39,11 +72,26 @@ app.use(express.json());
 app.use(passportConfig.initialize());
 
 // Routing
-app.use("/auth", require("./routes/authRoutes"));
-app.use("/api", require("./routes/apiRoutes"));
-app.use("/upload", require("./routes/uploadRoutes"));
-app.use("/host", require("./routes/downloadRoutes"));
+app.use("/auth", (req, res, next) => {
+  authRequestCounter.add(1);
+  next();
+}, require("./routes/authRoutes"));
+
+app.use("/api", (req, res, next) => {
+  apiRequestCounter.add(1);
+  next();
+}, require("./routes/apiRoutes"));
+
+app.use("/upload", (req, res, next) => {
+  uploadRequestCounter.add(1);
+  next();
+}, require("./routes/uploadRoutes"));
+
+app.use("/host", (req, res, next) => {
+  downloadRequestCounter.add(1);
+  next();
+}, require("./routes/downloadRoutes"));
 
 app.listen(port, () => {
-  console.log(`Server started on port ${port}!`);
+  diag.info(`Server started on port ${port}!`);
 });

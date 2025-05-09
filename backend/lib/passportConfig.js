@@ -1,3 +1,4 @@
+const { trace, metrics } = require("@opentelemetry/api");
 const passport = require("passport");
 const Strategy = require("passport-local").Strategy;
 
@@ -18,6 +19,20 @@ const filterJson = (obj, unwantedKeys) => {
   return filteredObj;
 };
 
+const meter = metrics.getMeter('default');
+const loginAttemptsCounter = meter.createCounter('login_attempts', {
+  description: 'Count of login attempts',
+});
+const successfulLoginsCounter = meter.createCounter('successful_logins', {
+  description: 'Count of successful logins',
+});
+const failedLoginsCounter = meter.createCounter('failed_logins', {
+  description: 'Count of failed logins',
+});
+const jwtAuthCounter = meter.createCounter('jwt_auth_attempts', {
+  description: 'Count of JWT authentication attempts',
+});
+
 passport.use(
   new Strategy(
     {
@@ -25,12 +40,19 @@ passport.use(
       passReqToCallback: true,
     },
     (req, email, password, done, res) => {
-      // console.log(email, password);
+      const span = trace.getTracer("default").startSpan("local-strategy-auth");
+      span.setAttribute("email", email);
+      loginAttemptsCounter.add(1);
       User.findOne({ email: email }, (err, user) => {
         if (err) {
+          span.setAttribute("error", true);
+          span.end();
           return done(err);
         }
         if (!user) {
+          span.setAttribute("user_found", false);
+          failedLoginsCounter.add(1);
+          span.end();
           return done(null, false, {
             message: "User does not exist",
           });
@@ -39,17 +61,16 @@ passport.use(
         user
           .login(password)
           .then(() => {
-            // let userSecure = {};
-            // const unwantedKeys = ["password", "__v"];
-            // Object.keys(user["_doc"]).forEach((key) => {
-            //   if (unwantedKeys.indexOf(key) === -1) {
-            //     userSecure[key] = user[key];
-            //   }
-            // });
             user["_doc"] = filterJson(user["_doc"], ["password", "__v"]);
+            span.setAttribute("user_authenticated", true);
+            successfulLoginsCounter.add(1);
+            span.end();
             return done(null, user);
           })
           .catch((err) => {
+            span.setAttribute("error", true);
+            failedLoginsCounter.add(1);
+            span.end();
             return done(err, false, {
               message: "Password is incorrect.",
             });
@@ -66,18 +87,27 @@ passport.use(
       secretOrKey: authKeys.jwtSecretKey,
     },
     (jwt_payload, done) => {
+      const span = trace.getTracer("default").startSpan("jwt-strategy-auth");
+      span.setAttribute("jwt_payload_id", jwt_payload._id);
+      jwtAuthCounter.add(1);
       User.findById(jwt_payload._id)
         .then((user) => {
-          console.log(Object.keys(jwt_payload));
+          span.setAttribute("jwt_payload_keys", Object.keys(jwt_payload));
           if (!user) {
+            span.setAttribute("user_found", false);
+            span.end();
             return done(null, false, {
               message: "JWT Token does not exist",
             });
           }
           user["_doc"] = filterJson(user["_doc"], ["password", "__v"]);
+          span.setAttribute("user_authenticated", true);
+          span.end();
           return done(null, user);
         })
         .catch((err) => {
+          span.setAttribute("error", true);
+          span.end();
           return done(err, false, {
             message: "Incorrect Token",
           });

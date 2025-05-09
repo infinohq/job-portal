@@ -17,6 +17,7 @@ import FaceIcon from "@material-ui/icons/Face";
 import { SetPopupContext } from "../App";
 
 import apiList from "../lib/apiList";
+import { trace, metrics } from "@opentelemetry/api";
 
 const useStyles = makeStyles((theme) => ({
   body: {
@@ -47,6 +48,7 @@ const MultifieldInput = (props) => {
                 const newEdu = [...education];
                 newEdu[key].institutionName = event.target.value;
                 setEducation(newEdu);
+                trace.getTracer("default").addEvent("Institution Name Changed", { key, value: event.target.value });
               }}
               variant="outlined"
               fullWidth
@@ -62,6 +64,7 @@ const MultifieldInput = (props) => {
                 const newEdu = [...education];
                 newEdu[key].startYear = event.target.value;
                 setEducation(newEdu);
+                trace.getTracer("default").addEvent("Start Year Changed", { key, value: event.target.value });
               }}
             />
           </Grid>
@@ -75,6 +78,7 @@ const MultifieldInput = (props) => {
                 const newEdu = [...education];
                 newEdu[key].endYear = event.target.value;
                 setEducation(newEdu);
+                trace.getTracer("default").addEvent("End Year Changed", { key, value: event.target.value });
               }}
             />
           </Grid>
@@ -84,7 +88,7 @@ const MultifieldInput = (props) => {
         <Button
           variant="contained"
           color="secondary"
-          onClick={() =>
+          onClick={() => {
             setEducation([
               ...education,
               {
@@ -92,8 +96,9 @@ const MultifieldInput = (props) => {
                 startYear: "",
                 endYear: "",
               },
-            ])
-          }
+            ]);
+            trace.getTracer("default").addEvent("Added another institution details", { education });
+          }}
           className={classes.inputBox}
         >
           Add another institution details
@@ -130,6 +135,7 @@ const Profile = (props) => {
       ...profileDetails,
       [key]: value,
     });
+    trace.getTracer("default").addEvent("Profile Detail Changed", { key, value });
   };
 
   useEffect(() => {
@@ -146,6 +152,7 @@ const Profile = (props) => {
       .then((response) => {
         console.log(response.data);
         setProfileDetails(response.data);
+        trace.getTracer("default").addEvent("Fetched User Data", { data: response.data });
         if (response.data.education.length > 0) {
           setEducation(
             response.data.education.map((edu) => ({
@@ -154,6 +161,7 @@ const Profile = (props) => {
               endYear: edu.endYear ? edu.endYear : "",
             }))
           );
+          trace.getTracer("default").addEvent("Set Education Data", { education: response.data.education });
         }
       })
       .catch((err) => {
@@ -163,19 +171,23 @@ const Profile = (props) => {
           severity: "error",
           message: "Error",
         });
+        trace.getTracer("default").addEvent("Error Fetching User Data", { error: err.response.data });
       });
   };
 
   const handleClose = () => {
     setOpen(false);
+    trace.getTracer("default").addEvent("Modal Closed");
   };
 
   const editDetails = () => {
     setOpen(true);
+    trace.getTracer("default").addEvent("Edit Details Clicked");
   };
 
   const handleUpdate = () => {
     console.log(education);
+    trace.getTracer("default").addEvent("Updating Details", { education });
 
     let updatedDetails = {
       ...profileDetails,
@@ -201,6 +213,7 @@ const Profile = (props) => {
           severity: "success",
           message: response.data.message,
         });
+        trace.getTracer("default").addEvent("Details Updated Successfully", { message: response.data.message });
         getData();
       })
       .catch((err) => {
@@ -210,9 +223,24 @@ const Profile = (props) => {
           message: err.response.data.message,
         });
         console.log(err.response);
+        trace.getTracer("default").addEvent("Error Updating Details", { error: err.response.data });
       });
     setOpen(false);
   };
+
+  const meter = metrics.getMeter("default");
+  const userFetchCounter = meter.createCounter("user_fetch_count", {
+    description: "Count of user data fetches",
+  });
+  const userUpdateCounter = meter.createCounter("user_update_count", {
+    description: "Count of user data updates",
+  });
+  const skillAddCounter = meter.createCounter("skill_add_count", {
+    description: "Count of skills added",
+  });
+  const skillDeleteCounter = meter.createCounter("skill_delete_count", {
+    description: "Count of skills deleted",
+  });
 
   return (
     <>
@@ -259,12 +287,13 @@ const Profile = (props) => {
                   variant="outlined"
                   helperText="Press enter to add skills"
                   value={profileDetails.skills}
-                  onAdd={(chip) =>
+                  onAdd={(chip) => {
                     setProfileDetails({
                       ...profileDetails,
                       skills: [...profileDetails.skills, chip],
-                    })
-                  }
+                    });
+                    skillAddCounter.add(1);
+                  }}
                   onDelete={(chip, index) => {
                     let skills = profileDetails.skills;
                     skills.splice(index, 1);
@@ -272,6 +301,8 @@ const Profile = (props) => {
                       ...profileDetails,
                       skills: skills,
                     });
+                    trace.getTracer("default").addEvent("Skill Deleted", { chip, index });
+                    skillDeleteCounter.add(1);
                   }}
                   fullWidth
                 />
@@ -301,7 +332,10 @@ const Profile = (props) => {
               variant="contained"
               color="primary"
               style={{ padding: "10px 50px", marginTop: "30px" }}
-              onClick={() => handleUpdate()}
+              onClick={() => {
+                handleUpdate();
+                userUpdateCounter.add(1);
+              }}
             >
               Update Details
             </Button>
