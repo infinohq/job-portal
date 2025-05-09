@@ -9,6 +9,7 @@ import {
 } from "@material-ui/core";
 import axios from "axios";
 import { Redirect } from "react-router-dom";
+import { trace } from '@opentelemetry/api';
 
 import PasswordInput from "../lib/PasswordInput";
 import EmailInput from "../lib/EmailInput";
@@ -52,13 +53,18 @@ const Login = (props) => {
   });
 
   const handleInput = (key, value) => {
+    const span = trace.getTracer('default').startSpan('handleInput');
+    span.addEvent(`Updating loginDetails: ${key} = ${value}`);
     setLoginDetails({
       ...loginDetails,
       [key]: value,
     });
+    span.end();
   };
 
   const handleInputError = (key, status, message) => {
+    const span = trace.getTracer('default').startSpan('handleInputError');
+    span.addEvent(`Updating inputErrorHandler: ${key} = { error: ${status}, message: ${message} }`);
     setInputErrorHandler({
       ...inputErrorHandler,
       [key]: {
@@ -66,16 +72,20 @@ const Login = (props) => {
         message: message,
       },
     });
+    span.end();
   };
 
   const handleLogin = () => {
+    const span = trace.getTracer('default').startSpan('handleLogin');
     const verified = !Object.keys(inputErrorHandler).some((obj) => {
       return inputErrorHandler[obj].error;
     });
+    span.addEvent(`Verification status: ${verified}`);
     if (verified) {
       axios
         .post(apiList.login, loginDetails)
         .then((response) => {
+          span.addEvent(`Login successful, response: ${JSON.stringify(response.data)}`);
           localStorage.setItem("token", response.data.token);
           localStorage.setItem("type", response.data.type);
           setLoggedin(isAuth());
@@ -84,23 +94,24 @@ const Login = (props) => {
             severity: "success",
             message: "Logged in successfully",
           });
-          console.log(response);
         })
         .catch((err) => {
+          span.addEvent(`Login failed, error: ${err.response.data.message}`);
           setPopup({
             open: true,
             severity: "error",
             message: err.response.data.message,
           });
-          console.log(err.response);
         });
     } else {
+      span.addEvent("Login failed due to incorrect input");
       setPopup({
         open: true,
         severity: "error",
         message: "Incorrect Input",
       });
     }
+    span.end();
   };
 
   return loggedin ? (

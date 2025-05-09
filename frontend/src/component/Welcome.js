@@ -1,6 +1,13 @@
 import { Grid, Typography } from "@material-ui/core";
+import { trace } from '@opentelemetry/api';
 
 const Welcome = (props) => {
+  const tracer = trace.getTracer('default');
+  tracer.startActiveSpan('Welcome Component', span => {
+    span.addEvent('Rendering Welcome component');
+    span.end();
+  });
+
   return (
     <Grid
       container
@@ -18,6 +25,12 @@ const Welcome = (props) => {
 };
 
 export const ErrorPage = (props) => {
+  const tracer = trace.getTracer('default');
+  tracer.startActiveSpan('ErrorPage Component', span => {
+    span.addEvent('Rendering ErrorPage component');
+    span.end();
+  });
+
   return (
     <Grid
       container
