@@ -11,6 +11,7 @@ import {
 } from "@material-ui/core";
 import axios from "axios";
 import ChipInput from "material-ui-chip-input";
+import { trace, metrics } from '@opentelemetry/api';
 
 import { SetPopupContext } from "../../App";
 
@@ -46,15 +47,36 @@ const CreateJobs = (props) => {
     salary: 0,
   });
 
+  const jobCreationCounter = metrics.getMeter('default').createCounter('job_creation_count', {
+    description: 'Count of jobs created'
+  });
+
+  const jobCreationErrorCounter = metrics.getMeter('default').createCounter('job_creation_error_count', {
+    description: 'Count of job creation errors'
+  });
+
+  const jobSalaryHistogram = metrics.getMeter('default').createHistogram('job_salary_distribution', {
+    description: 'Distribution of job salaries'
+  });
+
+  const jobTypeCounter = metrics.getMeter('default').createCounter('job_type_count', {
+    description: 'Count of jobs by type'
+  });
+
   const handleInput = (key, value) => {
+    const span = trace.getTracer('default').startSpan('handleInput');
+    span.setAttribute('key', key);
+    span.setAttribute('value', value);
     setJobDetails({
       ...jobDetails,
       [key]: value,
     });
+    span.end();
   };
 
   const handleUpdate = () => {
-    console.log(jobDetails);
+    const span = trace.getTracer('default').startSpan('handleUpdate');
+    span.setAttribute('jobDetails', JSON.stringify(jobDetails));
     axios
       .post(apiList.jobs, jobDetails, {
         headers: {
@@ -62,11 +84,16 @@ const CreateJobs = (props) => {
         },
       })
       .then((response) => {
+        span.addEvent('Job created successfully');
+        span.setAttribute('responseMessage', response.data.message);
         setPopup({
           open: true,
           severity: "success",
           message: response.data.message,
         });
+        jobCreationCounter.add(1);
+        jobSalaryHistogram.record(jobDetails.salary);
+        jobTypeCounter.add(1, { jobType: jobDetails.jobType });
         setJobDetails({
           title: "",
           maxApplicants: 100,
@@ -81,12 +108,17 @@ const CreateJobs = (props) => {
         });
       })
       .catch((err) => {
+        span.addEvent('Error creating job');
+        span.setAttribute('errorMessage', err.response.data.message);
         setPopup({
           open: true,
           severity: "error",
           message: err.response.data.message,
         });
-        console.log(err.response);
+        jobCreationErrorCounter.add(1);
+      })
+      .finally(() => {
+        span.end();
       });
   };
 

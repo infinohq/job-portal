@@ -6,6 +6,7 @@ import {
   makeStyles,
 } from "@material-ui/core";
 import { useHistory } from "react-router-dom";
+import { trace, metrics } from '@opentelemetry/api';
 
 import isAuth, { userType } from "../lib/isAuth";
 
@@ -21,14 +22,33 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
+const meter = metrics.getMeter('default');
+const buttonClickCounter = meter.createCounter('button_clicks', {
+  description: 'Count of button clicks in the navbar',
+});
+const userTypeCounter = meter.createCounter('user_type', {
+  description: 'Count of user types accessing the navbar',
+});
+const authStatusCounter = meter.createCounter('auth_status', {
+  description: 'Count of authenticated vs unauthenticated users',
+});
+
 const Navbar = (props) => {
   const classes = useStyles();
   let history = useHistory();
+  const tracer = trace.getTracer('default');
 
   const handleClick = (location) => {
+    const span = tracer.startSpan('handleClick');
+    span.setAttribute('location', location);
+    buttonClickCounter.add(1, { location });
     console.log(location);
     history.push(location);
+    span.end();
   };
+
+  const authStatus = isAuth();
+  authStatusCounter.add(1, { status: authStatus ? 'authenticated' : 'unauthenticated' });
 
   return (
     <AppBar position="fixed">
@@ -36,9 +56,10 @@ const Navbar = (props) => {
         <Typography variant="h6" className={classes.title}>
           Job Portal
         </Typography>
-        {isAuth() ? (
+        {authStatus ? (
           userType() === "recruiter" ? (
             <>
+              {userTypeCounter.add(1, { type: 'recruiter' })}
               <Button color="inherit" onClick={() => handleClick("/home")}>
                 Home
               </Button>
@@ -60,6 +81,7 @@ const Navbar = (props) => {
             </>
           ) : (
             <>
+              {userTypeCounter.add(1, { type: 'job_seeker' })}
               <Button color="inherit" onClick={() => handleClick("/home")}>
                 Home
               </Button>
