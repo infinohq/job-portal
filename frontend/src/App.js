@@ -1,6 +1,7 @@
 import { createContext, useState } from "react";
 import { BrowserRouter, Switch, Route } from "react-router-dom";
 import { Grid, makeStyles } from "@material-ui/core";
+import { trace } from '@opentelemetry/api';
 
 import Welcome, { ErrorPage } from "./component/Welcome";
 import Navbar from "./component/Navbar";
@@ -34,78 +35,87 @@ const useStyles = makeStyles((theme) => ({
 export const SetPopupContext = createContext();
 
 function App() {
+  const tracer = trace.getTracer('default');
   const classes = useStyles();
   const [popup, setPopup] = useState({
     open: false,
     severity: "",
     message: "",
   });
-  return (
-    <BrowserRouter>
-      <SetPopupContext.Provider value={setPopup}>
-        <Grid container direction="column">
-          <Grid item xs>
-            <Navbar />
+
+  tracer.startActiveSpan('App Component', span => {
+    span.addEvent('Rendering App component');
+    span.addEvent('Initial popup state', { popup });
+
+    return (
+      <BrowserRouter>
+        <SetPopupContext.Provider value={setPopup}>
+          <Grid container direction="column">
+            <Grid item xs>
+              <Navbar />
+            </Grid>
+            <Grid item className={classes.body}>
+              <Switch>
+                <Route exact path="/">
+                  <Welcome />
+                </Route>
+                <Route exact path="/login">
+                  <Login />
+                </Route>
+                <Route exact path="/signup">
+                  <Signup />
+                </Route>
+                <Route exact path="/logout">
+                  <Logout />
+                </Route>
+                <Route exact path="/home">
+                  <Home />
+                </Route>
+                <Route exact path="/applications">
+                  <Applications />
+                </Route>
+                <Route exact path="/profile">
+                  {userType() === "recruiter" ? (
+                    <RecruiterProfile />
+                  ) : (
+                    <Profile />
+                  )}
+                </Route>
+                <Route exact path="/addjob">
+                  <CreateJobs />
+                </Route>
+                <Route exact path="/myjobs">
+                  <MyJobs />
+                </Route>
+                <Route exact path="/job/applications/:jobId">
+                  <JobApplications />
+                </Route>
+                <Route exact path="/employees">
+                  <AcceptedApplicants />
+                </Route>
+                <Route>
+                  <ErrorPage />
+                </Route>
+              </Switch>
+            </Grid>
           </Grid>
-          <Grid item className={classes.body}>
-            <Switch>
-              <Route exact path="/">
-                <Welcome />
-              </Route>
-              <Route exact path="/login">
-                <Login />
-              </Route>
-              <Route exact path="/signup">
-                <Signup />
-              </Route>
-              <Route exact path="/logout">
-                <Logout />
-              </Route>
-              <Route exact path="/home">
-                <Home />
-              </Route>
-              <Route exact path="/applications">
-                <Applications />
-              </Route>
-              <Route exact path="/profile">
-                {userType() === "recruiter" ? (
-                  <RecruiterProfile />
-                ) : (
-                  <Profile />
-                )}
-              </Route>
-              <Route exact path="/addjob">
-                <CreateJobs />
-              </Route>
-              <Route exact path="/myjobs">
-                <MyJobs />
-              </Route>
-              <Route exact path="/job/applications/:jobId">
-                <JobApplications />
-              </Route>
-              <Route exact path="/employees">
-                <AcceptedApplicants />
-              </Route>
-              <Route>
-                <ErrorPage />
-              </Route>
-            </Switch>
-          </Grid>
-        </Grid>
-        <MessagePopup
-          open={popup.open}
-          setOpen={(status) =>
-            setPopup({
-              ...popup,
-              open: status,
-            })
-          }
-          severity={popup.severity}
-          message={popup.message}
-        />
-      </SetPopupContext.Provider>
-    </BrowserRouter>
-  );
+          <MessagePopup
+            open={popup.open}
+            setOpen={(status) => {
+              const newPopupState = {
+                ...popup,
+                open: status,
+              };
+              span.addEvent('Updating popup state', { newPopupState });
+              setPopup(newPopupState);
+            }}
+            severity={popup.severity}
+            message={popup.message}
+          />
+        </SetPopupContext.Provider>
+      </BrowserRouter>
+    );
+  });
 }
 
 export default App;
